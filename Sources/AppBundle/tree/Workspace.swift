@@ -167,7 +167,15 @@ extension Monitor {
 
 @MainActor
 func gcMonitors() {
-    if screenPointToVisibleWorkspace.count != monitors.count {
+    let currentEntries = monitors.map { MonitorProfile.MonitorEntry(width: $0.rect.width, height: $0.rect.height) }
+    var prevCounts: [MonitorProfile.MonitorEntry: Int] = [:]
+    for e in previousMonitorEntries { prevCounts[e, default: 0] += 1 }
+    var currCounts: [MonitorProfile.MonitorEntry: Int] = [:]
+    for e in currentEntries { currCounts[e, default: 0] += 1 }
+    // Also check resolution profile, not just count: disconnecting the ultrawide while asleep and
+    // waking on the laptop screen keeps count at 1 but switches resolution, and without this check
+    // rearrangeWorkspacesOnMonitors() would never run so on-monitor-changed never fires.
+    if screenPointToVisibleWorkspace.count != monitors.count || currCounts != prevCounts {
         rearrangeWorkspacesOnMonitors()
     }
     for (point, workspace) in screenPointToVisibleWorkspace {
