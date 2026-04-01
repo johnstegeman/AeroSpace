@@ -114,6 +114,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "auto-reload-config": Parser(\.autoReloadConfig, parseBool),
     "automatically-unhide-macos-hidden-apps": Parser(\.automaticallyUnhideMacosHiddenApps, parseBool),
     "accordion": Parser(\.accordion, parseAccordionConfig),
+    "accordion-indicator": Parser(\.accordionIndicator, parseAccordionIndicator),
     persistentWorkspacesKey: Parser(\.persistentWorkspaces, parsePersistentWorkspaces),
     "exec-on-workspace-change": Parser(\.execOnWorkspaceChange, parseArrayOfStrings),
     "exec": Parser(\.execConfig, parseExecConfig),

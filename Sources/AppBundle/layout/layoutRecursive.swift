@@ -60,6 +60,35 @@ extension TreeNode {
                     layoutWidth  -= dLeft + dRight
                     layoutHeight -= dTop  + dBottom
                 }
+                // Reserve space for the accordion indicator overlay when it will be shown.
+                // The indicator only appears for accordion zones with >1 window, so only inset then.
+                // Update lastAppliedLayoutPhysicalRect to the inset rect so AccordionIndicatorManager
+                // anchors the overlay panel flush with the zone edge rather than outside it.
+                if container.isZoneContainer,
+                   container.layout == .accordion,
+                   container.children.count > 1,
+                   config.accordionIndicator.enabled
+                {
+                    let indicatorMargin: CGFloat = 4 // must match AccordionIndicator.swift
+                    let ind = config.accordionIndicator
+                    let inset = CGFloat(ind.iconSize + ind.barPadding * 2) + indicatorMargin
+                    switch ind.position {
+                        case .left:
+                            layoutPoint.x += inset
+                            layoutWidth  -= inset
+                        case .right:
+                            layoutWidth  -= inset
+                        case .top:
+                            layoutPoint.y += inset
+                            layoutHeight -= inset
+                        case .bottom:
+                            layoutHeight -= inset
+                    }
+                    lastAppliedLayoutPhysicalRect = Rect(
+                        topLeftX: layoutPoint.x, topLeftY: layoutPoint.y,
+                        width: layoutWidth, height: layoutHeight,
+                    )
+                }
                 switch container.layout {
                     case .tiles:
                         try await container.layoutTiles(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)

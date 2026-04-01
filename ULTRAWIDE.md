@@ -331,6 +331,26 @@ padding = 30       # peek size used in overlap mode
 
 In cascade mode, each window is offset by `(i * offset-x, i * offset-y)` from the container origin, and all windows share the same size (container dimensions minus total offset). The focused window is naturally on top due to OS focus z-order.
 
+### Accordion Indicator Overlay
+
+> Ported from [nikitabobko/AeroSpace#2038](https://github.com/nikitabobko/AeroSpace/pull/2038) by [@frecano](https://github.com/frecano).
+
+When an accordion zone contains more than one window, a floating icon strip appears along the zone edge showing each window's app icon. Clicking an icon focuses that window. The focused window's icon is highlighted; others are dimmed.
+
+The indicator only appears with ≥2 windows. When it is showing, the zone's content area is automatically inset on the indicator side so windows never slide underneath the overlay.
+
+```toml
+[accordion-indicator]
+enabled = true
+icon-size = 30          # app icon size in points
+icon-padding = 2        # padding between icons
+bar-padding = 4         # padding inside the indicator bar
+position = 'left'       # left | right | top | bottom
+vertical-navigation = false  # if true, up/down always navigates accordion regardless of orientation
+```
+
+The inset is computed from `icon-size + bar-padding * 2 + 4` (the fixed gap between indicator and window edge) and applied during the layout pass — so it participates in all the same gap override and zone focus mode math as the rest of the layout.
+
 ### DFS Scope for Accordion Cycling
 
 `focus dfs-next` and `focus dfs-prev` now accept a `--scope` flag to limit cycling to the immediate parent container of the focused window:
