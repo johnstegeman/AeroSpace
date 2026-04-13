@@ -35,6 +35,9 @@ struct ReloadConfigCommand: Command {
                 try await activateMode(activeMode)
                 syncStartAtLogin()
                 MessageModel.shared.message = nil
+                for workspace in Workspace.all where workspace.isVisible {
+                    workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
+                }
             }
             result = true
         case .failure(let msg):

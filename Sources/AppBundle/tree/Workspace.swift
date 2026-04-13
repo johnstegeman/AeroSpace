@@ -193,6 +193,10 @@ private func rearrangeWorkspacesOnMonitors() {
         check(newScreen.setActiveWorkspace(stubWorkspace),
               "getStubWorkspace generated incompatible stub workspace (\(stubWorkspace)) for the monitor (\(newScreen)")
     }
+
+    for (point, workspace) in screenPointToVisibleWorkspace {
+        workspace.ensureZoneContainers(for: point.monitorApproximation)
+    }
 }
 
 @MainActor
