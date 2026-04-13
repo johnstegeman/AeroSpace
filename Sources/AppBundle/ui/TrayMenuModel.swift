@@ -59,6 +59,27 @@ public final class TrayMenuModel: ObservableObject {
     if let mode {
         items.insert(mode, at: 0)
     }
+    let zoneContainers = focus.workspace.zoneContainers
+    if !zoneContainers.isEmpty {
+        let activeZoneName: String?
+        if let window = focus.windowOrNil,
+           let container = window.parent as? TilingContainer,
+           container.isZoneContainer {
+            activeZoneName = zoneContainers.first { $0.value === container }?.key
+        } else {
+            activeZoneName = nil
+        }
+        for (name, displayName) in [("left", "L"), ("center", "C"), ("right", "R")] {
+            if zoneContainers[name] != nil {
+                items.append(TrayItem(
+                    type: .zone,
+                    name: displayName,
+                    isActive: activeZoneName == name,
+                    hasFullscreenWindows: false,
+                ))
+            }
+        }
+    }
     TrayMenuModel.shared.trayItems = items
 }
 
@@ -74,6 +95,7 @@ struct WorkspaceViewModel: Hashable {
 enum TrayItemType: String, Hashable {
     case mode
     case workspace
+    case zone
 }
 
 private let validLetters = "A" ... "Z"
@@ -93,8 +115,8 @@ struct TrayItem: Hashable, Identifiable {
         let lowercasedName = name.lowercased()
         return switch type {
             case .mode: "\(lowercasedName).circle"
-            case .workspace where isActive: "\(lowercasedName).square.fill"
-            case .workspace: "\(lowercasedName).square"
+            case .workspace, .zone where isActive: "\(lowercasedName).square.fill"
+            case .workspace, .zone: "\(lowercasedName).square"
         }
     }
     var id: String {
