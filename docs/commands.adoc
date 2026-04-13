@@ -140,6 +140,13 @@ include::aerospace-move-node-to-workspace.adoc[tags=synopsis]
 include::aerospace-move-node-to-workspace.adoc[tags=purpose]
 include::aerospace-move-node-to-workspace.adoc[tags=body]
 
+== move-node-to-zone
+----
+include::aerospace-move-node-to-zone.adoc[tags=synopsis]
+----
+include::aerospace-move-node-to-zone.adoc[tags=purpose]
+include::aerospace-move-node-to-zone.adoc[tags=body]
+
 == move-workspace-to-monitor
 ----
 include::aerospace-move-workspace-to-monitor.adoc[tags=synopsis]
