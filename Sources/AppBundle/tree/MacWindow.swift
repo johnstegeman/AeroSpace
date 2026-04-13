@@ -181,6 +181,23 @@ final class MacWindow: Window {
         prevUnhiddenProportionalPositionInsideWorkspaceRect != nil
     }
 
+    /// Returns the on-screen position this floating window should be restored to on quit.
+    /// For windows hidden in a corner (off-screen workspace), computes the proportional position
+    /// they would be at if their workspace were active. For on-screen windows, returns nil
+    /// (caller should read the current axRect instead).
+    @MainActor func floatingQuitPoint() -> CGPoint? {
+        guard let prevUnhiddenProportionalPositionInsideWorkspaceRect else { return nil }
+        guard let nodeWorkspace else { return nil }
+        let workspaceRect = nodeWorkspace.workspaceMonitor.rect
+        var newX = workspaceRect.topLeftX + workspaceRect.width * prevUnhiddenProportionalPositionInsideWorkspaceRect.x
+        var newY = workspaceRect.topLeftY + workspaceRect.height * prevUnhiddenProportionalPositionInsideWorkspaceRect.y
+        let windowWidth = lastFloatingSize?.width ?? 0
+        let windowHeight = lastFloatingSize?.height ?? 0
+        newX = newX.coerce(in: workspaceRect.minX ... max(workspaceRect.minX, workspaceRect.maxX - windowWidth))
+        newY = newY.coerce(in: workspaceRect.minY ... max(workspaceRect.minY, workspaceRect.maxY - windowHeight))
+        return CGPoint(x: newX, y: newY)
+    }
+
     override func getAxSize() async throws -> CGSize? {
         try await macApp.getAxSize(windowId)
     }

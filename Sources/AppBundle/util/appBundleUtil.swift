@@ -32,10 +32,21 @@ private struct AppServerTerminationHandler: TerminationHandler {
 
 @MainActor
 private func makeAllWindowsVisibleAndRestoreSize() async throws {
-    // Make all windows fullscreen before Quit
+    // Make all windows fullscreen before Quit (floating windows keep their current position)
     for (_, window) in MacWindow.allWindowsMap {
         // makeAllWindowsVisibleAndRestoreSize may be invoked when something went wrong (e.g. some windows are unbound)
         // that's why it's not allowed to use `.parent` call in here
+        if window.isFloating {
+            if let quitPoint = window.floatingQuitPoint() {
+                // Hidden in corner (off-screen workspace): restore to the position it would be
+                // at if its workspace were active
+                try await window.setAxFrameBlocking(quitPoint, nil)
+            } else if let currentRect = try await window.getAxRect() {
+                // On active workspace: preserve current position and size
+                try await window.setAxFrameBlocking(currentRect.topLeftCorner, currentRect.size)
+            }
+            continue
+        }
         let monitor = try await window.getCenter()?.monitorApproximation ?? mainMonitor
         let monitorVisibleRect = monitor.visibleRect
         let windowSize = window.lastFloatingSize ?? CGSize(width: monitorVisibleRect.width, height: monitorVisibleRect.height)
