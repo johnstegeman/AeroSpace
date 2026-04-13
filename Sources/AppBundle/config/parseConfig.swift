@@ -113,7 +113,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "start-at-login": Parser(\.startAtLogin, parseBool),
     "auto-reload-config": Parser(\.autoReloadConfig, parseBool),
     "automatically-unhide-macos-hidden-apps": Parser(\.automaticallyUnhideMacosHiddenApps, parseBool),
-    "accordion-padding": Parser(\.accordionPadding, parseInt),
+    "accordion": Parser(\.accordion, parseAccordionConfig),
     persistentWorkspacesKey: Parser(\.persistentWorkspaces, parsePersistentWorkspaces),
     "exec-on-workspace-change": Parser(\.execOnWorkspaceChange, parseArrayOfStrings),
     "exec": Parser(\.execConfig, parseExecConfig),
@@ -292,6 +292,24 @@ private func parseHUDActiveOn(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pars
     parseString(raw, backtrace).flatMap {
         HUDActiveOn(rawValue: $0)
             .orFailure(.semantic(backtrace, "Can't parse hud.active-on '\($0)'. Expected 'ultrawide', 'always', or 'never'"))
+    }
+}
+
+private let accordionConfigParser: [String: any ParserProtocol<AccordionConfig>] = [
+    "mode": Parser(\.mode, parseAccordionMode),
+    "padding": Parser(\.padding, parseInt),
+    "offset-x": Parser(\.offsetX, parseInt),
+    "offset-y": Parser(\.offsetY, parseInt),
+]
+
+func parseAccordionConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> AccordionConfig {
+    parseTable(raw, AccordionConfig(), accordionConfigParser, backtrace, &errors)
+}
+
+private func parseAccordionMode(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<AccordionMode> {
+    parseString(raw, backtrace).flatMap {
+        AccordionMode(rawValue: $0)
+            .orFailure(.semantic(backtrace, "Can't parse accordion.mode '\($0)'. Expected 'overlap' or 'cascade'"))
     }
 }
 

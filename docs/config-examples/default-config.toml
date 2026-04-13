@@ -20,11 +20,6 @@ auto-reload-config = false
 enable-normalization-flatten-containers = true
 enable-normalization-opposite-orientation-for-nested-containers = true
 
-# See: https://nikitabobko.github.io/AeroSpace/guide#layouts
-# The 'accordion-padding' specifies the size of accordion padding
-# You can set 0 to disable the padding feature
-accordion-padding = 30
-
 # Possible values: tiles|accordion
 default-root-container-layout = 'tiles'
 
@@ -57,6 +52,16 @@ persistent-workspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B",
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = []
+
+# See: https://nikitabobko.github.io/AeroSpace/guide#layouts
+# Accordion layout configuration
+# mode = 'overlap' (default) shows only the window directly behind the focused one
+# mode = 'cascade' staggers all windows so each has a visible strip
+[accordion]
+mode = 'overlap'
+padding = 30          # peek size in overlap mode (set 0 to disable)
+offset-x = 24         # horizontal shift per window in cascade mode
+offset-y = 0          # vertical shift per window in cascade mode
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping

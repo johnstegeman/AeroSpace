@@ -44,7 +44,7 @@ struct Config: ConvenienceCopyable {
     var startAtLogin: Bool = false
     var autoReloadConfig: Bool = false
     var automaticallyUnhideMacosHiddenApps: Bool = false
-    var accordionPadding: Int = 30
+    var accordion: AccordionConfig = AccordionConfig()
     var enableNormalizationOppositeOrientationForNestedContainers: Bool = true
     var persistentWorkspaces: OrderedSet<String> = []
     var execOnWorkspaceChange: [String] = [] // todo deprecate
@@ -70,6 +70,17 @@ struct HUDConfig: ConvenienceCopyable {
 
 enum HUDActiveOn: String {
     case ultrawide, always, never
+}
+
+struct AccordionConfig: ConvenienceCopyable {
+    var mode: AccordionMode = .overlap
+    var padding: Int = 30
+    var offsetX: Int = 24
+    var offsetY: Int = 0
+}
+
+enum AccordionMode: String {
+    case overlap, cascade
 }
 
 struct ZonesConfig: ConvenienceCopyable {

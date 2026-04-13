@@ -142,34 +142,53 @@ extension TilingContainer {
 
     @MainActor
     fileprivate func layoutAccordion(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
-        guard let mruIndex: Int = mostRecentChild?.ownIndex else { return }
-        for (index, child) in children.enumerated() {
-            let padding = CGFloat(config.accordionPadding)
-            let (lPadding, rPadding): (CGFloat, CGFloat) = switch index {
-                case 0 where children.count == 1: (0, 0)
-                case 0:                           (0, padding)
-                case children.indices.last:       (padding, 0)
-                case mruIndex - 1:                (0, 2 * padding)
-                case mruIndex + 1:                (2 * padding, 0)
-                default:                          (padding, padding)
+        let n = children.count
+        if config.accordion.mode == .cascade && n > 1 {
+            let offsetX = CGFloat(config.accordion.offsetX)
+            let offsetY = CGFloat(config.accordion.offsetY)
+            let totalOffsetX = offsetX * CGFloat(n - 1)
+            let totalOffsetY = offsetY * CGFloat(n - 1)
+            let windowWidth = max(1, width - totalOffsetX)
+            let windowHeight = max(1, height - totalOffsetY)
+            for (i, child) in children.enumerated() {
+                try await child.layoutRecursive(
+                    point + CGPoint(x: CGFloat(i) * offsetX, y: CGFloat(i) * offsetY),
+                    width: windowWidth,
+                    height: windowHeight,
+                    virtual: virtual,
+                    context,
+                )
             }
-            switch orientation {
-                case .h:
-                    try await child.layoutRecursive(
-                        point + CGPoint(x: lPadding, y: 0),
-                        width: width - rPadding - lPadding,
-                        height: height,
-                        virtual: virtual,
-                        context,
-                    )
-                case .v:
-                    try await child.layoutRecursive(
-                        point + CGPoint(x: 0, y: lPadding),
-                        width: width,
-                        height: height - lPadding - rPadding,
-                        virtual: virtual,
-                        context,
-                    )
+        } else {
+            guard let mruIndex: Int = mostRecentChild?.ownIndex else { return }
+            for (index, child) in children.enumerated() {
+                let padding = CGFloat(config.accordion.padding)
+                let (lPadding, rPadding): (CGFloat, CGFloat) = switch index {
+                    case 0 where n == 1:        (0, 0)
+                    case 0:                     (0, padding)
+                    case n - 1:                 (padding, 0)
+                    case mruIndex - 1:          (0, 2 * padding)
+                    case mruIndex + 1:          (2 * padding, 0)
+                    default:                    (padding, padding)
+                }
+                switch orientation {
+                    case .h:
+                        try await child.layoutRecursive(
+                            point + CGPoint(x: lPadding, y: 0),
+                            width: width - rPadding - lPadding,
+                            height: height,
+                            virtual: virtual,
+                            context,
+                        )
+                    case .v:
+                        try await child.layoutRecursive(
+                            point + CGPoint(x: 0, y: lPadding),
+                            width: width,
+                            height: height - lPadding - rPadding,
+                            virtual: virtual,
+                            context,
+                        )
+                }
             }
         }
     }
