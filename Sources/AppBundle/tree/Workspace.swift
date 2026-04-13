@@ -37,6 +37,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     fileprivate var assignedMonitorPoint: CGPoint? = nil
     /// Active zone containers keyed by name ("left", "center", "right"). Empty when zones are inactive.
     var zoneContainers: [String: TilingContainer] = [:]
+    /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
+    var focusedZone: String? = nil
 
     @MainActor
     private init(_ name: String) {
@@ -221,11 +223,14 @@ extension Workspace {
     private func activateZones(monitorWidth: CGFloat) {
         rootTilingContainer.changeOrientation(.h)
         let widths = validatedZoneWidths(config.zones.widths)
+        let layouts = config.zones.layouts.count == 3 ? config.zones.layouts : [Layout.tiles, .tiles, .tiles]
         let names = ["left", "center", "right"]
-        for (name, proportion) in zip(names, widths) {
-            let container = TilingContainer.newHTiles(
+        for (name, (proportion, layout)) in zip(names, zip(widths, layouts)) {
+            let container = TilingContainer(
                 parent: rootTilingContainer,
                 adaptiveWeight: monitorWidth * proportion,
+                .h,
+                layout,
                 index: INDEX_BIND_LAST
             )
             container.isZoneContainer = true
@@ -243,6 +248,42 @@ extension Workspace {
             zone.unbindFromParent()
         }
         zoneContainers = [:]
+    }
+
+    /// Returns the zone name whose horizontal slice contains >50% of the window's area,
+    /// or nil if no zone clears that threshold. On an exact tie, returns the leftmost zone.
+    @MainActor
+    func zoneForWindowRect(_ windowRect: Rect) -> String? {
+        let names = ["left", "center", "right"]
+        let containers = names.compactMap { name in zoneContainers[name].map { (name, $0) } }
+        guard containers.count == 3 else { return nil }
+
+        let monitorRect = workspaceMonitor.visibleRect
+        let totalWeight = containers.reduce(0.0) { $0 + $1.1.getWeight(.h) }
+        guard totalWeight > 0 else { return nil }
+
+        var xOffset: CGFloat = monitorRect.minX
+        var bestZone: String? = nil
+        var bestOverlapArea: CGFloat = -1
+
+        for (name, container) in containers {
+            let zoneWidth: CGFloat = monitorRect.width * (container.getWeight(.h) / totalWeight)
+            let overlapMinX: CGFloat = max(windowRect.minX, xOffset)
+            let overlapMaxX: CGFloat = min(windowRect.maxX, xOffset + zoneWidth)
+            if overlapMaxX > overlapMinX {
+                let overlapArea: CGFloat = (overlapMaxX - overlapMinX) * windowRect.height
+                if overlapArea > bestOverlapArea {
+                    bestOverlapArea = overlapArea
+                    bestZone = name
+                }
+                // Ties keep the leftmost (already the case since we iterate left→right)
+            }
+            xOffset += zoneWidth
+        }
+
+        let windowArea: CGFloat = windowRect.width * windowRect.height
+        guard windowArea > 0, let bestZone, bestOverlapArea / windowArea > 0.5 else { return nil }
+        return bestZone
     }
 }
 

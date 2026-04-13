@@ -67,7 +67,8 @@ public final class TrayMenuModel: ObservableObject {
            container.isZoneContainer {
             activeZoneName = zoneContainers.first { $0.value === container }?.key
         } else {
-            activeZoneName = nil
+            // Fall back to the one-shot hint set by focus-zone on an empty zone
+            activeZoneName = focus.workspace.focusedZone
         }
         for (name, displayName) in [("left", "L"), ("center", "C"), ("right", "R")] {
             if zoneContainers[name] != nil {

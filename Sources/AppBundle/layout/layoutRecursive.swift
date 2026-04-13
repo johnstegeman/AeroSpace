@@ -114,7 +114,9 @@ extension TilingContainer {
         let lastIndex = children.indices.last
         for (i, child) in children.enumerated() {
             child.setWeight(orientation, child.getWeight(orientation) + delta)
-            let rawGap = context.resolvedGaps.inner.get(orientation).toDouble()
+            let rawGap = (child as? TilingContainer)?.isZoneContainer == true
+                ? Double(config.zones.gap)
+                : context.resolvedGaps.inner.get(orientation).toDouble()
             // Gaps. Consider 4 cases:
             // 1. Multiple children. Layout first child
             // 2. Multiple children. Layout last child

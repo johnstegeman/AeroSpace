@@ -281,6 +281,8 @@ func parseConfigVersion(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConf
 
 private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
     "widths": Parser(\.widths, parseZoneWidths),
+    "layouts": Parser(\.layouts, parseZoneLayouts),
+    "gap": Parser(\.gap, parseInt),
 ]
 
 func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
@@ -302,6 +304,18 @@ private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> Parse
                 return .failure(.semantic(backtrace, "zones.widths must be 3 positive values summing to 1.0"))
             }
             return .success(widths)
+        }
+}
+
+private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Layout]> {
+    parseTomlArray(raw, backtrace)
+        .flatMap { arr -> ParsedConfig<[Layout]> in
+            guard arr.count == 3 else {
+                return .failure(.semantic(backtrace, "zones.layouts must have exactly 3 elements, got \(arr.count)"))
+            }
+            return arr.enumerated().mapAllOrFailure { (index, elem) in
+                parseLayout(elem, backtrace + .index(index))
+            }
         }
 }
 

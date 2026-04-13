@@ -41,6 +41,9 @@ let focus_monitor_help_generated = """
        OR: focus-monitor [-h|--help] [--wrap-around] (next|prev)
        OR: focus-monitor [-h|--help] <monitor-pattern>...
     """
+let focus_zone_help_generated = """
+    USAGE: focus-zone [-h|--help] (left|center|right)
+    """
 let focus_help_generated = """
     USAGE: focus [-h|--help] [--ignore-floating] [--wrap-around]
                  [--boundaries <boundary>] [--boundaries-action <action>]

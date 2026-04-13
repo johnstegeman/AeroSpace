@@ -67,6 +67,11 @@ struct ZonesConfig: ConvenienceCopyable {
     /// Proportional widths for left/center/right zones. Must have exactly 3 elements summing to 1.0.
     /// Falls back to equal thirds if absent or invalid.
     var widths: [Double] = [1.0 / 3, 1.0 / 3, 1.0 / 3]
+    /// Default layout for left/center/right zones. Must have exactly 3 elements.
+    /// Falls back to tiles if absent or invalid.
+    var layouts: [Layout] = [.tiles, .tiles, .tiles]
+    /// Gap in pixels between zone containers. Does not affect gaps within zones.
+    var gap: Int = 0
 }
 
 enum DefaultContainerOrientation: String {
