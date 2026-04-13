@@ -2,24 +2,6 @@
 import Common
 import XCTest
 
-private struct FakeMonitor: Monitor {
-    let monitorAppKitNsScreenScreensId: Int = 1
-    let name: String = "Fake"
-    let rect: Rect
-    let visibleRect: Rect
-    let width: CGFloat
-    let height: CGFloat
-    let isMain: Bool = false
-
-    init(width: CGFloat, height: CGFloat) {
-        let r = Rect(topLeftX: 0, topLeftY: 0, width: width, height: height)
-        self.rect = r
-        self.visibleRect = r
-        self.width = width
-        self.height = height
-    }
-}
-
 final class MonitorIsUltrawideTest: XCTestCase {
     func testIsUltrawide_ultrawide() {
         // 2560x1080 → ratio 2.37 > 2.1 → true

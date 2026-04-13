@@ -231,8 +231,9 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
             index: mruWindow.ownIndex.orDie() + 1,
         )
     } else {
+        let parent = workspace.zoneContainers["center"] ?? workspace.rootTilingContainer
         return BindingData(
-            parent: workspace.rootTilingContainer,
+            parent: parent,
             adaptiveWeight: WEIGHT_AUTO,
             index: INDEX_BIND_LAST,
         )
