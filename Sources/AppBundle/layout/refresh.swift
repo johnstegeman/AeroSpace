@@ -42,8 +42,10 @@ func runHeavyCompleteRefreshSession(
                 refreshModel()
                 try await refresh()
                 gcMonitors()
+                ZoneHUDController.shared.setVisible(hudShouldBeVisible())
 
                 updateTrayText()
+                ZoneHUDController.shared.update(workspace: focus.workspace)
                 SecureInputPanel.shared.refresh()
                 try await normalizeLayoutReason()
                 if shouldLayoutWorkspaces { try await layoutWorkspaces() }
@@ -81,6 +83,7 @@ func runLightSession<T>(
             let focusAfter = focus.windowOrNil
 
             updateTrayText()
+            ZoneHUDController.shared.update(workspace: focus.workspace)
             SecureInputPanel.shared.refresh()
             try await layoutWorkspaces()
             if focusBefore != focusAfter {

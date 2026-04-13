@@ -18,12 +18,32 @@ public final class TrayMenuModel: ObservableObject {
 @MainActor func updateTrayText() {
     let sortedMonitors = sortedMonitors
     let focus = focus
+    let zoneIndicator: String = {
+        let zc = focus.workspace.zoneContainers
+        guard !zc.isEmpty else { return "" }
+        let activeZoneName: String?
+        if let window = focus.windowOrNil,
+           let container = window.parent as? TilingContainer,
+           container.isZoneContainer {
+            activeZoneName = zc.first { $0.value === container }?.key
+        } else {
+            activeZoneName = focus.workspace.focusedZone
+        }
+        let labels = [("left", "L"), ("center", "C"), ("right", "R")]
+        let parts = labels.compactMap { (name, label) -> String? in
+            guard zc[name] != nil else { return nil }
+            return activeZoneName == name ? "[\(label)]" : label
+        }
+        return " : " + parts.joined(separator: " ")
+    }()
     TrayMenuModel.shared.trayText = (activeMode?.takeIf { $0 != mainModeId }?.first.map { "(\($0.uppercased())) " } ?? "") +
         sortedMonitors
         .map {
             let hasFullscreenWindows = $0.activeWorkspace.allLeafWindowsRecursive.contains { $0.isFullscreen }
             let activeWorkspaceName = hasFullscreenWindows ? "[\($0.activeWorkspace.name)]" : $0.activeWorkspace.name
-            return ($0.activeWorkspace == focus.workspace && sortedMonitors.count > 1 ? "*" : "") + activeWorkspaceName
+            let prefix = ($0.activeWorkspace == focus.workspace && sortedMonitors.count > 1 ? "*" : "")
+            let suffix = $0.activeWorkspace == focus.workspace ? zoneIndicator : ""
+            return prefix + activeWorkspaceName + suffix
         }
         .joined(separator: " │ ")
     TrayMenuModel.shared.workspaces = Workspace.all.map {

@@ -30,6 +30,9 @@ import Foundation
         GlobalObserver.initObserver()
         Workspace.garbageCollectUnusedWorkspaces() // init workspaces
         _ = Workspace.all.first?.focusWorkspace()
+        for workspace in Workspace.all {
+            workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
+        }
         await runHeavyCompleteRefreshSession(
             .startup,
             // It's important for the first initialization to be non cancellable
@@ -37,6 +40,18 @@ import Foundation
             cancellable: false,
             layoutWorkspaces: false,
         )
+        // If the focused workspace landed on a non-ultrawide but an ultrawide is available,
+        // migrate it there so zones activate for the user's primary workspace.
+        if let ultrawide = monitors.first(where: \.isUltrawide),
+           !focus.workspace.workspaceMonitor.isUltrawide,
+           focus.workspace.forceAssignedMonitor == nil
+        {
+            _ = ultrawide.setActiveWorkspace(focus.workspace)
+            focus.workspace.ensureZoneContainers(for: ultrawide)
+        }
+        for workspace in Workspace.all where !workspace.zoneContainers.isEmpty {
+            workspace.restoreZoneMemory()
+        }
         try await runLightSession(.startup, .forceRun) {
             smartLayoutAtStartup()
             _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv, .emptyStdin)

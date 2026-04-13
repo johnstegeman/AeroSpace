@@ -47,6 +47,13 @@ private func makeAllWindowsVisibleAndRestoreSize() async throws {
             }
             continue
         }
+        // Tiling window on a visible workspace: already at its tiled/zone position — leave it there
+        // so that startupRect correctly restores zone placement on next launch.
+        if window.nodeWorkspace?.isVisible == true {
+            continue
+        }
+        // Tiling window on an invisible workspace (hidden off-screen): center it so it's
+        // visible after quit. Zone memory will restore its zone on the next launch.
         let monitor = try await window.getCenter()?.monitorApproximation ?? mainMonitor
         let monitorVisibleRect = monitor.visibleRect
         let windowSize = window.lastFloatingSize ?? CGSize(width: monitorVisibleRect.width, height: monitorVisibleRect.height)

@@ -61,6 +61,15 @@ struct Config: ConvenienceCopyable {
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
+    var hud: HUDConfig = HUDConfig()
+}
+
+struct HUDConfig: ConvenienceCopyable {
+    var activeOn: HUDActiveOn = .ultrawide
+}
+
+enum HUDActiveOn: String {
+    case ultrawide, always, never
 }
 
 struct ZonesConfig: ConvenienceCopyable {

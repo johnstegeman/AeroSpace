@@ -123,6 +123,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
 
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
+    "hud": Parser(\.hud, parseHUDConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
@@ -277,6 +278,21 @@ func parseConfigVersion(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConf
     let max = 2
     return parseInt(raw, backtrace)
         .filter(.semantic(backtrace, "Must be in [\(min), \(max)] range")) { (min ... max).contains($0) }
+}
+
+private let hudConfigParser: [String: any ParserProtocol<HUDConfig>] = [
+    "active-on": Parser(\.activeOn, parseHUDActiveOn),
+]
+
+func parseHUDConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> HUDConfig {
+    parseTable(raw, HUDConfig(), hudConfigParser, backtrace, &errors)
+}
+
+private func parseHUDActiveOn(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<HUDActiveOn> {
+    parseString(raw, backtrace).flatMap {
+        HUDActiveOn(rawValue: $0)
+            .orFailure(.semantic(backtrace, "Can't parse hud.active-on '\($0)'. Expected 'ultrawide', 'always', or 'never'"))
+    }
 }
 
 private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [

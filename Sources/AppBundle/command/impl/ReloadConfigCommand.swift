@@ -38,6 +38,7 @@ struct ReloadConfigCommand: Command {
                 for workspace in Workspace.all where workspace.isVisible {
                     workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
                 }
+                ZoneHUDController.shared.setVisible(hudShouldBeVisible())
             }
             result = true
         case .failure(let msg):

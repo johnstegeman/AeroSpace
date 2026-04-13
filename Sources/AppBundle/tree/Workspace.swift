@@ -37,6 +37,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     fileprivate var assignedMonitorPoint: CGPoint? = nil
     /// Active zone containers keyed by name ("left", "center", "right"). Empty when zones are inactive.
     var zoneContainers: [String: TilingContainer] = [:]
+    /// Monitor profile that was active when zones were last activated. Used to save zone memory on deactivation.
+    var activeZoneProfile: MonitorProfile? = nil
     /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
     var focusedZone: String? = nil
 
@@ -141,6 +143,9 @@ func gcMonitors() {
     if screenPointToVisibleWorkspace.count != monitors.count {
         rearrangeWorkspacesOnMonitors()
     }
+    for (point, workspace) in screenPointToVisibleWorkspace {
+        workspace.ensureZoneContainers(for: point.monitorApproximation)
+    }
 }
 
 extension CGPoint {
@@ -221,7 +226,9 @@ extension Workspace {
 
     @MainActor
     private func activateZones(monitorWidth: CGFloat) {
+        activeZoneProfile = MonitorProfile([workspaceMonitor])
         rootTilingContainer.changeOrientation(.h)
+        rootTilingContainer.layout = .tiles
         let widths = validatedZoneWidths(config.zones.widths)
         let layouts = config.zones.layouts.count == 3 ? config.zones.layouts : [Layout.tiles, .tiles, .tiles]
         let names = ["left", "center", "right"]
@@ -236,10 +243,33 @@ extension Workspace {
             container.isZoneContainer = true
             zoneContainers[name] = container
         }
+        restoreZoneMemory()
+    }
+
+    @MainActor
+    func restoreZoneMemory() {
+        let profile = MonitorProfile([workspaceMonitor])
+        let windows = rootTilingContainer.allLeafWindowsRecursive
+        for window in windows {
+            guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
+                  let zone = zoneContainers[zoneName]
+            else { continue }
+            window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        }
     }
 
     @MainActor
     private func deactivateZones() {
+        // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
+        if let profile = activeZoneProfile {
+            for name in ["left", "center", "right"] {
+                guard let zone = zoneContainers[name] else { continue }
+                for window in zone.allLeafWindowsRecursive {
+                    ZoneMemory.shared.rememberZone(name, for: window, profile: profile)
+                }
+            }
+        }
+        activeZoneProfile = nil
         for name in ["left", "center", "right"] {
             guard let zone = zoneContainers[name] else { continue }
             for child in zone.children {
@@ -248,6 +278,7 @@ extension Workspace {
             zone.unbindFromParent()
         }
         zoneContainers = [:]
+        rootTilingContainer.layout = config.defaultRootContainerLayout
     }
 
     /// Returns the zone name whose horizontal slice contains >50% of the window's area,
