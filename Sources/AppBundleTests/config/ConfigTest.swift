@@ -201,7 +201,7 @@ final class ConfigTest: XCTestCase {
 
         assertEquals(
             parseConfig("foo = 1.0").errors,
-            ["foo: Unsupported TOML type: Double"],
+            ["foo: Unknown top-level key"],
         )
 
         assertEquals(

@@ -63,7 +63,7 @@ struct Config: ConvenienceCopyable {
     var zones: ZonesConfig = ZonesConfig()
 }
 
-struct ZonesConfig {
+struct ZonesConfig: ConvenienceCopyable {
     /// Proportional widths for left/center/right zones. Must have exactly 3 elements summing to 1.0.
     /// Falls back to equal thirds if absent or invalid.
     var widths: [Double] = [1.0 / 3, 1.0 / 3, 1.0 / 3]

@@ -122,6 +122,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     modeConfigRootKey: Parser(\.modes, skipParsing(Config().modes)), // Parsed manually
 
     "gaps": Parser(\.gaps, parseGaps),
+    "zones": Parser(\.zones, parseZonesConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
@@ -276,6 +277,36 @@ func parseConfigVersion(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConf
     let max = 2
     return parseInt(raw, backtrace)
         .filter(.semantic(backtrace, "Must be in [\(min), \(max)] range")) { (min ... max).contains($0) }
+}
+
+private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
+    "widths": Parser(\.widths, parseZoneWidths),
+]
+
+func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
+    parseTable(raw, ZonesConfig(), zonesConfigParser, backtrace, &errors)
+}
+
+private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Double]> {
+    parseTomlArray(raw, backtrace)
+        .flatMap { arr -> ParsedConfig<[Double]> in
+            guard arr.count == 3 else {
+                return .failure(.semantic(backtrace, "zones.widths must have exactly 3 elements, got \(arr.count)"))
+            }
+            return arr.enumerated().mapAllOrFailure { (index, elem) in
+                parseDouble(elem, backtrace + .index(index))
+            }
+        }
+        .flatMap { widths in
+            guard abs(widths.reduce(0, +) - 1.0) < 0.01, widths.allSatisfy({ $0 > 0 }) else {
+                return .failure(.semantic(backtrace, "zones.widths must be 3 positive values summing to 1.0"))
+            }
+            return .success(widths)
+        }
+}
+
+func parseDouble(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Double> {
+    raw.asDoubleOrNil.orFailure(expectedActualTypeError(expected: .float, actual: raw.tomlType, backtrace))
 }
 
 func parseInt(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Int> {
