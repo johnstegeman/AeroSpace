@@ -26,6 +26,7 @@ let subcommandDescriptions = [
     ["  macos-native-fullscreen", "Toggle macOS fullscreen for the focused window"],
     ["  macos-native-minimize", "Minimize focused window"],
     ["  mode", "Activate the specified binding mode"],
+    ["  move-floating-to-zone", "Reposition a floating window into a named zone (left, center, right) without converting it to a tiling window"],
     ["  move-mouse", "Move mouse to the requested position"],
     ["  move-node-to-monitor", "Move window to monitor targeted by relative direction, by order, or by pattern"],
     ["  move-node-to-workspace", "Move the focused window to the specified workspace"],

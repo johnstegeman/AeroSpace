@@ -51,6 +51,8 @@ aerospace -h;
 
     | move-mouse [--fail-if-noop] (monitor-lazy-center|monitor-force-center|window-lazy-center|window-force-center) [--fail-if-noop]
 
+    | move-floating-to-zone (left|center|right)
+
     | move-node-to-monitor [<move_node_to_monitor1_flag>]... (left|down|up|right|next|prev) [<move_node_to_monitor1_flag>]...
     | move-node-to-monitor [<move_node_to_monitor2_flag>]... <monitor_pattern>... [<move_node_to_monitor2_flag>]...
 
