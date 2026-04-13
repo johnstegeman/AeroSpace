@@ -35,6 +35,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     nonisolated private let nameLogicalSegments: StringLogicalSegments
     /// `assignedMonitorPoint` must be interpreted only when the workspace is invisible
     fileprivate var assignedMonitorPoint: CGPoint? = nil
+    /// Active zone containers keyed by name ("left", "center", "right"). Empty when zones are inactive.
+    var zoneContainers: [String: TilingContainer] = [:]
 
     @MainActor
     private init(_ name: String) {
@@ -199,4 +201,50 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
         case let forceAssigned? where forceAssigned.rect.topLeftCorner != screen: false
         default: true
     }
+}
+
+extension Workspace {
+    @MainActor
+    func ensureZoneContainers(for monitor: Monitor) {
+        if monitor.isUltrawide && zoneContainers.isEmpty {
+            activateZones(monitorWidth: monitor.visibleRect.width)
+        } else if !monitor.isUltrawide && !zoneContainers.isEmpty {
+            deactivateZones()
+        }
+    }
+
+    @MainActor
+    private func activateZones(monitorWidth: CGFloat) {
+        rootTilingContainer.changeOrientation(.h)
+        let widths = validatedZoneWidths(config.zones.widths)
+        let names = ["left", "center", "right"]
+        for (name, proportion) in zip(names, widths) {
+            let container = TilingContainer.newHTiles(
+                parent: rootTilingContainer,
+                adaptiveWeight: monitorWidth * proportion,
+                index: INDEX_BIND_LAST
+            )
+            container.isZoneContainer = true
+            zoneContainers[name] = container
+        }
+    }
+
+    @MainActor
+    private func deactivateZones() {
+        for name in ["left", "center", "right"] {
+            guard let zone = zoneContainers[name] else { continue }
+            for child in zone.children {
+                child.bind(to: rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            }
+            zone.unbindFromParent()
+        }
+        zoneContainers = [:]
+    }
+}
+
+private func validatedZoneWidths(_ widths: [Double]) -> [Double] {
+    guard widths.count == 3, abs(widths.reduce(0, +) - 1.0) < 0.01, widths.allSatisfy({ $0 > 0 }) else {
+        return [1.0 / 3, 1.0 / 3, 1.0 / 3]
+    }
+    return widths
 }
