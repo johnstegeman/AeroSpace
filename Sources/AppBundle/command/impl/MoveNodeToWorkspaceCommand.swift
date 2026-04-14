@@ -37,7 +37,21 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
                 .succ(io.err("Window '\(window.windowId)' already belongs to workspace '\(targetWorkspace.name)'. Tip: use --fail-if-noop to exit with non-zero code"))
         }
     }
-    let targetContainer: NonLeafTreeNodeObject = window.isFloating ? targetWorkspace : targetWorkspace.rootTilingContainer
+    targetWorkspace.ensureZoneContainers(for: targetWorkspace.workspaceMonitor)
+    let targetContainer: NonLeafTreeNodeObject
+    if window.isFloating {
+        targetContainer = targetWorkspace
+    } else if !targetWorkspace.zoneContainers.isEmpty {
+        let profile = MonitorProfile([targetWorkspace.workspaceMonitor])
+        if let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
+           let zone = targetWorkspace.zoneContainers[zoneName] {
+            targetContainer = zone
+        } else {
+            targetContainer = targetWorkspace.zoneContainers["center"] ?? targetWorkspace.rootTilingContainer
+        }
+    } else {
+        targetContainer = targetWorkspace.rootTilingContainer
+    }
     window.bind(to: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
     return .from(bool: focusFollowsWindow ? window.focusWindow() : true)
 }
