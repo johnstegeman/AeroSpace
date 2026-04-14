@@ -9,8 +9,16 @@ struct MoveFloatingToZoneCommand: Command {
         guard let target = args.resolveTargetOrReportError(env, io) else { return false }
         guard let window = target.windowOrNil else { return io.err(noWindowIsFocused) }
         guard let parent = window.parent else { return false }
-        guard case .workspace(let workspace) = parent.cases else {
-            return io.err("move-floating-to-zone: focused window is not floating")
+        let workspace: Workspace
+        switch parent.cases {
+            case .workspace(let ws):
+                workspace = ws
+            case .tilingContainer:
+                guard let ws = window.nodeWorkspace else { return false }
+                workspace = ws
+                window.bindAsFloatingWindow(to: workspace)
+            default:
+                return io.err("move-floating-to-zone: focused window is not floating or tiling")
         }
         let zoneName = args.zone.val.rawValue
         guard let toZone = workspace.zoneContainers[zoneName] else {
