@@ -98,3 +98,29 @@ Each zone can have its own default tiling layout (`tiles`, `accordion`). When `e
 ### Startup Placement
 
 On startup, existing windows are distributed across zones based on zone memory before the first layout pass, so windows land in the right columns immediately rather than all piling into center.
+
+### Accordion Cascade Mode
+
+The accordion layout now supports a `cascade` mode where every window in the stack has a visible strip, rather than only the one directly behind the focused window.
+
+```toml
+[accordion]
+mode = "cascade"   # vs "overlap" (default)
+offset-x = 24      # horizontal shift per window depth level
+offset-y = 0       # vertical shift per window depth level
+padding = 30       # peek size used in overlap mode
+```
+
+In cascade mode, each window is offset by `(i * offset-x, i * offset-y)` from the container origin, and all windows share the same size (container dimensions minus total offset). The focused window is naturally on top due to OS focus z-order.
+
+### DFS Scope for Accordion Cycling
+
+`focus dfs-next` and `focus dfs-prev` now accept a `--scope` flag to limit cycling to the immediate parent container of the focused window:
+
+```
+focus dfs-next --scope current-container   # cycles within accordion stack or zone only
+focus dfs-prev --scope current-container
+focus dfs-next --scope workspace           # default: all windows in workspace
+```
+
+This is the recommended binding for cycling through an accordion stack without jumping to other zones.

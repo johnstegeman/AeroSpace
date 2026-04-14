@@ -38,7 +38,15 @@ struct FocusCommand: Command {
                     return .fail(io.err("Can't find window with DFS index \(dfsIndex)"))
                 }
             case .dfsRelative(let nextPrev):
-                let windows = target.workspace.rootTilingContainer.allLeafWindowsRecursive
+                let windows: [Window]
+                if args.scope == .currentContainer,
+                   let focused = target.windowOrNil,
+                   let parent = focused.parent as? TilingContainer
+                {
+                    windows = parent.allLeafWindowsRecursive
+                } else {
+                    windows = target.workspace.rootTilingContainer.allLeafWindowsRecursive
+                }
                 guard let currentIndex = windows.firstIndex(where: { $0 == target.windowOrNil }) else {
                     return .fail
                 }

@@ -75,23 +75,11 @@ References: GitHub issue [#272](https://github.com/nikitabobko/AeroSpace/issues/
 The accordion layout is AeroSpace's answer to i3's stacked/tabbed layouts — windows overlap and you cycle through them. No one has filed a standalone "tabbed layout" request; the accordion already covers the use case. Pain points that have been raised:
 
 - **Title bars floating above other windows** — hidden accordion windows' title bars render on top of everything ([#484](https://github.com/nikitabobko/AeroSpace/issues/484), 8 reactions)
-- **DFS cycling** — no way to cycle through all windows in tree order (depth-first), making it hard to navigate what's "behind" in an accordion stack ([#248](https://github.com/nikitabobko/AeroSpace/issues/248), 13 reactions)
+- ~~**DFS cycling**~~ — ✅ implemented: `focus dfs-next/dfs-prev --scope current-container`
 - **Pixel-only accordion padding** — `accordion-padding` only accepts pixel values; should support percentages (covered by the percentage-based resize entry below)
 - **Per-container layout config** — no way to define a sub-layout per container in config, e.g. accordion within the right column of a tiled layout ([#187](https://github.com/nikitabobko/AeroSpace/issues/187), 27 reactions)
 
-**Cascade/stagger mode** — the current accordion only shows a single-direction peek of the window directly behind the focused one. A proper cascade mode would:
-- Offset each window by N pixels per depth level so all windows in the stack have a visible strip (not just the one immediately behind)
-- Support configurable peek direction: `left`, `right`, `top`, `bottom`, `diagonal` — matching the direction to the surrounding layout
-- Separate offset (how much each window shifts) from peek width (how much of the back window is visible), so they can be tuned independently
-- Optionally make peek strips click-to-focus targets
-
-Example config shape:
-```toml
-[accordion]
-mode = "cascade"   # vs current "overlap"
-offset-x = 24
-offset-y = 0
-```
+~~**Cascade/stagger mode**~~ — ✅ implemented: `[accordion] mode = "cascade"` with `offset-x`/`offset-y`. Remaining nice-to-haves from original spec: configurable peek direction, click-to-focus strips.
 
 True i3-style tabs (visible tab bars rendered across the top of a container) would require custom window decoration rendering — a large UI investment not worth prioritising over the accordion fixes above.
 

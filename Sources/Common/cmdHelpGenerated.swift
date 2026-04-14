@@ -50,6 +50,7 @@ let focus_help_generated = """
                  (left|down|up|right)
        OR: focus [-h|--help] [--ignore-floating] [--wrap-around]
                  [--boundaries <boundary>] [--boundaries-action <action>]
+                 [--scope <scope>]
                  (dfs-next|dfs-prev)
        OR: focus [-h|--help] --window-id <window-id>
        OR: focus [-h|--help] --dfs-index <dfs-index>
@@ -117,6 +118,9 @@ let move_node_to_workspace_help_generated = """
                                   (next|prev)
        OR: move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-noop]
                                   [--window-id <window-id>] <workspace-name>
+    """
+let move_floating_to_zone_help_generated = """
+    USAGE: move-floating-to-zone [-h|--help] (left|center|right)
     """
 let move_node_to_zone_help_generated = """
     USAGE: move-node-to-zone [-h|--help] (left|center|right)
