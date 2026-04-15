@@ -303,6 +303,29 @@ extension Workspace {
         }
     }
 
+    /// Returns the theoretical physical rect for the named zone, computed from adaptive weights
+    /// and the monitor's visible rect. Used when `lastAppliedLayoutPhysicalRect` is not yet set
+    /// (e.g. the workspace has never been visible). Returns nil if zones are not active or the
+    /// named zone does not exist.
+    @MainActor
+    func theoreticalZoneRect(for zoneName: String) -> Rect? {
+        let names = ["left", "center", "right"]
+        let containers = names.compactMap { name in zoneContainers[name].map { (name, $0) } }
+        guard containers.count == 3 else { return nil }
+        let monitorRect = workspaceMonitor.visibleRect
+        let totalWeight = containers.reduce(0.0) { $0 + $1.1.getWeight(.h) }
+        guard totalWeight > 0 else { return nil }
+        var xOffset = monitorRect.minX
+        for (name, container) in containers {
+            let zoneWidth = monitorRect.width * (container.getWeight(.h) / totalWeight)
+            if name == zoneName {
+                return Rect(topLeftX: xOffset, topLeftY: monitorRect.topLeftY, width: zoneWidth, height: monitorRect.height)
+            }
+            xOffset += zoneWidth
+        }
+        return nil
+    }
+
     /// Returns the zone name whose horizontal slice contains >50% of the window's area,
     /// or nil if no zone clears that threshold. On an exact tie, returns the leftmost zone.
     @MainActor

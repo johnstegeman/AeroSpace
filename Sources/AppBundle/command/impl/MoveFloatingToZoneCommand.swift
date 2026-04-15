@@ -24,7 +24,7 @@ struct MoveFloatingToZoneCommand: Command {
         guard let toZone = workspace.zoneContainers[zoneName] else {
             return .fail(io.err("move-floating-to-zone: zones not active on this workspace"))
         }
-        guard let toZoneRect = toZone.lastAppliedLayoutPhysicalRect else {
+        guard let toZoneRect = toZone.lastAppliedLayoutPhysicalRect ?? workspace.theoreticalZoneRect(for: zoneName) else {
             return .fail(io.err("move-floating-to-zone: zone layout not yet computed"))
         }
         guard let windowRect = try await window.getAxRect() else { return .fail }
