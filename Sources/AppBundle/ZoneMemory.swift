@@ -9,15 +9,17 @@ struct MonitorProfile: Codable, Hashable {
         let width: CGFloat
         // periphery:ignore - used via Codable/Hashable synthesis
         let height: CGFloat
-        let originX: CGFloat
-        let originY: CGFloat
+        // Origin coordinates are intentionally excluded: they shift whenever any monitor is
+        // added or repositioned, which would silently wipe zone memories even though the
+        // physical monitor hasn't changed. Width/height is unique enough in practice
+        // (e.g. 3440×1440 ultrawides) and remains stable across monitor configuration changes.
     }
     let entries: [MonitorEntry]
 
     init(_ monitors: [any Monitor]) {
         entries = monitors
-            .map { MonitorEntry(width: $0.rect.width, height: $0.rect.height, originX: $0.rect.minX, originY: $0.rect.minY) }
-            .sorted { ($0.originX, $0.originY) < ($1.originX, $1.originY) }
+            .map { MonitorEntry(width: $0.rect.width, height: $0.rect.height) }
+            .sorted { ($0.width, $0.height) < ($1.width, $1.height) }
     }
 
     /// A stable string key for use as a dictionary key in persisted JSON.
