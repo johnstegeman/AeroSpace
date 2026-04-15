@@ -36,7 +36,7 @@ struct ReloadConfigCommand: Command {
                 syncStartAtLogin()
                 MessageModel.shared.message = nil
                 for workspace in Workspace.all where workspace.isVisible {
-                    workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
+                    workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
                 }
                 ZoneHUDController.shared.setVisible(hudShouldBeVisible())
             }

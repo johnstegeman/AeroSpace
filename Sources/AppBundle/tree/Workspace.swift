@@ -226,8 +226,13 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
 
 extension Workspace {
     @MainActor
-    func ensureZoneContainers(for monitor: Monitor) {
+    func ensureZoneContainers(for monitor: Monitor, force: Bool = false) {
         if monitor.isUltrawide && zoneContainers.isEmpty {
+            activateZones(monitorWidth: monitor.visibleRect.width)
+        } else if monitor.isUltrawide && !zoneContainers.isEmpty && force {
+            // Config reload: tear down and rebuild so updated widths/layouts take effect.
+            // deactivateZones auto-saves current assignments; activateZones restores them.
+            deactivateZones()
             activateZones(monitorWidth: monitor.visibleRect.width)
         } else if !monitor.isUltrawide && !zoneContainers.isEmpty {
             deactivateZones()
