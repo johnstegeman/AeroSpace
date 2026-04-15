@@ -63,6 +63,7 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
 @MainActor func setFocus(to newFocus: LiveFocus) -> Bool {
     if _focus == newFocus.frozen { return true }
     let oldFocus = focus
+    var resolvedFocus = newFocus
     // Normalize mruWindow when focus away from a workspace
     if oldFocus.workspace != newFocus.workspace {
         oldFocus.windowOrNil?.markAsMostRecentChild()
@@ -70,12 +71,18 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
         for window in oldFocus.workspace.floatingWindows where StickyMemory.shared.isRemembered(windowId: window.windowId) {
             window.bindAsFloatingWindow(to: newFocus.workspace)
         }
+        // If the previously focused window was sticky, carry it as the focus into the new workspace
+        if let oldWindow = oldFocus.windowOrNil,
+           StickyMemory.shared.isRemembered(windowId: oldWindow.windowId)
+        {
+            resolvedFocus = LiveFocus(windowOrNil: oldWindow, workspace: newFocus.workspace)
+        }
     }
 
-    _focus = newFocus.frozen
-    let status = newFocus.workspace.workspaceMonitor.setActiveWorkspace(newFocus.workspace)
+    _focus = resolvedFocus.frozen
+    let status = resolvedFocus.workspace.workspaceMonitor.setActiveWorkspace(resolvedFocus.workspace)
 
-    newFocus.windowOrNil?.markAsMostRecentChild()
+    resolvedFocus.windowOrNil?.markAsMostRecentChild()
     return status
 }
 extension Window {
