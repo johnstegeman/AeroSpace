@@ -42,9 +42,13 @@ struct MoveFloatingToZoneCommand: Command {
 
         let offsetX = windowRect.topLeftX - fromZoneRect.topLeftX
         let offsetY = windowRect.topLeftY - fromZoneRect.topLeftY
-        let newOrigin = CGPoint(x: toZoneRect.topLeftX + offsetX, y: toZoneRect.topLeftY + offsetY)
+        let windowSize = windowRect.size
+        let rawX = toZoneRect.topLeftX + offsetX
+        let rawY = toZoneRect.topLeftY + offsetY
+        let newX = rawX.coerce(in: toZoneRect.minX ... max(toZoneRect.minX, toZoneRect.maxX - windowSize.width))
+        let newY = rawY.coerce(in: toZoneRect.minY ... max(toZoneRect.minY, toZoneRect.maxY - windowSize.height))
 
-        window.setAxFrame(newOrigin, nil)
+        window.setAxFrame(CGPoint(x: newX, y: newY), nil)
         ZoneMemory.shared.rememberZone(zoneName, for: window, profile: MonitorProfile([workspace.workspaceMonitor]))
         StickyMemory.shared.forget(windowId: window.windowId)
         return .succ
