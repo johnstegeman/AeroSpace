@@ -46,6 +46,7 @@ struct MoveFloatingToZoneCommand: Command {
 
         window.setAxFrame(newOrigin, nil)
         ZoneMemory.shared.rememberZone(zoneName, for: window, profile: MonitorProfile([workspace.workspaceMonitor]))
+        StickyMemory.shared.forget(windowId: window.windowId)
         return .succ
     }
 }
