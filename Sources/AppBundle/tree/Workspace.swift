@@ -48,6 +48,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     var zoneContainers: [String: TilingContainer] = [:]
     /// Monitor profile that was active when zones were last activated. Used to save zone memory on deactivation.
     var activeZoneProfile: MonitorProfile? = nil
+    /// Root container orientation saved before zone activation, restored when zones are deactivated.
+    private var savedRootOrientation: Orientation? = nil
     /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
     var focusedZone: String? = nil
 
@@ -242,6 +244,7 @@ extension Workspace {
     @MainActor
     private func activateZones(monitorWidth: CGFloat) {
         activeZoneProfile = MonitorProfile([workspaceMonitor])
+        savedRootOrientation = rootTilingContainer.orientation
         rootTilingContainer.changeOrientation(.h)
         rootTilingContainer.layout = .tiles
         let widths = validatedZoneWidths(config.zones.widths)
@@ -294,6 +297,10 @@ extension Workspace {
         }
         zoneContainers = [:]
         rootTilingContainer.layout = config.defaultRootContainerLayout
+        if let saved = savedRootOrientation {
+            rootTilingContainer.changeOrientation(saved)
+            savedRootOrientation = nil
+        }
     }
 
     /// Returns the zone name whose horizontal slice contains >50% of the window's area,
