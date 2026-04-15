@@ -40,8 +40,8 @@ func runHeavyCompleteRefreshSession(
                 if shouldLayoutWorkspaces && optimisticallyPreLayoutWorkspaces { try await layoutWorkspaces() }
 
                 refreshModel()
+                gcMonitors() // Must run before refresh() so zone containers exist when new windows are placed
                 try await refresh()
-                gcMonitors()
                 ZoneHUDController.shared.setVisible(hudShouldBeVisible())
 
                 updateTrayText()
