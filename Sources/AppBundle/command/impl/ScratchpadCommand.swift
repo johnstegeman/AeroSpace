@@ -39,11 +39,16 @@ struct ScratchpadCommand: Command {
 
         window.bindAsFloatingWindow(to: focusedWorkspace)
 
-        // Restore last known position; if none, center on the monitor
+        // Restore last known position; if none, center on the monitor.
+        // Coerce the saved position into the current monitor's bounds so the window
+        // always appears on the focused monitor even if it was hidden on a different one.
+        let monitor = focusedWorkspace.workspaceMonitor
         if let position = ScratchpadMemory.shared.rememberedPosition(for: window.windowId) {
-            window.setAxFrame(position, window.lastFloatingSize)
+            let size = window.lastFloatingSize ?? .zero
+            let coercedX = position.x.coerce(in: monitor.visibleRect.minX ... max(monitor.visibleRect.minX, monitor.visibleRect.maxX - size.width))
+            let coercedY = position.y.coerce(in: monitor.visibleRect.minY ... max(monitor.visibleRect.minY, monitor.visibleRect.maxY - size.height))
+            window.setAxFrame(CGPoint(x: coercedX, y: coercedY), window.lastFloatingSize)
         } else {
-            let monitor = focusedWorkspace.workspaceMonitor
             if let size = window.lastFloatingSize {
                 let x = monitor.visibleRect.minX + (monitor.visibleRect.width - size.width) / 2
                 let y = monitor.visibleRect.minY + (monitor.visibleRect.height - size.height) / 2
