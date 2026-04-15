@@ -124,3 +124,25 @@ focus dfs-next --scope workspace           # default: all windows in workspace
 ```
 
 This is the recommended binding for cycling through an accordion stack without jumping to other zones.
+
+### Sticky Floating Windows
+
+A floating window can be marked **sticky** so it follows the user across workspace switches. Sticky windows are useful for persistent overlays — terminals, music players, reference docs — that should always be visible regardless of which workspace is active.
+
+#### Usage
+
+```
+layout sticky    # make the focused window floating and sticky
+layout floating  # remove sticky (window stays floating but no longer follows)
+layout tiling    # tile the window and remove sticky
+```
+
+`layout sticky` is a superset of `layout floating`: it makes the window floating AND marks it sticky in one command. Toggling between `sticky` and `floating` does not resize the window.
+
+#### Persistence
+
+Sticky state is saved to `~/Library/Application Support/AeroSpace/sticky-windows.json` and survives AeroSpace restarts. The window will be floating and sticky the next time AeroSpace starts, regardless of which workspace it was on when AeroSpace quit.
+
+#### Behavior
+
+When the user switches to a different workspace, all sticky floating windows on the previous workspace are moved to the new workspace before the layout pass runs. They remain at their current screen position.

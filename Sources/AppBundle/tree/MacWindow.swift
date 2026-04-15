@@ -89,6 +89,8 @@ final class MacWindow: Window {
         if MacWindow.allWindowsMap.removeValue(forKey: windowId) == nil {
             return
         }
+        FloatingMemory.shared.forget(windowId: windowId)
+        StickyMemory.shared.forget(windowId: windowId)
         if !skipClosedWindowsCache { cacheClosedWindowIfNeeded() }
         let parent = unbindFromParent().parent
         let deadWindowWorkspace = parent.nodeWorkspace

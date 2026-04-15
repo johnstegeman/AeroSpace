@@ -66,6 +66,10 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
     // Normalize mruWindow when focus away from a workspace
     if oldFocus.workspace != newFocus.workspace {
         oldFocus.windowOrNil?.markAsMostRecentChild()
+        // Move sticky floating windows from the old workspace to the new workspace
+        for window in oldFocus.workspace.floatingWindows where StickyMemory.shared.isRemembered(windowId: window.windowId) {
+            window.bindAsFloatingWindow(to: newFocus.workspace)
+        }
     }
 
     _focus = newFocus.frozen

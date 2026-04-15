@@ -1,5 +1,25 @@
 # AeroSpace TODO
 
+## Bugs / Follow-ups
+
+### Improve getNativeFocusedWindow Fallback 2 (multi-window apps)
+
+`getNativeFocusedWindow` has a third fallback (`Fallback 2`) that fires when:
+- `getFocusedWindow()` returns nil or a popup window, AND
+- `lastNativeFocusedWindowId` is also nil (e.g. first focus after AeroSpace restart)
+
+Currently it uses `MacWindow.allWindows.first { app match && not popup }` — arbitrary if the app has multiple windows.
+
+Better: walk the workspace MRU tree filtered by app, so it picks the most recently active window for that app on the current workspace:
+```swift
+return focus.workspace.allLeafWindowsRecursive
+    .first { ($0 as? MacWindow)?.macApp === macApp && !($0.parent is MacosPopupWindowsContainer) }
+```
+
+Only worth fixing if users report the wrong window being targeted when the frontmost app has multiple windows open.
+
+---
+
 ## Features
 
 ### Per-zone gap overrides
@@ -54,13 +74,6 @@ Changes required:
 - Replace `left`/`center`/`right` name literals with user-defined names
 - Decide activation trigger — remove the hardcoded >2.1:1 aspect ratio guard, or make it a configurable `min-aspect-ratio`
 - Update `focus-zone`, `move-node-to-zone`, and `move-floating-to-zone` commands to accept arbitrary zone names
-
----
-
-### Sticky/persistent floating windows
-Allow a floating window to be marked "sticky" so it follows the user across workspace switches. Useful for persistent tools like terminals, Spotify, or reference docs — especially on ultrawide setups where a side panel is always visible.
-
-References: GitHub issue [#2](https://github.com/nikitabobko/AeroSpace/issues/2) (107 reactions — most-reacted open issue)
 
 ---
 

@@ -42,6 +42,7 @@ struct LayoutCommand: Command {
                     case .workspace(let workspace):
                         window.lastFloatingSize = try await window.getAxSize() ?? window.lastFloatingSize
                         FloatingMemory.shared.forget(windowId: window.windowId)
+                        StickyMemory.shared.forget(windowId: window.windowId)
                         try await window.relayoutWindow(on: workspace, forceTile: true)
                         return .succ
                 }
@@ -49,6 +50,14 @@ struct LayoutCommand: Command {
                 let workspace = target.workspace
                 window.bindAsFloatingWindow(to: workspace)
                 FloatingMemory.shared.remember(windowId: window.windowId)
+                StickyMemory.shared.forget(windowId: window.windowId)
+                if let size = window.lastFloatingSize { window.setAxFrame(nil, size) }
+                return .succ
+            case .sticky:
+                let workspace = target.workspace
+                window.bindAsFloatingWindow(to: workspace)
+                FloatingMemory.shared.remember(windowId: window.windowId)
+                StickyMemory.shared.remember(windowId: window.windowId)
                 if let size = window.lastFloatingSize { window.setAxFrame(nil, size) }
                 return .succ
         }
@@ -71,7 +80,7 @@ struct LayoutCommand: Command {
 }
 
 extension Window {
-    fileprivate func matchesDescription(_ layout: LayoutCmdArgs.LayoutDescription) -> Bool {
+    @MainActor fileprivate func matchesDescription(_ layout: LayoutCmdArgs.LayoutDescription) -> Bool {
         return switch layout {
             case .accordion:   (parent as? TilingContainer)?.layout == .accordion
             case .tiles:       (parent as? TilingContainer)?.layout == .tiles
@@ -82,7 +91,8 @@ extension Window {
             case .h_tiles:     (parent as? TilingContainer).map { $0.layout == .tiles && $0.orientation == .h } == true
             case .v_tiles:     (parent as? TilingContainer).map { $0.layout == .tiles && $0.orientation == .v } == true
             case .tiling:      parent is TilingContainer
-            case .floating:    parent is Workspace
+            case .floating:    parent is Workspace && !StickyMemory.shared.isRemembered(windowId: windowId)
+            case .sticky:      parent is Workspace && StickyMemory.shared.isRemembered(windowId: windowId)
         }
     }
 }
