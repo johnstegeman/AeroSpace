@@ -30,9 +30,6 @@ import Foundation
         GlobalObserver.initObserver()
         Workspace.garbageCollectUnusedWorkspaces() // init workspaces
         _ = Workspace.all.first?.focusWorkspace()
-        for workspace in Workspace.all {
-            workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
-        }
         await runHeavyCompleteRefreshSession(
             .startup,
             // It's important for the first initialization to be non cancellable
@@ -40,6 +37,11 @@ import Foundation
             cancellable: false,
             layoutWorkspaces: false,
         )
+        // gcMonitors() ran inside runHeavyCompleteRefreshSession above, so
+        // workspaceMonitor is now correctly mapped for every workspace.
+        // Activating zone containers here avoids the startup churn that occurred
+        // when the pre-refresh fallback to mainMonitor created zones on the wrong workspaces.
+
         // If the focused workspace landed on a non-ultrawide but an ultrawide is available,
         // migrate it there so zones activate for the user's primary workspace.
         if let ultrawide = monitors.first(where: \.isUltrawide),
@@ -47,7 +49,9 @@ import Foundation
            focus.workspace.forceAssignedMonitor == nil
         {
             _ = ultrawide.setActiveWorkspace(focus.workspace)
-            focus.workspace.ensureZoneContainers(for: ultrawide)
+        }
+        for workspace in Workspace.all {
+            workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
         }
         for workspace in Workspace.all where !workspace.zoneContainers.isEmpty {
             workspace.restoreZoneMemory()
