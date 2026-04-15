@@ -19,17 +19,23 @@ struct ScratchpadCommand: Command {
                 window.lastFloatingSize = rect.size
                 ScratchpadMemory.shared.rememberPosition(rect.topLeftCorner, for: window.windowId)
             }
+            ScratchpadMemory.shared.lastHiddenWindowId = window.windowId
             window.bindAsFloatingWindow(to: Workspace.scratchpad)
             return .succ
         }
 
-        // Otherwise show the most-recently-used scratchpad window
+        // Show the next scratchpad window, cycling past the last-hidden one so pressing the
+        // hotkey repeatedly cycles through all windows rather than toggling the same one.
         let scratchpadWindows = Workspace.scratchpad.floatingWindows
-        guard let window = scratchpadWindows.first(where: { ScratchpadMemory.shared.isRemembered(windowId: $0.windowId) })
+        let lastHidden = ScratchpadMemory.shared.lastHiddenWindowId
+        guard let window = scratchpadWindows.first(where: {
+                ScratchpadMemory.shared.isRemembered(windowId: $0.windowId) && $0.windowId != lastHidden
+            }) ?? scratchpadWindows.first(where: { ScratchpadMemory.shared.isRemembered(windowId: $0.windowId) })
             ?? scratchpadWindows.first
         else {
             return .fail(io.err("No windows in scratchpad"))
         }
+        ScratchpadMemory.shared.lastHiddenWindowId = nil
 
         window.bindAsFloatingWindow(to: focusedWorkspace)
 

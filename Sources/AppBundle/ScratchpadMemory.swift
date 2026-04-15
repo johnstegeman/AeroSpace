@@ -10,6 +10,10 @@ final class ScratchpadMemory {
 
     private var windowIds: Set<UInt32> = []
     private var positions: [UInt32: CGPoint] = [:]
+    /// The ID of the window most recently hidden back into the scratchpad via the toggle command.
+    /// Used to skip that window on the next summon so the hotkey cycles through all scratchpad windows.
+    /// Not persisted — resets on restart.
+    var lastHiddenWindowId: UInt32? = nil
     let storageURL: URL
 
     private static var defaultURL: URL {
