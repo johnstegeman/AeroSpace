@@ -5,21 +5,23 @@ import Common
 var appForTests: (any AbstractApp)? = nil
 
 @MainActor
-private var focusedApp: (any AbstractApp)? {
-    get async throws {
-        if isUnitTest {
-            return appForTests
-        } else {
-            check(appForTests == nil)
-            return switch NSWorkspace.shared.frontmostApplication {
-                case let frontmostApplication?: try await MacApp.getOrRegister(frontmostApplication)
-                case nil: nil
-            }
-        }
-    }
-}
-
-@MainActor
 func getNativeFocusedWindow() async throws -> Window? {
-    try await focusedApp?.getFocusedWindow()
+    if isUnitTest {
+        return try await appForTests?.getFocusedWindow()
+    }
+    check(appForTests == nil)
+    guard let frontmostNsApp = NSWorkspace.shared.frontmostApplication else { return nil }
+    guard let macApp = try await MacApp.getOrRegister(frontmostNsApp) else { return nil }
+    if let window = try await macApp.getFocusedWindow() {
+        return window
+    }
+    // Fallback: the AX kAXFocusedWindowAttr can lag behind NSWorkspace.frontmostApplication
+    // immediately after an app-activation event (e.g. user clicks a window and presses a
+    // hotkey before the AX attribute propagates). In that case getFocusedWindow() returns nil
+    // even though the app is clearly frontmost. Using the last window AeroSpace successfully
+    // observed for this app avoids acting on whichever stale window was previously focused.
+    if let lastId = macApp.lastNativeFocusedWindowId {
+        return Window.get(byId: lastId)
+    }
+    return nil
 }
