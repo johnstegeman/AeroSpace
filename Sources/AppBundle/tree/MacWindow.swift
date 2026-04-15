@@ -267,8 +267,9 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
     {
         return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
     }
-    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone)
-    if let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
+    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone).
+    // Only for new windows (window == nil); moved windows should not steal the hint.
+    if window == nil, let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
         workspace.focusedZone = nil
         return BindingData(parent: parent, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
     }
