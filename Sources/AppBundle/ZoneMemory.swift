@@ -5,7 +5,9 @@ import Foundation
 /// regardless of `CGDirectDisplayID` (which changes across reboots/reconnects).
 struct MonitorProfile: Codable, Hashable {
     struct MonitorEntry: Codable, Hashable {
+        // periphery:ignore - used via Codable/Hashable synthesis
         let width: CGFloat
+        // periphery:ignore - used via Codable/Hashable synthesis
         let height: CGFloat
         let originX: CGFloat
         let originY: CGFloat

@@ -11,11 +11,6 @@ public struct FocusZoneCmdArgs: CmdArgs {
 
     public var zone: Lateinit<Zone> = .uninitialized
 
-    public init(rawArgs: [String], _ zone: Zone) {
-        self.commonState = .init(rawArgs.slice)
-        self.zone = .initialized(zone)
-    }
-
     public enum Zone: String, CaseIterable, Sendable {
         case left, center, right
     }
