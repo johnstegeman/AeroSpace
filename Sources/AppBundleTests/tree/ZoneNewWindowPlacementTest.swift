@@ -32,7 +32,7 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
         XCTAssertTrue(window.parent === workspace.rootTilingContainer, "No zones → should fall back to rootTilingContainer")
     }
 
-    func testFloatingWindow_doesNotOccupyZone() async throws {
+    func testFloatingWindow_doesNotOccupyZone() {
         let workspace = Workspace.get(byName: name)
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
         let center = workspace.zoneContainers["center"]!

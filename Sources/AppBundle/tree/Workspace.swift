@@ -238,7 +238,7 @@ extension Workspace {
                 adaptiveWeight: monitorWidth * proportion,
                 .h,
                 layout,
-                index: INDEX_BIND_LAST
+                index: INDEX_BIND_LAST,
             )
             container.isZoneContainer = true
             zoneContainers[name] = container

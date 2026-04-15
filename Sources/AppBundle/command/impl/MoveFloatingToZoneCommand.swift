@@ -31,13 +31,13 @@ struct MoveFloatingToZoneCommand: Command {
 
         // Find the "from zone" by checking which zone contains the window center
         let windowCenter = windowRect.center
-        let fromZoneRect: Rect
-        if let homeZone = workspace.zoneContainers.values.first(where: { $0.lastAppliedLayoutPhysicalRect?.contains(windowCenter) == true }),
-           let homeRect = homeZone.lastAppliedLayoutPhysicalRect {
-            fromZoneRect = homeRect
+        let fromZoneRect: Rect = if let homeZone = workspace.zoneContainers.values.first(where: { $0.lastAppliedLayoutPhysicalRect?.contains(windowCenter) == true }),
+                                    let homeRect = homeZone.lastAppliedLayoutPhysicalRect
+        {
+            homeRect
         } else {
             // Fall back to monitor rect
-            fromZoneRect = workspace.workspaceMonitor.rect
+            workspace.workspaceMonitor.rect
         }
 
         let offsetX = windowRect.topLeftX - fromZoneRect.topLeftX

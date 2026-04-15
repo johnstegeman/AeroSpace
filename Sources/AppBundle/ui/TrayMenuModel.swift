@@ -21,13 +21,13 @@ public final class TrayMenuModel: ObservableObject {
     let zoneIndicator: String = {
         let zc = focus.workspace.zoneContainers
         guard !zc.isEmpty else { return "" }
-        let activeZoneName: String?
-        if let window = focus.windowOrNil,
-           let container = window.parent as? TilingContainer,
-           container.isZoneContainer {
-            activeZoneName = zc.first { $0.value === container }?.key
+        let activeZoneName: String? = if let window = focus.windowOrNil,
+                                         let container = window.parent as? TilingContainer,
+                                         container.isZoneContainer
+        {
+            zc.first { $0.value === container }?.key
         } else {
-            activeZoneName = focus.workspace.focusedZone
+            focus.workspace.focusedZone
         }
         let labels = [("left", "L"), ("center", "C"), ("right", "R")]
         let parts = labels.compactMap { (name, label) -> String? in
@@ -81,14 +81,14 @@ public final class TrayMenuModel: ObservableObject {
     }
     let zoneContainers = focus.workspace.zoneContainers
     if !zoneContainers.isEmpty {
-        let activeZoneName: String?
-        if let window = focus.windowOrNil,
-           let container = window.parent as? TilingContainer,
-           container.isZoneContainer {
-            activeZoneName = zoneContainers.first { $0.value === container }?.key
+        let activeZoneName: String? = if let window = focus.windowOrNil,
+                                         let container = window.parent as? TilingContainer,
+                                         container.isZoneContainer
+        {
+            zoneContainers.first { $0.value === container }?.key
         } else {
             // Fall back to the one-shot hint set by focus-zone on an empty zone
-            activeZoneName = focus.workspace.focusedZone
+            focus.workspace.focusedZone
         }
         for (name, displayName) in [("left", "L"), ("center", "C"), ("right", "R")] {
             if zoneContainers[name] != nil {

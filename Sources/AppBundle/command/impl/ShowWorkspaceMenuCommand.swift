@@ -26,14 +26,14 @@ struct ShowWorkspaceMenuCommand: Command {
             let item = NSMenuItem(
                 title: ws.name + ws.suffix,
                 action: #selector(WorkspaceMenuTarget.select(_:)),
-                keyEquivalent: ""
+                keyEquivalent: "",
             )
             item.target = delegate
             item.representedObject = ws.name
             item.state = ws.isFocused ? .on : .off
             item.attributedTitle = NSAttributedString(
                 string: ws.name + ws.suffix,
-                attributes: [.font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)]
+                attributes: [.font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)],
             )
             menu.addItem(item)
         }

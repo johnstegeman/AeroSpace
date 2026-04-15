@@ -39,6 +39,6 @@ final class FlattenWorkspaceTreeCommandTest: XCTestCase {
         // ensureZoneContainers starts fresh — no stale zone refs
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
         XCTAssertEqual(workspace.zoneContainers.count, 3)
-        XCTAssertEqual(workspace.rootTilingContainer.children.filter { $0 is TilingContainer }.count, 3)
+        XCTAssertEqual(workspace.rootTilingContainer.children.count(where: { $0 is TilingContainer }), 3)
     }
 }

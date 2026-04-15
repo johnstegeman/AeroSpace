@@ -44,7 +44,8 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
     } else if !targetWorkspace.zoneContainers.isEmpty {
         let profile = MonitorProfile([targetWorkspace.workspaceMonitor])
         if let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
-           let zone = targetWorkspace.zoneContainers[zoneName] {
+           let zone = targetWorkspace.zoneContainers[zoneName]
+        {
             targetContainer = zone
         } else {
             targetContainer = targetWorkspace.zoneContainers["center"] ?? targetWorkspace.rootTilingContainer

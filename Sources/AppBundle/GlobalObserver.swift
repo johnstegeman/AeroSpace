@@ -56,7 +56,7 @@ enum GlobalObserver {
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
-            queue: .main
+            queue: .main,
         ) { notification in
             let notifName = notification.name.rawValue
             Task { @MainActor in
