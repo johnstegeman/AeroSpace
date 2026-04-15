@@ -255,10 +255,21 @@ extension Window {
 @MainActor
 private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: MacApp, _ workspace: Workspace, window: Window?, startupRect: Rect? = nil) async throws -> BindingData {
     let windowLevel = getWindowLevel(for: windowId)
-    return switch try await macApp.getAxUiElementWindowType(windowId, windowLevel) {
-        case .popup: BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-        case .dialog: BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-        case .window: unbindAndGetBindingDataForNewTilingWindow(workspace, window: window, startupRect: startupRect)
+    switch try await macApp.getAxUiElementWindowType(windowId, windowLevel) {
+        case .popup: return BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        case .dialog: return BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        case .window:
+            // For new windows, check ZoneMemory for a saved zone assignment before falling through
+            // to startup-rect / hint / MRU placement.
+            if window == nil,
+               let bundleId = macApp.rawAppBundleId,
+               let profile = workspace.activeZoneProfile,
+               let zoneName = ZoneMemory.shared.rememberedZone(forBundleId: bundleId, profile: profile),
+               let zone = workspace.zoneContainers[zoneName]
+            {
+                return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            }
+            return unbindAndGetBindingDataForNewTilingWindow(workspace, window: window, startupRect: startupRect)
     }
 }
 

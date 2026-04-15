@@ -71,6 +71,11 @@ final class ZoneMemory {
         return data[profile.key]?[key]
     }
 
+    /// Returns the remembered zone name for the given bundle ID under the given profile, or nil.
+    func rememberedZone(forBundleId bundleId: String, profile: MonitorProfile) -> String? {
+        data[profile.key]?[bundleId]
+    }
+
     private func load() {
         guard let raw = try? Data(contentsOf: storageURL),
               let decoded = try? JSONDecoder().decode([String: [String: String]].self, from: raw)
