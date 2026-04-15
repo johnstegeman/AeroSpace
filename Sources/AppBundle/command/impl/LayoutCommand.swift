@@ -41,12 +41,14 @@ struct LayoutCommand: Command {
                         return .succ // Nothing to do
                     case .workspace(let workspace):
                         window.lastFloatingSize = try await window.getAxSize() ?? window.lastFloatingSize
+                        FloatingMemory.shared.forget(windowId: window.windowId)
                         try await window.relayoutWindow(on: workspace, forceTile: true)
                         return .succ
                 }
             case .floating:
                 let workspace = target.workspace
                 window.bindAsFloatingWindow(to: workspace)
+                FloatingMemory.shared.remember(windowId: window.windowId)
                 if let size = window.lastFloatingSize { window.setAxFrame(nil, size) }
                 return .succ
         }

@@ -34,6 +34,15 @@ final class MacWindow: Window {
         let window = MacWindow(windowId, macApp, lastFloatingSize: rect?.size, parent: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
         allWindowsMap[windowId] = window
 
+        // Restore manual floating preference persisted from the previous session.
+        // Skip if the window is already floating (e.g. a dialog) or has no workspace yet.
+        if !window.isFloating,
+           FloatingMemory.shared.isRemembered(windowId: windowId),
+           let workspace = window.nodeWorkspace
+        {
+            window.bindAsFloatingWindow(to: workspace)
+        }
+
         try await debugWindowsIfRecording(window)
         if try await !restoreClosedWindowsCacheIfNeeded(newlyDetectedWindow: window) {
             try await tryOnWindowDetected(window)
