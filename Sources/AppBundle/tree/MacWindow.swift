@@ -43,6 +43,12 @@ final class MacWindow: Window {
             window.bindAsFloatingWindow(to: workspace)
         }
 
+        // Promote sticky windows to the currently focused workspace.
+        // Sticky windows are a subset of FloatingMemory, so the window is already floating above.
+        if StickyMemory.shared.isRemembered(windowId: windowId) {
+            window.bindAsFloatingWindow(to: focus.workspace)
+        }
+
         // Restore scratchpad windows to the scratchpad workspace.
         if ScratchpadMemory.shared.isRemembered(windowId: windowId),
            window.nodeWorkspace != Workspace.scratchpad
