@@ -5,7 +5,7 @@ struct ShowWorkspaceMenuCommand: Command {
     let args: ShowWorkspaceMenuCmdArgs
     /*conforms*/ let shouldResetClosedWindowsCache: Bool = false
 
-    func run(_ env: CmdEnv, _ io: CmdIo) async throws -> Bool {
+    func run(_ env: CmdEnv, _ io: CmdIo) async throws -> BinaryExitCode {
         // NSMenu.popUp uses AppKit screen coordinates (origin at bottom-left, Y up).
         // AX rects use CG coordinates (origin at top-left of main screen, Y down).
         let mainScreenHeight = NSScreen.main?.frame.height ?? 0
@@ -43,7 +43,7 @@ struct ShowWorkspaceMenuCommand: Command {
         if let name = delegate.selectedName {
             _ = Workspace.get(byName: name).focusWorkspace()
         }
-        return true
+        return .succ
     }
 }
 

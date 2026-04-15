@@ -5,29 +5,29 @@ struct MoveFloatingToZoneCommand: Command {
     let args: MoveFloatingToZoneCmdArgs
     /*conforms*/ let shouldResetClosedWindowsCache: Bool = false
 
-    func run(_ env: CmdEnv, _ io: CmdIo) async throws -> Bool {
-        guard let target = args.resolveTargetOrReportError(env, io) else { return false }
-        guard let window = target.windowOrNil else { return io.err(noWindowIsFocused) }
-        guard let parent = window.parent else { return false }
+    func run(_ env: CmdEnv, _ io: CmdIo) async throws -> BinaryExitCode {
+        guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
+        guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
+        guard let parent = window.parent else { return .fail }
         let workspace: Workspace
         switch parent.cases {
             case .workspace(let ws):
                 workspace = ws
             case .tilingContainer:
-                guard let ws = window.nodeWorkspace else { return false }
+                guard let ws = window.nodeWorkspace else { return .fail }
                 workspace = ws
                 window.bindAsFloatingWindow(to: workspace)
             default:
-                return io.err("move-floating-to-zone: focused window is not floating or tiling")
+                return .fail(io.err("move-floating-to-zone: focused window is not floating or tiling"))
         }
         let zoneName = args.zone.val.rawValue
         guard let toZone = workspace.zoneContainers[zoneName] else {
-            return io.err("move-floating-to-zone: zones not active on this workspace")
+            return .fail(io.err("move-floating-to-zone: zones not active on this workspace"))
         }
         guard let toZoneRect = toZone.lastAppliedLayoutPhysicalRect else {
-            return io.err("move-floating-to-zone: zone layout not yet computed")
+            return .fail(io.err("move-floating-to-zone: zone layout not yet computed"))
         }
-        guard let windowRect = try await window.getAxRect() else { return false }
+        guard let windowRect = try await window.getAxRect() else { return .fail }
 
         // Find the "from zone" by checking which zone contains the window center
         let windowCenter = windowRect.center
@@ -46,6 +46,6 @@ struct MoveFloatingToZoneCommand: Command {
 
         window.setAxFrame(newOrigin, nil)
         ZoneMemory.shared.rememberZone(zoneName, for: window, profile: MonitorProfile([workspace.workspaceMonitor]))
-        return true
+        return .succ
     }
 }

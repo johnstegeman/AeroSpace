@@ -61,7 +61,7 @@ enum GlobalObserver {
             let notifName = notification.name.rawValue
             Task { @MainActor in
                 if !TrayMenuModel.shared.isEnabled { return }
-                scheduleRefreshSession(.globalObserver(notifName))
+                scheduleCancellableCompleteRefreshSession(.globalObserver(notifName))
             }
         }
 

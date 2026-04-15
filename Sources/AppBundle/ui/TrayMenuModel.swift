@@ -136,7 +136,7 @@ struct TrayItem: Hashable, Identifiable {
         let lowercasedName = name.lowercased()
         return switch type {
             case .mode: "\(lowercasedName).circle"
-            case .workspace, .zone where isActive: "\(lowercasedName).square.fill"
+            case .workspace where isActive, .zone where isActive: "\(lowercasedName).square.fill"
             case .workspace, .zone: "\(lowercasedName).square"
         }
     }

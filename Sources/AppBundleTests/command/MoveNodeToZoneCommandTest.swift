@@ -37,7 +37,7 @@ final class MoveNodeToZoneCommandTest: XCTestCase {
         let io = CmdIo(stdin: .emptyStdin)
         let result = try await MoveNodeToZoneCommand(args: MoveNodeToZoneCmdArgs(rawArgs: [], .center)).run(.defaultEnv, io)
 
-        XCTAssertFalse(result, "Should fail when zones not active")
+        XCTAssertEqual(result, .fail, "Should fail when zones not active")
         XCTAssertTrue(io.stderr.joined().contains("zones not active"), "Should report error to stderr")
     }
 }
