@@ -49,7 +49,7 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     /// Monitor profile that was active when zones were last activated. Used to save zone memory on deactivation.
     var activeZoneProfile: MonitorProfile? = nil
     /// Root container orientation saved before zone activation, restored when zones are deactivated.
-    private var savedRootOrientation: Orientation? = nil
+    var savedRootOrientation: Orientation? = nil
     /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
     var focusedZone: String? = nil
 

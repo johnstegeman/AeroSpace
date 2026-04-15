@@ -16,6 +16,8 @@ struct FlattenWorkspaceTreeCommand: Command {
             zone.unbindFromParent()
         }
         workspace.zoneContainers = [:]
+        workspace.activeZoneProfile = nil
+        workspace.savedRootOrientation = nil
         return .succ
     }
 }
