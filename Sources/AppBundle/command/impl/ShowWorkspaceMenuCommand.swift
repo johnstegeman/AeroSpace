@@ -7,8 +7,10 @@ struct ShowWorkspaceMenuCommand: Command {
 
     func run(_ env: CmdEnv, _ io: CmdIo) async throws -> BinaryExitCode {
         // NSMenu.popUp uses AppKit screen coordinates (origin at bottom-left, Y up).
-        // AX rects use CG coordinates (origin at top-left of main screen, Y down).
-        let mainScreenHeight = NSScreen.main?.frame.height ?? 0
+        // AX rects use CG coordinates (origin at top-left of the primary display, Y down).
+        // Must use the primary screen (frame.origin == .zero), not NSScreen.main (the focused screen),
+        // otherwise the Y offset is wrong when a secondary monitor is focused.
+        let mainScreenHeight = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.height ?? 0
         let popupPoint: CGPoint
         if let window = focus.windowOrNil,
            let rect = try? await window.getAxRect()
