@@ -146,3 +146,33 @@ Sticky state is saved to `~/Library/Application Support/AeroSpace/sticky-windows
 #### Behavior
 
 When the user switches to a different workspace, all sticky floating windows on the previous workspace are moved to the new workspace before the layout pass runs. They remain at their current screen position.
+
+---
+
+### Scratchpad
+
+An i3-style **scratchpad** workspace for windows that don't belong in the main layout but need fast, hotkey-driven access. The scratchpad is a hidden workspace named `__scratchpad__`; its windows are never part of any visible tiling or floating layout unless explicitly summoned.
+
+#### Commands
+
+```
+send-to-scratchpad [--window-id <id>]   # send focused (or specified) window to the scratchpad
+scratchpad                               # toggle: summon MRU scratchpad window, or hide it if already visible
+```
+
+**`send-to-scratchpad`**: Moves the focused window into the scratchpad workspace as a floating window. If the window is currently tiling, it is automatically floated first. The window's current position and size are saved for restoration.
+
+**`scratchpad`**: Toggle behavior —
+- If the focused window is a scratchpad window visible on the current workspace → it is sent back to the scratchpad workspace (hidden).
+- Otherwise → the most-recently-used scratchpad window is moved to the current workspace as a floating window at its last known position. If no position was remembered, it is centered on the monitor.
+
+Subsequent presses of `scratchpad` cycle through scratchpad windows in MRU order: each call shows the next hidden window. Already-visible scratchpad windows are not reshown until hidden again.
+
+#### Persistence
+
+The set of scratchpad windows and their last-known positions are saved to `~/Library/Application Support/AeroSpace/scratchpad-windows.json`. On restart, scratchpad windows are returned to the scratchpad workspace automatically regardless of which regular workspace they were on when AeroSpace quit.
+
+#### Notes
+
+- The scratchpad workspace is hidden from `list-workspaces` output and cannot be switched to via the `workspace` command.
+- Sticky and scratchpad are independent features: a scratchpad window is not sticky (it stays in the scratchpad workspace when you switch workspaces, rather than following you).

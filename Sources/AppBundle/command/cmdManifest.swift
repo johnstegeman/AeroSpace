@@ -74,6 +74,10 @@ extension CmdArgs {
                 command = ReloadConfigCommand(args: self as! ReloadConfigCmdArgs)
             case .resize:
                 command = ResizeCommand(args: self as! ResizeCmdArgs)
+            case .scratchpad:
+                command = ScratchpadCommand(args: self as! ScratchpadCmdArgs)
+            case .sendToScratchpad:
+                command = SendToScratchpadCommand(args: self as! SendToScratchpadCmdArgs)
             case .showWorkspaceMenu:
                 command = ShowWorkspaceMenuCommand(args: self as! ShowWorkspaceMenuCmdArgs)
             case .split:

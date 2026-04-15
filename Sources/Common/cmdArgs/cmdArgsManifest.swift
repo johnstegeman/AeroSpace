@@ -36,6 +36,8 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case moveWorkspaceToMonitor = "move-workspace-to-monitor"
     case reloadConfig = "reload-config"
     case resize
+    case scratchpad
+    case sendToScratchpad = "send-to-scratchpad"
     case showWorkspaceMenu = "show-workspace-menu"
     case split
     case subscribe
@@ -126,6 +128,10 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(ReloadConfigCmdArgs.init)
             case .resize:
                 result[kind.rawValue] = SubCommandParser(parseResizeCmdArgs)
+            case .scratchpad:
+                result[kind.rawValue] = SubCommandParser(parseScratchpadCmdArgs)
+            case .sendToScratchpad:
+                result[kind.rawValue] = SubCommandParser(parseSendToScratchpadCmdArgs)
             case .showWorkspaceMenu:
                 result[kind.rawValue] = SubCommandParser(parseShowWorkspaceMenuCmdArgs)
             case .split:

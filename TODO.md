@@ -77,13 +77,6 @@ Changes required:
 
 ---
 
-### Scratchpad
-Implement an i3-style scratchpad: a hidden workspace where windows can be sent and summoned/dismissed with a hotkey. Useful for overflow windows (chats, quick terminals, reference material) that don't belong in the main layout but need fast access.
-
-References: GitHub issue [#272](https://github.com/nikitabobko/AeroSpace/issues/272) (54 reactions)
-
----
-
 ### Accordion improvements / tabbed layout
 The accordion layout is AeroSpace's answer to i3's stacked/tabbed layouts — windows overlap and you cycle through them. No one has filed a standalone "tabbed layout" request; the accordion already covers the use case. Pain points that have been raised:
 

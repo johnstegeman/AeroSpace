@@ -31,6 +31,15 @@ private func getStubWorkspace(forPoint point: CGPoint) -> Workspace {
 }
 
 final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
+    /// The reserved name for the hidden scratchpad workspace.
+    static let scratchpadName = "__scratchpad__"
+
+    /// The global scratchpad workspace. Created on first access.
+    @MainActor static var scratchpad: Workspace { Workspace.get(byName: scratchpadName) }
+
+    /// True for the internal scratchpad workspace, which is never shown on any monitor.
+    var isScratchpad: Bool { name == Workspace.scratchpadName }
+
     let name: String
     nonisolated private let nameLogicalSegments: StringLogicalSegments
     /// `assignedMonitorPoint` must be interpreted only when the workspace is invisible
@@ -92,7 +101,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
             _ = get(byName: name) // Make sure that all persistent workspaces are "cached"
         }
         workspaceNameToWorkspace = workspaceNameToWorkspace.filter { (_, workspace: Workspace) in
-            config.persistentWorkspaces.contains(workspace.name) ||
+            workspace.isScratchpad || // always keep the scratchpad workspace
+                config.persistentWorkspaces.contains(workspace.name) ||
                 !workspace.isEffectivelyEmpty ||
                 workspace.isVisible ||
                 workspace.name == focus.workspace.name

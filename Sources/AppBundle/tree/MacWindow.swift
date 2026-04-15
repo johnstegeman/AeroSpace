@@ -43,6 +43,13 @@ final class MacWindow: Window {
             window.bindAsFloatingWindow(to: workspace)
         }
 
+        // Restore scratchpad windows to the scratchpad workspace.
+        if ScratchpadMemory.shared.isRemembered(windowId: windowId),
+           window.nodeWorkspace != Workspace.scratchpad
+        {
+            window.bindAsFloatingWindow(to: Workspace.scratchpad)
+        }
+
         try await debugWindowsIfRecording(window)
         if try await !restoreClosedWindowsCacheIfNeeded(newlyDetectedWindow: window) {
             try await tryOnWindowDetected(window)
@@ -91,6 +98,7 @@ final class MacWindow: Window {
         }
         FloatingMemory.shared.forget(windowId: windowId)
         StickyMemory.shared.forget(windowId: windowId)
+        ScratchpadMemory.shared.forget(windowId: windowId)
         if !skipClosedWindowsCache { cacheClosedWindowIfNeeded() }
         let parent = unbindFromParent().parent
         let deadWindowWorkspace = parent.nodeWorkspace
