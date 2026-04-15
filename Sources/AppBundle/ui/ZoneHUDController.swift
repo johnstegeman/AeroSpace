@@ -88,7 +88,7 @@ func hudShouldBeVisible() -> Bool {
     switch config.hud.activeOn {
         case .never: return false
         case .always: return true
-        case .ultrawide: return !mainMonitor.activeWorkspace.zoneContainers.isEmpty
+        case .ultrawide: return !focus.workspace.zoneContainers.isEmpty
     }
 }
 
