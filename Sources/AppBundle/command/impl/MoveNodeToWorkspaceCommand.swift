@@ -54,5 +54,8 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
         targetContainer = targetWorkspace.rootTilingContainer
     }
     window.bind(to: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
+    if !targetWorkspace.isScratchpad {
+        ScratchpadMemory.shared.forget(windowId: window.windowId)
+    }
     return .from(bool: focusFollowsWindow ? window.focusWindow() : true)
 }
