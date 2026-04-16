@@ -20,7 +20,7 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
             let event: ServerEvent
             switch eventType {
                 case .focusChanged:
-                    event = .focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name)
+                    event = .focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name, appName: f.windowOrNil?.app.name)
                 case .workspaceChanged:
                     event = .workspaceChanged(workspace: f.workspace.name, prevWorkspace: f.workspace.name)
                 case .modeChanged:
@@ -31,6 +31,8 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
                         monitorId_oneBased: f.workspace.workspaceMonitor.monitorId_oneBased ?? 0,
                     )
                 case .windowDetected, .bindingTriggered: continue
+                case .monitorChanged:
+                    event = .monitorChanged(monitorCount: monitors.count)
             }
             if await connection.writeAtomic(event, jsonEncoder).error != nil {
                 return

@@ -180,6 +180,12 @@ extension Workspace {
     }
 }
 @MainActor private func onFocusChanged(_ focus: LiveFocus) {
+    // Immediately re-sync borders so active/inactive colors update without waiting for a layout pass.
+    Task { await BorderController.shared.sync() }
+
+    let winDesc = focus.windowOrNil.map { "\($0.windowId) \($0.app.rawAppBundleId ?? "?")" } ?? "nil"
+    aeroLog("focus → \(winDesc) ws:\(focus.workspace.name)")
+
     // Update MRU zone history when a window in a zone gains focus (mouse, hotkey, or any path).
     if let window = focus.windowOrNil,
        let zoneContainer = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer,
@@ -190,9 +196,16 @@ extension Workspace {
         if focus.workspace.mruZones.count > 10 { focus.workspace.mruZones.removeLast() }
     }
 
+    let focusedZoneName: String? = focus.windowOrNil.flatMap { window in
+        guard let zc = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
+        else { return nil }
+        return focus.workspace.zoneContainers.first(where: { $0.value === zc })?.key
+    }
     broadcastEvent(.focusChanged(
         windowId: focus.windowOrNil?.windowId,
         workspace: focus.workspace.name,
+        appName: focus.windowOrNil?.app.name,
+        zoneName: focusedZoneName,
     ))
     if config.onFocusChanged.isEmpty { return }
     guard let token: RunSessionGuard = .isServerEnabled else { return }
