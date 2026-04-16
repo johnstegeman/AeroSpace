@@ -137,30 +137,134 @@ alt-2 = 'zone-preset comms'
 alt-0 = 'zone-preset --reset'
 ```
 
-### Zone HUD
+### on-monitor-changed
 
-A floating, non-activating heads-up display (`ZoneHUDController`) shows the zone layout with per-zone window counts and highlights the active zone. Configurable via `[hud]`:
+`[[on-monitor-changed]]` fires whenever the monitor configuration changes — both when a monitor is connected and when one is disconnected. Rules are evaluated in order; all matching rules fire.
 
 ```toml
-[hud]
-# ultrawide (default) | always | never
-active-on = "ultrawide"
+[[on-monitor-changed]]
+if.any-monitor-min-aspect-ratio = 2.0
+run = 'workspace-snapshot restore dev'
+
+[[on-monitor-changed]]
+# no 'if' — fires on every topology change
+run = 'exec-and-forget ~/.config/aerospace/on-monitor-changed.sh'
 ```
+
+**`if.any-monitor-min-aspect-ratio`** — optional matcher. When set, the rule only fires if at least one currently-connected monitor has `width/height >= value` at the time the event fires (i.e., after the connect or disconnect has already taken effect). Omitting `if` means the rule always fires.
+
+This is the recommended way to restore a layout when your ultrawide connects:
+
+```toml
+[[on-monitor-changed]]
+if.any-monitor-min-aspect-ratio = 2.0
+run = 'workspace-snapshot restore dev'
+```
+
+### Event Stream (subscribe)
+
+AeroSpace exposes a streaming event subscription for external tools (SketchyBar, custom scripts, etc.):
+
+```sh
+aerospace subscribe --all
+aerospace subscribe focus-changed workspace-changed monitor-changed
+```
+
+Each event is a JSON object written to stdout, one per line. Supported event types:
+
+| Event | Key fields |
+|---|---|
+| `focus-changed` | `windowId`, `workspace`, `appName` |
+| `focused-workspace-changed` | `workspace`, `prevWorkspace` |
+| `focused-monitor-changed` | `workspace`, `monitorId` |
+| `mode-changed` | `mode` |
+| `window-detected` | `windowId`, `workspace`, `appBundleId`, `appName` |
+| `binding-triggered` | `mode`, `binding` |
+| `monitor-changed` | `monitorCount` |
+
+**SketchyBar integration** — SketchyBar supports custom events via `sketchybar --trigger`. A bridge script is the standard pattern:
+
+```sh
+#!/usr/bin/env bash
+# ~/.config/aerospace/sketchybar-bridge.sh
+# Run this as a background process alongside SketchyBar.
+aerospace subscribe monitor-changed workspace-changed focus-changed | while IFS= read -r event; do
+    type=$(echo "$event" | jq -r '._event')
+    sketchybar --trigger "aerospace_${type}" info="$event"
+done
+```
+
+SketchyBar items subscribe to the custom event and update themselves:
+
+```lua
+sketchybar --add event aerospace_monitor_changed
+sketchybar --subscribe my_item aerospace_monitor_changed
+-- item script receives $INFO with the full JSON payload
+```
+
+Pass `--no-send-initial` to suppress the initial state snapshot that is otherwise sent on connection.
+
+---
+
+#### Bridge script (`plugins/aerospace_bridge.sh`)
+
+Subscribes to `focused-workspace-changed` and `focus-changed`, fires custom sketchybar events:
+
+```sh
+/usr/local/bin/aerospace subscribe focused-workspace-changed focus-changed --no-send-initial | \
+while IFS= read -r line; do
+    EVENT=$(printf '%s' "$line" | sed 's/.*"_event":"\([^"]*\)".*/\1/')
+    case "$EVENT" in
+        focused-workspace-changed)
+            WS=$(printf '%s' "$line" | sed 's/.*"workspace":"\([^"]*\)".*/\1/')
+            sketchybar --trigger aerospace_workspace_changed workspace="$WS" ;;
+        focus-changed)
+            APP=$(printf '%s' "$line" | sed 's/.*"appName":"\([^"]*\)".*/\1/')
+            sketchybar --trigger aerospace_focus_changed app_name="$APP" ;;
+    esac
+done
+```
+
+Started on every `sketchybar --reload` (previous instance killed first). Custom events `aerospace_workspace_changed` and `aerospace_focus_changed` must be registered with `sketchybar --add event` before items subscribe.
+
+#### Monitor-aware bar layout
+
+`sketchybarrc` detects ultrawide vs laptop via physical pixel width from `system_profiler`:
+
+| Setting | Ultrawide (≥5000px) | Laptop |
+|---|---|---|
+| `margin` | `screen_width × 0.32 + 5` (zone-centered) | `0` (full width) |
+| `y_offset` | `0` (overlays menu bar) | `0` (overlays menu bar, left of notch) |
+| `padding_left` | `640` | `680` (positions pills just left of notch) |
+| `padding_right` | `480` | `10` |
+| Items shown | all | workspace pills only |
+
+`on-monitor-changed` in `aerospace.toml` runs `exec-and-forget /usr/local/bin/sketchybar --reload` so the bar automatically reconfigures when the ultrawide is connected or disconnected.
 
 ### Per-Zone Outer-Gap Overrides
 
-Individual zones can override the global outer gap on any side. This is useful when an external bar (e.g. sketchybar) occupies vertical space on only part of the screen:
+Individual zones can override the global outer gap on any side. Override values are **absolute pixel distances from the screen edge** — they replace the global value for that zone, they do not add to it. Omitting a side means the zone inherits the global `outer-gaps` value for that side unchanged.
+
+This lets you reserve space for an external bar (e.g. sketchybar) in only one zone, without wasting that space in the others:
 
 ```toml
-[zones.overrides.center]
-top = 40    # sketchybar on center zone only; left/right stay at global value
-bottom = 8
+# Global gap accounts for menu bar (25px) + sketchybar (40px) sitting above the dock.
+# On laptop (no zones), this applies everywhere.
+[gaps]
+outer.bottom = 65
 
+# On ultrawide, sketchybar only occupies the bottom of the center zone.
+# Left and right zones reclaim that space — their bottom gap is just the dock clearance.
 [zones.overrides.left]
-# no overrides needed — global gaps apply
+bottom = 25
+
+[zones.overrides.right]
+bottom = 25
+
+# center inherits outer.bottom = 65 from [gaps] — no override needed
 ```
 
-Keys `top`, `bottom`, `left`, `right` are absolute pixel values. Omitting a side means use the global `outer-gaps` value for that side. These overrides are additive relative to the global layout rect: the extra pixels are inset from the already-padded workspace boundary.
+Because override values can be set below the global, left/right zones effectively "expand downward" into the space the global gap had reserved for sketchybar.
 
 ### Zone Focus Mode
 
@@ -260,6 +364,62 @@ Sticky state is saved to `~/Library/Application Support/AeroSpace/sticky-windows
 #### Behavior
 
 When the user switches to a different workspace, all sticky floating windows on the previous workspace are moved to the new workspace before the layout pass runs. They remain at their current screen position.
+
+---
+
+### Window Borders
+
+An integrated border renderer that draws a colored outline around tiling windows — similar to jankyborders, but with zero lag because borders are updated synchronously as part of AeroSpace's own layout pass.
+
+#### Configuration
+
+```toml
+[borders]
+enabled = true
+width = 2.0
+
+# 0xAARRGGBB hex integer format
+active-color = 0xff5e81ac     # border on the focused window
+inactive-color = 0x00000000   # 0x00... = transparent = no border for inactive windows
+```
+
+Setting `inactive-color` to a non-transparent color draws borders around all visible tiling windows (not just the focused one). Setting it to `0x00000000` (the default) means only the focused window gets a border.
+
+#### Notes
+
+- Borders are drawn as transparent `NSPanel` overlays at `normal+1` window level — above normal windows but below floating-level windows (PiP, system overlays). This prevents borders from bleeding through always-on-top windows.
+- Borders are removed immediately when a window is closed or garbage-collected.
+- Border colors sync on every focus change, not just on layout passes, so the active border updates immediately when clicking between windows.
+- No ricing by default — `enabled = false` is the default. Opt in explicitly.
+
+---
+
+### Debug Logging
+
+AeroSpace writes a structured debug log to `~/Library/Logs/AeroSpace/debug.log` (rotates at 4 MB, previous saved as `debug.log.old`). Logged events include: refresh session triggers, focus changes, window detection/close, and monitor rearrangements.
+
+#### Marker command
+
+Drop a visible marker into the log so you can find what happened before a bug:
+
+```
+debug-log-marker [--label <text>]
+```
+
+Bind it to a key for instant use when something goes wrong:
+
+```toml
+[mode.main.binding]
+hyper-b = 'debug-log-marker'
+```
+
+Then inspect the log:
+
+```sh
+tail -100 ~/Library/Logs/AeroSpace/debug.log
+# or live:
+tail -f ~/Library/Logs/AeroSpace/debug.log
+```
 
 ---
 
