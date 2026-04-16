@@ -27,6 +27,7 @@ func runHeavyCompleteRefreshSession(
     layoutWorkspaces shouldLayoutWorkspaces: Bool = true,
     optimisticallyPreLayoutWorkspaces: Bool = false,
 ) async {
+    aeroLog("refresh: \(event)")
     let state = signposter.beginInterval(#function, "event: \(event) axTaskLocalAppThreadToken: \(axTaskLocalAppThreadToken?.idForDebug)")
     defer { signposter.endInterval(#function, state) }
     if !TrayMenuModel.shared.isEnabled { return }
@@ -42,12 +43,17 @@ func runHeavyCompleteRefreshSession(
                 refreshModel()
                 gcMonitors() // Must run before refresh() so zone containers exist when new windows are placed
                 try await refresh()
-                ZoneHUDController.shared.setVisible(hudShouldBeVisible())
-
+                // Retry focus sync after refresh(): a window that was still in
+                // macosMinimizedWindowsContainer on the first updateFocusCache call (making
+                // focusWindow() return false) is now back in its workspace and can be focused.
+                updateFocusCache(nativeFocused)
                 updateTrayText()
-                ZoneHUDController.shared.update(workspace: focus.workspace)
                 SecureInputPanel.shared.refresh()
                 try await normalizeLayoutReason()
+                // Third retry: normalizeLayoutReason() may have just moved a deminiaturized window
+                // from macosMinimizedWindowsContainer back into its workspace, making focusWindow()
+                // succeed where the earlier calls above failed.
+                updateFocusCache(nativeFocused)
                 if shouldLayoutWorkspaces { try await layoutWorkspaces() }
             }
         }
@@ -83,7 +89,6 @@ func runLightSession<T>(
             let focusAfter = focus.windowOrNil
 
             updateTrayText()
-            ZoneHUDController.shared.update(workspace: focus.workspace)
             SecureInputPanel.shared.refresh()
             try await layoutWorkspaces()
             if focusBefore != focusAfter {
@@ -151,6 +156,27 @@ func refreshObs(_: AXObserver, _: AXUIElement, notif: CFString, _: UnsafeMutable
     }
 }
 
+/// Dedicated observer for AXWindowDeminiaturized.
+/// When a window comes back from the Dock we know *exactly* which window it is — focus it
+/// directly instead of relying on getNativeFocusedWindow(), which can still return the
+/// previously-active app/window until macOS updates frontmostApplication.
+func deminiaturizeObs(_: AXObserver, ax: AXUIElement, notif: CFString, _: UnsafeMutableRawPointer?) {
+    let windowId = ax.containingWindowId()
+    let notifStr = notif as String
+    Task { @MainActor in
+        guard let token: RunSessionGuard = .isServerEnabled else { return }
+        guard let windowId, let window = Window.get(byId: windowId) else {
+            // Window not yet registered; fall back to a normal refresh.
+            scheduleCancellableCompleteRefreshSession(.ax(notifStr))
+            return
+        }
+        aeroLog("deminiaturize: focusing window \(windowId) directly")
+        try await runLightSession(.ax(notifStr), token) {
+            _ = window.focusWindow()
+        }
+    }
+}
+
 enum OptimalHideCorner {
     case bottomLeftCorner, bottomRightCorner
 }
@@ -162,6 +188,7 @@ private func layoutWorkspaces() async throws {
             workspace.allLeafWindowsRecursive.forEach { ($0 as! MacWindow).unhideFromCorner() } // todo as!
             try await workspace.layoutWorkspace() // Unhide tiling windows from corner
         }
+        await BorderController.shared.sync() // clears all borders when enabled = false
         return
     }
     let monitors = monitors
@@ -202,6 +229,8 @@ private func layoutWorkspaces() async throws {
             try await (window as! MacWindow).hideInCorner(corner) // todo as!
         }
     }
+
+    await BorderController.shared.sync()
 }
 
 @MainActor
