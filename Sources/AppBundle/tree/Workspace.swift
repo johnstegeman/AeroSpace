@@ -54,6 +54,10 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     var focusedZone: String? = nil
     /// MRU zone history for this workspace (most-recent-first). In-memory only; resets on restart.
     var mruZones: [String] = []
+    /// Saved zone weights captured when zone-focus-mode was activated. nil when focus mode is off.
+    var savedZoneWeights: [String: CGFloat]? = nil
+    /// Name of the currently focused zone when zone focus mode is active. nil when focus mode is off.
+    var focusModeZone: String? = nil
 
     /// Canonical ordered list of zone names. Use this everywhere instead of hardcoded string arrays.
     static let zoneNames: [String] = ["left", "center", "right"]
@@ -311,16 +315,21 @@ extension Workspace {
     /// and the monitor's visible rect. Used when `lastAppliedLayoutPhysicalRect` is not yet set
     /// (e.g. the workspace has never been visible). Returns nil if zones are not active or the
     /// named zone does not exist.
+    /// When zone-focus-mode is active, uses the saved (pre-collapse) weights so the rects
+    /// reflect actual zone proportions rather than the 8px collapsed slivers.
     @MainActor
     func theoreticalZoneRect(for zoneName: String) -> Rect? {
         let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
         guard containers.count == 3 else { return nil }
         let monitorRect = workspaceMonitor.visibleRect
-        let totalWeight = containers.reduce(0.0) { $0 + $1.1.getWeight(.h) }
+        let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, c in
+            saved?[name] ?? c.getWeight(.h)
+        }
+        let totalWeight = containers.reduce(0.0) { $0 + effectiveWeight($1.0, $1.1) }
         guard totalWeight > 0 else { return nil }
         var xOffset = monitorRect.minX
         for (name, container) in containers {
-            let zoneWidth = monitorRect.width * (container.getWeight(.h) / totalWeight)
+            let zoneWidth = monitorRect.width * (effectiveWeight(name, container) / totalWeight)
             if name == zoneName {
                 return Rect(topLeftX: xOffset, topLeftY: monitorRect.topLeftY, width: zoneWidth, height: monitorRect.height)
             }
@@ -331,13 +340,18 @@ extension Workspace {
 
     /// Returns the zone name whose horizontal slice contains >50% of the window's area,
     /// or nil if no zone clears that threshold. On an exact tie, returns the leftmost zone.
+    /// When zone-focus-mode is active, uses saved weights so overlap is computed against
+    /// real proportions, not collapsed slivers.
     @MainActor
     func zoneForWindowRect(_ windowRect: Rect) -> String? {
         let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
         guard containers.count == 3 else { return nil }
 
         let monitorRect = workspaceMonitor.visibleRect
-        let totalWeight = containers.reduce(0.0) { $0 + $1.1.getWeight(.h) }
+        let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, c in
+            saved?[name] ?? c.getWeight(.h)
+        }
+        let totalWeight = containers.reduce(0.0) { $0 + effectiveWeight($1.0, $1.1) }
         guard totalWeight > 0 else { return nil }
 
         var xOffset: CGFloat = monitorRect.minX
@@ -345,7 +359,7 @@ extension Workspace {
         var bestOverlapArea: CGFloat = -1
 
         for (name, container) in containers {
-            let zoneWidth: CGFloat = monitorRect.width * (container.getWeight(.h) / totalWeight)
+            let zoneWidth: CGFloat = monitorRect.width * (effectiveWeight(name, container) / totalWeight)
             let overlapMinX: CGFloat = max(windowRect.minX, xOffset)
             let overlapMaxX: CGFloat = min(windowRect.maxX, xOffset + zoneWidth)
             if overlapMaxX > overlapMinX {

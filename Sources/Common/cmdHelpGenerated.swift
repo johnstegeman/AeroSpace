@@ -177,6 +177,9 @@ let volume_help_generated = """
        OR: volume [-h|--help] (mute-toggle|mute-off|mute-on) [--no-gui]
        OR: volume [-h|--help] set <number> [--no-gui]
     """
+let zone_focus_mode_help_generated = """
+    USAGE: zone-focus-mode [-h|--help] [--zone <zone>] (on|off|toggle)
+    """
 let workspace_back_and_forth_help_generated = """
     USAGE: workspace-back-and-forth [-h|--help]
     """

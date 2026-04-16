@@ -92,6 +92,9 @@ struct ZonesConfig: ConvenienceCopyable {
     var layouts: [Layout] = [.tiles, .tiles, .tiles]
     /// Gap in pixels between zone containers. Does not affect gaps within zones.
     var gap: Int = 0
+    /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.
+    /// Large enough to show notification badges (≥40) without being readable (≤120). Default 80.
+    var focusModeCollapsedWidth: Int = 80
     /// Per-zone outer-gap overrides keyed by zone name. A nil side means use the global gap.
     var overrides: [String: ZoneGapOverride] = [:]
 }

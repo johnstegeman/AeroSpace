@@ -130,6 +130,28 @@ bottom = 8
 
 Keys `top`, `bottom`, `left`, `right` are absolute pixel values. Omitting a side means use the global `outer-gaps` value for that side. These overrides are additive relative to the global layout rect: the extra pixels are inset from the already-padded workspace boundary.
 
+### Zone Focus Mode
+
+A command to temporarily maximize one zone while collapsing the others to 8px slivers:
+
+```
+zone-focus-mode [--zone <left|center|right>] (on|off|toggle)
+```
+
+`on` — collapse all zones except the target zone. If `--zone` is omitted, the currently focused zone (or MRU zone) is used.  
+`off` — restore zones to their weights at the time `on` was called.  
+`toggle` — turns on if currently off, off if currently on.
+
+```toml
+[mode.main.binding]
+alt-z = 'zone-focus-mode toggle'            # toggle focus mode on current zone
+alt-shift-z = 'zone-focus-mode off'          # explicitly exit focus mode
+```
+
+When `focus-zone` is called while focus mode is active and the target zone differs from the current focused zone, focus mode automatically shifts to the new zone (discarding prior saved weights and re-capturing current weights).
+
+Collapsed zones remain visible at 8px. Zone weights captured at `on` time are restored exactly on `off` — not from config defaults.
+
 ### Per-Zone Default Layouts
 
 Each zone can have its own default tiling layout (`tiles`, `accordion`). When `ensureZoneContainers()` creates a zone container for the first time it applies the configured layout for that position.

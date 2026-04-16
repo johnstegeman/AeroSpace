@@ -33,6 +33,11 @@ struct FocusZoneCommand: Command {
         workspace.mruZones.insert(zoneName, at: 0)
         if workspace.mruZones.count > 10 { workspace.mruZones.removeLast() }
 
+        // If focus mode is active and targeting a different zone, switch the focused zone.
+        if workspace.savedZoneWeights != nil, zoneName != workspace.focusModeZone {
+            ZoneFocusModeCommand(args: ZoneFocusModeCmdArgs(rawArgs: [], .on)).run(env, io)
+        }
+
         if let mruWindow = zone.mostRecentWindowRecursive {
             workspace.focusedZone = nil
             return .from(bool: mruWindow.focusWindow())

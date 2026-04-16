@@ -317,6 +317,7 @@ private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
     "widths": Parser(\.widths, parseZoneWidths),
     "layouts": Parser(\.layouts, parseZoneLayouts),
     "gap": Parser(\.gap, parseInt),
+    "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
     "overrides": Parser(\.overrides, parseZoneGapOverrides),
 ]
 
