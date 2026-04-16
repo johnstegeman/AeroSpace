@@ -38,8 +38,18 @@ gap = 8
 ### New Commands
 
 #### `focus-zone <left|center|right>`
+#### `focus-zone --scope mru`
 
 Focuses the most-recently-used window in the named zone. If the zone is empty, sets a one-shot **placement hint**: the next new tiling window opened will be routed into that zone. The menu bar indicator updates immediately to reflect the pending zone.
+
+`--scope mru` skips the explicit zone name and instead focuses the most-recently-used *zone* that is not the currently active one. This is useful when you frequently switch between two specific zones and don't want to remember their physical names:
+
+```toml
+[mode.main.binding]
+alt-tab = 'focus-zone --scope mru'
+```
+
+MRU zone state is in-memory only and resets on AeroSpace restart.
 
 #### `move-node-to-zone [--no-focus] <left|center|right>`
 

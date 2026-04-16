@@ -52,6 +52,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     var savedRootOrientation: Orientation? = nil
     /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
     var focusedZone: String? = nil
+    /// MRU zone history for this workspace (most-recent-first). In-memory only; resets on restart.
+    var mruZones: [String] = []
 
     /// Canonical ordered list of zone names. Use this everywhere instead of hardcoded string arrays.
     static let zoneNames: [String] = ["left", "center", "right"]

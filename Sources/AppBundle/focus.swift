@@ -180,6 +180,16 @@ extension Workspace {
     }
 }
 @MainActor private func onFocusChanged(_ focus: LiveFocus) {
+    // Update MRU zone history when a window in a zone gains focus (mouse, hotkey, or any path).
+    if let window = focus.windowOrNil,
+       let zoneContainer = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer,
+       let zoneName = focus.workspace.zoneContainers.first(where: { $0.value === zoneContainer })?.key
+    {
+        focus.workspace.mruZones.removeAll { $0 == zoneName }
+        focus.workspace.mruZones.insert(zoneName, at: 0)
+        if focus.workspace.mruZones.count > 10 { focus.workspace.mruZones.removeLast() }
+    }
+
     broadcastEvent(.focusChanged(
         windowId: focus.windowOrNil?.windowId,
         workspace: focus.workspace.name,

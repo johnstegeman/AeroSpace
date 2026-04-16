@@ -7,16 +7,36 @@ struct FocusZoneCommand: Command {
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         let workspace = target.workspace
-        let zoneName = args.zone.val.rawValue
-        guard let zone = workspace.zoneContainers[zoneName] else {
+        guard !workspace.zoneContainers.isEmpty else {
             return .fail(io.err("focus-zone: zones not active on this workspace"))
         }
+
+        let zoneName: String
+        if args.scope == .mru {
+            // Pick the most-recently-used zone that is not the current zone.
+            let currentZone = focus.windowOrNil.flatMap { w in
+                Workspace.zoneNames.first { workspace.zoneContainers[$0]?.allLeafWindowsRecursive.contains(where: { $0 === w }) == true }
+            }
+            zoneName = workspace.mruZones.first(where: { $0 != currentZone })
+                ?? Workspace.zoneNames.first(where: { $0 != currentZone })
+                ?? Workspace.zoneNames[0]
+        } else {
+            zoneName = args.zone!.rawValue
+        }
+
+        guard let zone = workspace.zoneContainers[zoneName] else {
+            return .fail(io.err("focus-zone: zone '\(zoneName)' not found"))
+        }
+
+        // Update MRU history: push zoneName to front, keep unique, cap at 10 entries.
+        workspace.mruZones.removeAll { $0 == zoneName }
+        workspace.mruZones.insert(zoneName, at: 0)
+        if workspace.mruZones.count > 10 { workspace.mruZones.removeLast() }
+
         if let mruWindow = zone.mostRecentWindowRecursive {
-            // Zone has windows: focus the MRU one (also updates workspace MRU for new window routing)
             workspace.focusedZone = nil
             return .from(bool: mruWindow.focusWindow())
         } else {
-            // Zone is empty: set one-shot placement hint and update menu bar
             workspace.focusedZone = zoneName
             updateTrayText()
             return .succ

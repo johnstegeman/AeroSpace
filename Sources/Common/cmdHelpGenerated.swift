@@ -43,6 +43,7 @@ let focus_monitor_help_generated = """
     """
 let focus_zone_help_generated = """
     USAGE: focus-zone [-h|--help] (left|center|right)
+       OR: focus-zone [-h|--help] --scope mru
     """
 let focus_help_generated = """
     USAGE: focus [-h|--help] [--ignore-floating] [--wrap-around]
