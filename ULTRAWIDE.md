@@ -188,6 +188,27 @@ Collapsed zones remain visible at 8px. Zone weights captured at `on` time are re
 
 Each zone can have its own default tiling layout (`tiles`, `accordion`). When `ensureZoneContainers()` creates a zone container for the first time it applies the configured layout for that position.
 
+### Workspace Snapshots
+
+Save and restore the current window arrangement across all workspaces:
+
+```
+workspace-snapshot save dev      # save current layout as "dev"
+workspace-snapshot restore dev   # restore windows to their saved zones
+```
+
+Snapshot names must match `[a-zA-Z0-9_-]+`. Snapshots are saved to `~/Library/Application Support/AeroSpace/snapshots/<name>.json`.
+
+**Save:** For each workspace, records which zone each tiling window belongs to (by app bundle ID). Floating windows are recorded separately.
+
+**Restore:** For each zone entry, finds a running window with the matching bundle ID (first-come-first-served for apps with multiple windows) and binds it to the recorded zone. Missing apps are skipped gracefully. Excess windows stay in their current location.
+
+```toml
+[mode.main.binding]
+alt-s = 'workspace-snapshot save dev'
+alt-r = 'workspace-snapshot restore dev'
+```
+
 ### Startup Placement
 
 On startup, existing windows are distributed across zones based on zone memory before the first layout pass, so windows land in the right columns immediately rather than all piling into center.

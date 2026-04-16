@@ -98,6 +98,8 @@ extension CmdArgs {
                 command = WorkspaceCommand(args: self as! WorkspaceCmdArgs)
             case .workspaceBackAndForth:
                 command = WorkspaceBackAndForthCommand(args: self as! WorkspaceBackAndForthCmdArgs)
+            case .workspaceSnapshot:
+                command = WorkspaceSnapshotCommand(args: self as! WorkspaceSnapshotCmdArgs)
             case .zoneFocusMode:
                 command = ZoneFocusModeCommand(args: self as! ZoneFocusModeCmdArgs)
             case .zonePreset:

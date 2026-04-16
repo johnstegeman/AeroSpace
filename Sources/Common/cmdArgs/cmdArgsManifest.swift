@@ -48,6 +48,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case volume
     case workspace
     case workspaceBackAndForth = "workspace-back-and-forth"
+    case workspaceSnapshot = "workspace-snapshot"
     case zoneFocusMode = "zone-focus-mode"
     case zonePreset = "zone-preset"
 }
@@ -154,6 +155,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseWorkspaceCmdArgs)
             case .workspaceBackAndForth:
                 result[kind.rawValue] = SubCommandParser(WorkspaceBackAndForthCmdArgs.init)
+            case .workspaceSnapshot:
+                result[kind.rawValue] = SubCommandParser(parseWorkspaceSnapshotCmdArgs)
             case .zoneFocusMode:
                 result[kind.rawValue] = SubCommandParser(parseZoneFocusModeCmdArgs)
             case .zonePreset:
