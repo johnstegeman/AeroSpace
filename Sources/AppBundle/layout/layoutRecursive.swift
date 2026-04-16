@@ -41,11 +41,29 @@ extension TreeNode {
             case .tilingContainer(let container):
                 lastAppliedLayoutPhysicalRect = physicalRect
                 lastAppliedLayoutVirtualRect = virtual
+                // Apply per-zone outer-gap overrides: shift the layout rect by (override - global) on each side.
+                var layoutPoint = point
+                var layoutWidth = width
+                var layoutHeight = height
+                if container.isZoneContainer,
+                   let zoneName = context.workspace.zoneContainers.first(where: { $0.value === container })?.key,
+                   let ov = config.zones.overrides[zoneName]
+                {
+                    let g = context.resolvedGaps.outer
+                    let dTop    = CGFloat((ov.top    ?? g.top)    - g.top)
+                    let dBottom = CGFloat((ov.bottom ?? g.bottom) - g.bottom)
+                    let dLeft   = CGFloat((ov.left   ?? g.left)   - g.left)
+                    let dRight  = CGFloat((ov.right  ?? g.right)  - g.right)
+                    layoutPoint.x += dLeft
+                    layoutPoint.y += dTop
+                    layoutWidth  -= dLeft + dRight
+                    layoutHeight -= dTop  + dBottom
+                }
                 switch container.layout {
                     case .tiles:
-                        try await container.layoutTiles(point, width: width, height: height, virtual: virtual, context)
+                        try await container.layoutTiles(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)
                     case .accordion:
-                        try await container.layoutAccordion(point, width: width, height: height, virtual: virtual, context)
+                        try await container.layoutAccordion(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)
                 }
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer,
                  .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:

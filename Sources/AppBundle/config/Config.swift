@@ -92,6 +92,16 @@ struct ZonesConfig: ConvenienceCopyable {
     var layouts: [Layout] = [.tiles, .tiles, .tiles]
     /// Gap in pixels between zone containers. Does not affect gaps within zones.
     var gap: Int = 0
+    /// Per-zone outer-gap overrides keyed by zone name. A nil side means use the global gap.
+    var overrides: [String: ZoneGapOverride] = [:]
+}
+
+/// Outer-gap overrides for a single zone. nil on any side means use the global outer-gap value.
+struct ZoneGapOverride: ConvenienceCopyable {
+    var top: Int? = nil
+    var bottom: Int? = nil
+    var left: Int? = nil
+    var right: Int? = nil
 }
 
 enum DefaultContainerOrientation: String {

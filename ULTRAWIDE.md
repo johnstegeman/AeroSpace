@@ -115,6 +115,21 @@ A floating, non-activating heads-up display (`ZoneHUDController`) shows the zone
 active-on = "ultrawide"
 ```
 
+### Per-Zone Outer-Gap Overrides
+
+Individual zones can override the global outer gap on any side. This is useful when an external bar (e.g. sketchybar) occupies vertical space on only part of the screen:
+
+```toml
+[zones.overrides.center]
+top = 40    # sketchybar on center zone only; left/right stay at global value
+bottom = 8
+
+[zones.overrides.left]
+# no overrides needed — global gaps apply
+```
+
+Keys `top`, `bottom`, `left`, `right` are absolute pixel values. Omitting a side means use the global `outer-gaps` value for that side. These overrides are additive relative to the global layout rect: the extra pixels are inset from the already-padded workspace boundary.
+
 ### Per-Zone Default Layouts
 
 Each zone can have its own default tiling layout (`tiles`, `accordion`). When `ensureZoneContainers()` creates a zone container for the first time it applies the configured layout for that position.

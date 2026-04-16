@@ -317,10 +317,36 @@ private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
     "widths": Parser(\.widths, parseZoneWidths),
     "layouts": Parser(\.layouts, parseZoneLayouts),
     "gap": Parser(\.gap, parseInt),
+    "overrides": Parser(\.overrides, parseZoneGapOverrides),
 ]
 
 func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
     parseTable(raw, ZonesConfig(), zonesConfigParser, backtrace, &errors)
+}
+
+private func parseZoneGapOverrides(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZoneGapOverride] {
+    guard let rawTable = raw.asDictOrNil else {
+        errors.append(expectedActualTypeError(expected: .table, actual: raw.tomlType, backtrace))
+        return [:]
+    }
+    var result: [String: ZoneGapOverride] = [:]
+    for (zoneName, rawOverride) in rawTable {
+        let bt = backtrace + .key(zoneName)
+        result[zoneName] = parseTable(rawOverride, ZoneGapOverride(), zoneGapOverrideParser, bt, &errors)
+    }
+    return result
+}
+
+/// Keys under [zones.overrides.<name>]: top/bottom/left/right are outer-gap pixel overrides.
+private let zoneGapOverrideParser: [String: any ParserProtocol<ZoneGapOverride>] = [
+    "top": Parser(\.top, parseOptionalInt),
+    "bottom": Parser(\.bottom, parseOptionalInt),
+    "left": Parser(\.left, parseOptionalInt),
+    "right": Parser(\.right, parseOptionalInt),
+]
+
+private func parseOptionalInt(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Int?> {
+    parseInt(raw, backtrace).map(Optional.init)
 }
 
 private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Double]> {
