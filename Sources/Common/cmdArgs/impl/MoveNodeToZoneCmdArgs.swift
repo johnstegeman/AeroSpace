@@ -5,10 +5,13 @@ public struct MoveNodeToZoneCmdArgs: CmdArgs {
         kind: .moveNodeToZone,
         allowInConfig: true,
         help: move_node_to_zone_help_generated,
-        flags: [:],
+        flags: [
+            "--no-focus": ArgParser(\.noFocus, constSubArgParserFun(true)),
+        ],
         posArgs: [newMandatoryPosArgParser(\.zone, parseZoneArg, placeholder: MoveNodeToZoneCmdArgs.Zone.unionLiteral)],
     )
 
+    public var noFocus: Bool = false
     public var zone: Lateinit<Zone> = .uninitialized
 
     public init(rawArgs: [String], _ zone: Zone) {

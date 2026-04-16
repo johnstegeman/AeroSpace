@@ -15,6 +15,7 @@ struct MoveNodeToZoneCommand: Command {
         window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
         ZoneMemory.shared.rememberZone(zoneName, for: window, profile: MonitorProfile([workspace.workspaceMonitor]))
         StickyMemory.shared.forget(windowId: window.windowId)
+        if args.noFocus { return .succ }
         return .from(bool: window.focusWindow())
     }
 }

@@ -53,6 +53,9 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
     var focusedZone: String? = nil
 
+    /// Canonical ordered list of zone names. Use this everywhere instead of hardcoded string arrays.
+    static let zoneNames: [String] = ["left", "center", "right"]
+
     @MainActor
     private init(_ name: String) {
         self.name = name
@@ -249,8 +252,7 @@ extension Workspace {
         rootTilingContainer.layout = .tiles
         let widths = validatedZoneWidths(config.zones.widths)
         let layouts = config.zones.layouts.count == 3 ? config.zones.layouts : [Layout.tiles, .tiles, .tiles]
-        let names = ["left", "center", "right"]
-        for (name, (proportion, layout)) in zip(names, zip(widths, layouts)) {
+        for (name, (proportion, layout)) in zip(Workspace.zoneNames, zip(widths, layouts)) {
             let container = TilingContainer(
                 parent: rootTilingContainer,
                 adaptiveWeight: monitorWidth * proportion,
@@ -280,7 +282,7 @@ extension Workspace {
     private func deactivateZones() {
         // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
         if let profile = activeZoneProfile {
-            for name in ["left", "center", "right"] {
+            for name in Workspace.zoneNames {
                 guard let zone = zoneContainers[name] else { continue }
                 for window in zone.allLeafWindowsRecursive {
                     ZoneMemory.shared.rememberZone(name, for: window, profile: profile)
@@ -288,7 +290,7 @@ extension Workspace {
             }
         }
         activeZoneProfile = nil
-        for name in ["left", "center", "right"] {
+        for name in Workspace.zoneNames {
             guard let zone = zoneContainers[name] else { continue }
             for child in zone.children {
                 child.bind(to: rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
@@ -309,8 +311,7 @@ extension Workspace {
     /// named zone does not exist.
     @MainActor
     func theoreticalZoneRect(for zoneName: String) -> Rect? {
-        let names = ["left", "center", "right"]
-        let containers = names.compactMap { name in zoneContainers[name].map { (name, $0) } }
+        let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
         guard containers.count == 3 else { return nil }
         let monitorRect = workspaceMonitor.visibleRect
         let totalWeight = containers.reduce(0.0) { $0 + $1.1.getWeight(.h) }
@@ -330,8 +331,7 @@ extension Workspace {
     /// or nil if no zone clears that threshold. On an exact tie, returns the leftmost zone.
     @MainActor
     func zoneForWindowRect(_ windowRect: Rect) -> String? {
-        let names = ["left", "center", "right"]
-        let containers = names.compactMap { name in zoneContainers[name].map { (name, $0) } }
+        let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
         guard containers.count == 3 else { return nil }
 
         let monitorRect = workspaceMonitor.visibleRect

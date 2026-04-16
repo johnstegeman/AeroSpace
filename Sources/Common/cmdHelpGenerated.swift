@@ -123,7 +123,7 @@ let move_node_to_workspace_help_generated = """
                                   [--window-id <window-id>] <workspace-name>
     """
 let move_node_to_zone_help_generated = """
-    USAGE: move-node-to-zone [-h|--help] (left|center|right)
+    USAGE: move-node-to-zone [-h|--help] [--no-focus] (left|center|right)
     """
 let move_workspace_to_monitor_help_generated = """
     USAGE: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around] (left|down|up|right)

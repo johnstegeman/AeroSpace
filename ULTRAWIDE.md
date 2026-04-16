@@ -41,9 +41,23 @@ gap = 8
 
 Focuses the most-recently-used window in the named zone. If the zone is empty, sets a one-shot **placement hint**: the next new tiling window opened will be routed into that zone. The menu bar indicator updates immediately to reflect the pending zone.
 
-#### `move-node-to-zone <left|center|right>`
+#### `move-node-to-zone [--no-focus] <left|center|right>`
 
 Moves the focused window into the named zone container and saves that assignment to persistent zone memory (see below). The window is focused after the move.
+
+Pass `--no-focus` to move the window without stealing focus. This is the recommended form when calling `move-node-to-zone` from an `[[on-window-detected]]` callback so that opening a new app does not involuntarily pull focus away from your current window:
+
+```toml
+[[on-window-detected]]
+check-app-id = 'com.tinyspeck.slackmacgap'
+run = 'move-node-to-zone --no-focus right'
+
+[[on-window-detected]]
+check-app-id = 'com.spotify.client'
+run = 'move-node-to-zone --no-focus left'
+```
+
+Zone memory is updated on every `move-node-to-zone` call, so subsequent openings of the app are routed automatically by zone memory without needing the callback.
 
 #### `move-floating-to-zone <left|center|right>`
 
