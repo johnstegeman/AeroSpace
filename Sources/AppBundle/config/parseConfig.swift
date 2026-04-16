@@ -124,7 +124,9 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
     "zone-presets": Parser(\.zonePresets, parseZonePresetsArray),
+    "on-monitor-connected": Parser(\.onMonitorConnected, parseOnMonitorConnectedArray),
     "hud": Parser(\.hud, parseHUDConfig),
+    "borders": Parser(\.borders, parseBorderConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
@@ -296,6 +298,23 @@ private func parseHUDActiveOn(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pars
     }
 }
 
+private let borderConfigParser: [String: any ParserProtocol<BorderConfig>] = [
+    "enabled": Parser(\.enabled, parseBool),
+    "width": Parser(\.width, parseDouble),
+    "active-color": Parser(\.activeColor, parseAeroColor),
+    "inactive-color": Parser(\.inactiveColor, parseAeroColor),
+]
+
+func parseBorderConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> BorderConfig {
+    parseTable(raw, BorderConfig(), borderConfigParser, backtrace, &errors)
+}
+
+private func parseAeroColor(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<AeroColor> {
+    raw.asIntOrNil
+        .map { AeroColor(argb: $0) }
+        .orFailure(expectedActualTypeError(expected: .int, actual: raw.tomlType, backtrace))
+}
+
 private let accordionConfigParser: [String: any ParserProtocol<AccordionConfig>] = [
     "mode": Parser(\.mode, parseAccordionMode),
     "padding": Parser(\.padding, parseInt),
@@ -379,6 +398,33 @@ private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pars
                 parseLayout(elem, backtrace + .index(index))
             }
         }
+}
+
+private func parseOnMonitorConnectedArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [MonitorConnectedCallback] {
+    guard let arr = raw.asArrayOrNil else {
+        errors.append(expectedActualTypeError(expected: .array, actual: raw.tomlType, backtrace))
+        return []
+    }
+    var result: [MonitorConnectedCallback] = []
+    for (index, elem) in arr.enumerated() {
+        let bt = backtrace + .index(index)
+        guard let dict = elem.asDictOrNil else {
+            errors.append(expectedActualTypeError(expected: .table, actual: elem.tomlType, bt))
+            continue
+        }
+        guard let snapshotJson = dict["restore-snapshot"],
+              let snapshotName = snapshotJson.asStringOrNil
+        else {
+            errors.append(.semantic(bt, "on-monitor-connected must have a 'restore-snapshot' string field"))
+            continue
+        }
+        var callback = MonitorConnectedCallback(restoreSnapshot: snapshotName)
+        if let ratioJson = dict["min-aspect-ratio"], let ratio = ratioJson.asDoubleOrNil {
+            callback.minAspectRatio = ratio
+        }
+        result.append(callback)
+    }
+    return result
 }
 
 private func parseZonePresetsArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZonePreset] {

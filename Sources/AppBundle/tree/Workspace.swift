@@ -4,6 +4,12 @@ import Common
 @MainActor private var workspaceNameToWorkspace: [String: Workspace] = [:]
 
 @MainActor private var screenPointToPrevVisibleWorkspace: [CGPoint: String] = [:]
+/// Snapshot of monitor entries from the previous rearrangeWorkspacesOnMonitors call.
+/// Used to detect monitor topology changes (connect/disconnect/rearrange) for on-monitor-changed rules.
+@MainActor private var previousMonitorEntries: [MonitorProfile.MonitorEntry] = []
+/// Snapshot of screen origin points from the previous rearrangeWorkspacesOnMonitors call.
+/// Used to detect monitor rearrangements (same monitors, different positions).
+@MainActor private var previousScreenPoints: Set<CGPoint> = []
 @MainActor private var screenPointToVisibleWorkspace: [CGPoint: Workspace] = [:]
 @MainActor private var visibleWorkspaceToScreenPoint: [Workspace: CGPoint] = [:]
 
@@ -194,6 +200,21 @@ extension CGPoint {
 
 @MainActor
 private func rearrangeWorkspacesOnMonitors() {
+    // Capture current monitor entries BEFORE reassigning to detect newly-connected monitors.
+    let currentEntries = monitors.map { MonitorProfile.MonitorEntry(width: $0.rect.width, height: $0.rect.height) }
+    // Use multiset comparison so that a second identical monitor (same resolution) is treated as
+    // newly added even though an entry with that resolution already existed in previousMonitorEntries.
+    var prevCounts: [MonitorProfile.MonitorEntry: Int] = [:]
+    for e in previousMonitorEntries { prevCounts[e, default: 0] += 1 }
+    var currCounts: [MonitorProfile.MonitorEntry: Int] = [:]
+    for e in currentEntries { currCounts[e, default: 0] += 1 }
+    // One entry per surplus instance (e.g. 2 identical monitors where 1 was known → one newly-added entry).
+    var newlyAdded: [MonitorProfile.MonitorEntry] = []
+    for (entry, currCount) in currCounts {
+        let surplus = currCount - (prevCounts[entry] ?? 0)
+        if surplus > 0 { newlyAdded.append(contentsOf: Array(repeating: entry, count: surplus)) }
+    }
+
     let newScreens = monitors.map(\.rect.topLeftCorner)
     var newScreenToOldScreenMapping: [CGPoint: CGPoint] = [:]
     for (oldScreen, _) in screenPointToVisibleWorkspace {
@@ -224,6 +245,55 @@ private func rearrangeWorkspacesOnMonitors() {
 
     for (point, workspace) in screenPointToVisibleWorkspace {
         workspace.ensureZoneContainers(for: point.monitorApproximation)
+    }
+
+    // Update previousMonitorEntries for next call.
+    previousMonitorEntries = currentEntries
+
+    // Detect removed monitors (entries in prev that are surplus relative to current).
+    // Build the removed list for aspect-ratio matching, not just a boolean.
+    var removedEntries: [MonitorProfile.MonitorEntry] = []
+    for (entry, prevCount) in prevCounts {
+        let surplus = prevCount - (currCounts[entry] ?? 0)
+        if surplus > 0 { removedEntries.append(contentsOf: Array(repeating: entry, count: surplus)) }
+    }
+    let removedAny = !removedEntries.isEmpty
+
+    // Detect monitor rearrangements: same monitor count and resolutions, but different screen origins.
+    let positionsChanged = !previousScreenPoints.isEmpty && Set(newScreens) != previousScreenPoints
+    previousScreenPoints = Set(newScreens)
+
+    aeroLog("monitors: \(monitors.count) screens, newly-added: \(newlyAdded.count), removed: \(removedAny), rearranged: \(positionsChanged)")
+    for (point, ws) in screenPointToVisibleWorkspace {
+        aeroLog("  screen \(point) → ws:\(ws.name)")
+    }
+
+    // Fire on-monitor-changed rules on any topology change (skip during startup).
+    // Deferred via Task so commands run after the current refresh session has fully committed its
+    // tree state — avoids bind() calls re-entering an in-progress layout pass.
+    if !isStartup && (!newlyAdded.isEmpty || removedAny || positionsChanged) {
+        broadcastEvent(.monitorChanged(monitorCount: monitors.count))
+
+        // For add/remove: only filter by the aspect ratios of changed monitors so that connecting
+        // an unrelated small monitor does not trigger ultrawide-targeted rules (Bug 28).
+        // For pure rearrangement: all current monitors are involved, so use current aspect ratios.
+        let changedAspectRatios: [CGFloat]
+        if !newlyAdded.isEmpty || removedAny {
+            changedAspectRatios = (newlyAdded + removedEntries).map { $0.width / $0.height }
+        } else {
+            changedAspectRatios = monitors.map { $0.rect.width / $0.rect.height }
+        }
+        let rulesToFire = config.onMonitorChanged.filter { callback in
+            guard let minRatio = callback.matcher.anyMonitorMinAspectRatio else { return true }
+            return changedAspectRatios.contains { $0 >= minRatio }
+        }
+        if !rulesToFire.isEmpty {
+            Task { @MainActor in
+                for rule in rulesToFire {
+                    _ = try? await rule.run.runCmdSeq(.defaultEnv, .emptyStdin)
+                }
+            }
+        }
     }
 }
 

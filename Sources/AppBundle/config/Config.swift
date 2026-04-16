@@ -64,7 +64,17 @@ struct Config: ConvenienceCopyable {
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
+    var onMonitorConnected: [MonitorConnectedCallback] = []
     var hud: HUDConfig = HUDConfig()
+    var borders: BorderConfig = BorderConfig()
+}
+
+/// Rule that fires when a monitor matching the criteria is newly connected.
+struct MonitorConnectedCallback {
+    /// Minimum aspect ratio (width/height) for the rule to apply.
+    var minAspectRatio: Double = 0
+    /// Name of the workspace snapshot to restore when the rule fires.
+    var restoreSnapshot: String
 }
 
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
@@ -76,6 +86,38 @@ struct ZonePreset: ConvenienceCopyable {
 
 struct HUDConfig: ConvenienceCopyable {
     var activeOn: HUDActiveOn = .ultrawide
+}
+
+struct BorderConfig: ConvenienceCopyable {
+    var enabled: Bool = false
+    var width: Double = 2.0
+    /// Active (focused) window border color in 0xAARRGGBB format.
+    var activeColor: AeroColor = AeroColor(argb: 0xff5e81ac)
+    /// Inactive window border color. Transparent by default (no border for inactive windows).
+    var inactiveColor: AeroColor = .transparent
+}
+
+/// An ARGB color stored as four UInt8 components. Sendable and TOML-parseable.
+struct AeroColor: ConvenienceCopyable, Sendable {
+    var alpha: UInt8
+    var red: UInt8
+    var green: UInt8
+    var blue: UInt8
+
+    static let transparent = AeroColor(argb: 0x00000000)
+
+    init(argb: Int) {
+        alpha = UInt8((argb >> 24) & 0xFF)
+        red   = UInt8((argb >> 16) & 0xFF)
+        green = UInt8((argb >> 8)  & 0xFF)
+        blue  = UInt8(argb         & 0xFF)
+    }
+
+    var cgColor: CGColor {
+        CGColor(red: CGFloat(red)/255, green: CGFloat(green)/255, blue: CGFloat(blue)/255, alpha: CGFloat(alpha)/255)
+    }
+
+    var isTransparent: Bool { alpha == 0 }
 }
 
 enum HUDActiveOn: String {
