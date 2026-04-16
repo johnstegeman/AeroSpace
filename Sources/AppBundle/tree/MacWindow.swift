@@ -32,6 +32,7 @@ final class MacWindow: Window {
         // atomic synchronous section
         if let existing = allWindowsMap[windowId] { return existing }
         let window = MacWindow(windowId, macApp, lastFloatingSize: rect?.size, parent: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
+        aeroLog("window detected: \(windowId) \(macApp.rawAppBundleId ?? "?") → \(data.parent)")
         allWindowsMap[windowId] = window
 
         // Restore manual floating preference persisted from the previous session.
@@ -102,6 +103,8 @@ final class MacWindow: Window {
         if MacWindow.allWindowsMap.removeValue(forKey: windowId) == nil {
             return
         }
+        aeroLog("window closed: \(windowId) \(macApp.rawAppBundleId ?? "?")")
+        BorderController.shared.removeBorder(windowId: windowId)
         FloatingMemory.shared.forget(windowId: windowId)
         StickyMemory.shared.forget(windowId: windowId)
         ScratchpadMemory.shared.forget(windowId: windowId)
