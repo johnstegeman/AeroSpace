@@ -123,6 +123,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
 
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
+    "zone-presets": Parser(\.zonePresets, parseZonePresetsArray),
     "hud": Parser(\.hud, parseHUDConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
@@ -379,6 +380,34 @@ private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pars
             }
         }
 }
+
+private func parseZonePresetsArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZonePreset] {
+    guard let arr = raw.asArrayOrNil else {
+        errors.append(expectedActualTypeError(expected: .array, actual: raw.tomlType, backtrace))
+        return [:]
+    }
+    var result: [String: ZonePreset] = [:]
+    for (index, elem) in arr.enumerated() {
+        let bt = backtrace + .index(index)
+        guard let dict = elem.asDictOrNil else {
+            errors.append(expectedActualTypeError(expected: .table, actual: elem.tomlType, bt))
+            continue
+        }
+        guard let nameJson = dict["name"], let name = nameJson.asStringOrNil else {
+            errors.append(.semantic(bt, "zone-preset must have a 'name' string field"))
+            continue
+        }
+        let preset = parseTable(elem, ZonePreset(name: name, widths: [1.0/3, 1.0/3, 1.0/3], layouts: [.tiles, .tiles, .tiles]), zonePresetParser, bt, &errors)
+        result[name] = preset
+    }
+    return result
+}
+
+private let zonePresetParser: [String: any ParserProtocol<ZonePreset>] = [
+    "name": Parser(\.name, parseString),
+    "widths": Parser(\.widths, parseZoneWidths),
+    "layouts": Parser(\.layouts, parseZoneLayouts),
+]
 
 func parseDouble(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Double> {
     raw.asDoubleOrNil.orFailure(expectedActualTypeError(expected: .float, actual: raw.tomlType, backtrace))

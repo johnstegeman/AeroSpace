@@ -180,6 +180,10 @@ let volume_help_generated = """
 let zone_focus_mode_help_generated = """
     USAGE: zone-focus-mode [-h|--help] [--zone <zone>] (on|off|toggle)
     """
+let zone_preset_help_generated = """
+    USAGE: zone-preset [-h|--help] <preset-name>
+       OR: zone-preset [-h|--help] --reset
+    """
 let workspace_back_and_forth_help_generated = """
     USAGE: workspace-back-and-forth [-h|--help]
     """

@@ -31,6 +31,8 @@ var defaultConfigUrl: URL {
 }()
 @MainActor var config: Config = defaultConfig // todo move to Ctx?
 @MainActor var configUrl: URL = defaultConfigUrl
+/// Original zones config from the last config file load. Used by `zone-preset --reset`.
+@MainActor var defaultZonesConfig: ZonesConfig = ZonesConfig()
 
 struct Config: ConvenienceCopyable {
     var configVersion: Int = 1
@@ -61,7 +63,15 @@ struct Config: ConvenienceCopyable {
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
+    var zonePresets: [String: ZonePreset] = [:]
     var hud: HUDConfig = HUDConfig()
+}
+
+/// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
+struct ZonePreset: ConvenienceCopyable {
+    var name: String
+    var widths: [Double]
+    var layouts: [Layout]
 }
 
 struct HUDConfig: ConvenienceCopyable {

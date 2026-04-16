@@ -105,6 +105,38 @@ When zones are active on the focused workspace, the menu bar tray appends a zone
 
 Brackets mark the currently active zone (the zone containing the focused window, or the one-shot hint zone). The indicator is also shown in the icon tray as `L`, `C`, `R` square SF Symbols.
 
+### Named Zone Layout Presets
+
+Define named sets of zone widths and layouts in the config, then switch between them at runtime:
+
+```toml
+[[zone-presets]]
+name = "dev"
+widths = [0.25, 0.50, 0.25]
+layouts = ["accordion", "tiles", "tiles"]
+
+[[zone-presets]]
+name = "comms"
+widths = [0.20, 0.60, 0.20]
+layouts = ["tiles", "accordion", "tiles"]
+```
+
+Switch presets with:
+
+```
+zone-preset dev       # apply the "dev" preset
+zone-preset --reset   # restore the original zones config from the config file
+```
+
+Per-zone gap overrides (`[zones.overrides.*]`) are **not** part of presets and survive preset switches.
+
+```toml
+[mode.main.binding]
+alt-1 = 'zone-preset dev'
+alt-2 = 'zone-preset comms'
+alt-0 = 'zone-preset --reset'
+```
+
 ### Zone HUD
 
 A floating, non-activating heads-up display (`ZoneHUDController`) shows the zone layout with per-zone window counts and highlights the active zone. Configurable via `[hud]`:

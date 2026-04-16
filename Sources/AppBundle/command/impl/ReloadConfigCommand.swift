@@ -31,6 +31,7 @@ struct ReloadConfigCommand: Command {
             if !args.dryRun {
                 resetHotKeys()
                 config = parsedConfig
+                defaultZonesConfig = parsedConfig.zones
                 configUrl = url
                 try await activateMode(activeMode)
                 syncStartAtLogin()
