@@ -64,17 +64,29 @@ struct Config: ConvenienceCopyable {
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
-    var onMonitorConnected: [MonitorConnectedCallback] = []
+    var onMonitorChanged: [MonitorChangedCallback] = []
     var hud: HUDConfig = HUDConfig()
     var borders: BorderConfig = BorderConfig()
 }
 
-/// Rule that fires when a monitor matching the criteria is newly connected.
-struct MonitorConnectedCallback {
-    /// Minimum aspect ratio (width/height) for the rule to apply.
-    var minAspectRatio: Double = 0
-    /// Name of the workspace snapshot to restore when the rule fires.
-    var restoreSnapshot: String
+/// Rule that fires when the monitor configuration changes (monitor connected or disconnected).
+struct MonitorChangedCallback: ConvenienceCopyable, Equatable {
+    var matcher: MonitorChangedMatcher = MonitorChangedMatcher()
+    var rawRun: [any Command]? = nil
+
+    var run: [any Command] { rawRun ?? dieT("ID-9A3F1C72 should have discarded nil") }
+
+    static func == (lhs: MonitorChangedCallback, rhs: MonitorChangedCallback) -> Bool {
+        lhs.matcher == rhs.matcher && zip(lhs.run, rhs.run).allSatisfy { $0.equals($1) }
+    }
+}
+
+/// Matcher for [[on-monitor-changed]] rules. All fields are optional; omitting a field means
+/// the rule always matches on that criterion.
+struct MonitorChangedMatcher: ConvenienceCopyable, Equatable {
+    /// If set, the rule only fires when at least one currently-connected monitor has
+    /// width/height aspect ratio >= this value.
+    var anyMonitorMinAspectRatio: Double? = nil
 }
 
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
@@ -91,6 +103,8 @@ struct HUDConfig: ConvenienceCopyable {
 struct BorderConfig: ConvenienceCopyable {
     var enabled: Bool = false
     var width: Double = 2.0
+    /// Corner radius in points. 10.0 matches macOS native window corners (Big Sur+).
+    var cornerRadius: Double = 10.0
     /// Active (focused) window border color in 0xAARRGGBB format.
     var activeColor: AeroColor = AeroColor(argb: 0xff5e81ac)
     /// Inactive window border color. Transparent by default (no border for inactive windows).
@@ -147,11 +161,13 @@ struct ZonesConfig: ConvenienceCopyable {
     /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.
     /// Large enough to show notification badges (≥40) without being readable (≤120). Default 80.
     var focusModeCollapsedWidth: Int = 80
-    /// Per-zone outer-gap overrides keyed by zone name. A nil side means use the global gap.
+    /// Per-zone outer-gap overrides keyed by zone name. A nil side inherits the global gap unchanged.
     var overrides: [String: ZoneGapOverride] = [:]
 }
 
-/// Outer-gap overrides for a single zone. nil on any side means use the global outer-gap value.
+/// Absolute outer-gap override for a single zone. Each non-nil side is the pixel distance from the
+/// screen edge for that zone — it replaces (not adds to) the global outer-gap value for that side.
+/// nil means inherit the global outer-gap value.
 struct ZoneGapOverride: ConvenienceCopyable {
     var top: Int? = nil
     var bottom: Int? = nil

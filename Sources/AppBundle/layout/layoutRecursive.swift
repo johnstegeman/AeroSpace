@@ -41,7 +41,8 @@ extension TreeNode {
             case .tilingContainer(let container):
                 lastAppliedLayoutPhysicalRect = physicalRect
                 lastAppliedLayoutVirtualRect = virtual
-                // Apply per-zone outer-gap overrides: shift the layout rect by (override - global) on each side.
+                // Apply per-zone outer-gap overrides. Each override is absolute (pixels from screen edge),
+                // so the delta is (override - global). A value below the global expands the zone toward the edge.
                 var layoutPoint = point
                 var layoutWidth = width
                 var layoutHeight = height

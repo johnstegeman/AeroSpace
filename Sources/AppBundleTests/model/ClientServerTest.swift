@@ -68,7 +68,7 @@ final class ClientServerTest: XCTestCase {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let testData: [(ServerEvent, String)] = [
-            (.focusChanged(windowId: 123, workspace: "1"),
+            (.focusChanged(windowId: 123, workspace: "1", appName: nil),
              #"{"_event":"focus-changed","windowId":123,"workspace":"1"}"#),
 
             (.focusedMonitorChanged(workspace: "2", monitorId_oneBased: 1),

@@ -19,11 +19,15 @@ public struct ServerEvent: Codable, Sendable {
     private var mode: String?
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
     private var binding: String?
+    // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
+    private var monitorCount: Int?
+    // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
+    private var zoneName: String?
 
     public var eventType: ServerEventType { _event }
 
-    public static func focusChanged(windowId: UInt32?, workspace: String) -> ServerEvent {
-        ServerEvent(_event: .focusChanged, windowId: windowId, workspace: workspace)
+    public static func focusChanged(windowId: UInt32?, workspace: String, appName: String?, zoneName: String? = nil) -> ServerEvent {
+        ServerEvent(_event: .focusChanged, windowId: windowId, workspace: workspace, appName: appName, zoneName: zoneName)
     }
 
     public static func focusedMonitorChanged(workspace: String, monitorId_oneBased: Int) -> ServerEvent {
@@ -44,5 +48,9 @@ public struct ServerEvent: Codable, Sendable {
 
     public static func bindingTriggered(mode: String, binding: String) -> ServerEvent {
         ServerEvent(_event: .bindingTriggered, mode: mode, binding: binding)
+    }
+
+    public static func monitorChanged(monitorCount: Int) -> ServerEvent {
+        ServerEvent(_event: .monitorChanged, monitorCount: monitorCount)
     }
 }
