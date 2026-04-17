@@ -450,3 +450,13 @@ The set of scratchpad windows and their last-known positions are saved to `~/Lib
 
 - The scratchpad workspace is hidden from `list-workspaces` output and cannot be switched to via the `workspace` command.
 - Sticky and scratchpad are independent features: a scratchpad window is not sticky (it stays in the scratchpad workspace when you switch workspaces, rather than following you).
+
+---
+
+### Bug Fix: Zone Containers Lost After Closed-Windows Cache Restore
+
+**Symptom:** On ultrawide, zone containers disappeared across all workspaces whenever a frequently-appearing/disappearing window (e.g. the Granola nub overlay) triggered the closed-windows cache restore. Tiling windows (Slack, Dia, etc.) would be laid out flat across the full screen width instead of within their zones.
+
+**Root cause:** AeroSpace's closed-windows cache protects against the lock screen (where all AX API returns empty, making AeroSpace think every window closed). When any window reappears that was in the cache, the entire world tree is restored via `restoreTreeRecursive`. This function created new `TilingContainer` objects with `isZoneContainer = false` (the default), and the workspace's `zoneContainers` dict was left pointing to the now-detached old containers. On the next `refreshModel()` call, `normalizeContainers` treated the restored zone containers as ordinary single-child containers and flattened them, promoting windows into `rootTilingContainer` directly. Since `zoneContainers` wasn't empty (stale entries), `ensureZoneContainers` never re-activated zones.
+
+**Fix:** During freeze (`FrozenContainer`), tag each zone container child with its zone name. During restore (`restoreTreeRecursive`), clear the stale `zoneContainers` dict, set `isZoneContainer = true` on the recreated containers, and re-register them in `workspace.zoneContainers`.

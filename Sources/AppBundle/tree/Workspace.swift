@@ -322,6 +322,7 @@ extension Workspace {
 
     @MainActor
     private func activateZones(monitorWidth: CGFloat) {
+        aeroLog("activateZones: ws:\(name) monitorWidth=\(monitorWidth)")
         activeZoneProfile = MonitorProfile([workspaceMonitor])
         savedRootOrientation = rootTilingContainer.orientation
         rootTilingContainer.changeOrientation(.h)
@@ -356,6 +357,7 @@ extension Workspace {
 
     @MainActor
     private func deactivateZones() {
+        aeroLog("deactivateZones: called for ws:\(name), zoneContainers=\(zoneContainers.keys.sorted())")
         // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
         if let profile = activeZoneProfile {
             for name in Workspace.zoneNames {
