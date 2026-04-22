@@ -125,6 +125,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
     "zone-presets": Parser(\.zonePresets, parseZonePresetsArray),
+    "monitor-profiles": Parser(\.monitorProfiles, parseMonitorProfilesArray),
     "on-monitor-changed": Parser(\.onMonitorChanged, parseOnMonitorChangedArray),
     "hud": Parser(\.hud, parseHUDConfig),
     "borders": Parser(\.borders, parseBorderConfig),
@@ -526,6 +527,75 @@ private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace, _ expec
                 parseLayout(elem, backtrace + .index(index))
             }
         }
+}
+
+private func parseMonitorProfilesArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [MonitorProfileRule] {
+    guard let arr = raw.asArrayOrNil else {
+        errors.append(expectedActualTypeError(expected: .array, actual: raw.tomlType, backtrace))
+        return []
+    }
+    return arr.enumerated().compactMap { (index, elem) in
+        parseMonitorProfileRule(elem, backtrace + .index(index), &errors)
+    }
+}
+
+private func parseMonitorProfileRule(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> MonitorProfileRule? {
+    guard let dict = raw.asDictOrNil else {
+        errors.append(expectedActualTypeError(expected: .table, actual: raw.tomlType, backtrace))
+        return nil
+    }
+    var myErrors: [ConfigParseError] = []
+    var rule = MonitorProfileRule()
+
+    if let nameJson = dict["name"] {
+        if let name = nameJson.asStringOrNil, !name.isEmpty {
+            rule.name = name
+        } else {
+            myErrors.append(expectedActualTypeError(expected: .string, actual: nameJson.tomlType, backtrace + .key("name")))
+        }
+    } else {
+        myErrors.append(.semantic(backtrace, "'name' is required in [[monitor-profiles]]"))
+    }
+
+    if let matchJson = dict["match"], let matchDict = matchJson.asDictOrNil {
+        let matchBt = backtrace + .key("match")
+        if let ratioJson = matchDict["min-aspect-ratio"] {
+            if let ratio = ratioJson.asDoubleOrNil, ratio > 0 {
+                rule.matcher.minAspectRatio = ratio
+            } else {
+                myErrors.append(expectedActualTypeError(expected: .float, actual: ratioJson.tomlType, matchBt + .key("min-aspect-ratio")))
+            }
+        }
+        if let countJson = matchDict["monitor-count"] {
+            if let count = countJson.asIntOrNil, count > 0 {
+                rule.matcher.monitorCount = count
+            } else {
+                myErrors.append(expectedActualTypeError(expected: .int, actual: countJson.tomlType, matchBt + .key("monitor-count")))
+            }
+        }
+    }
+
+    if let layoutJson = dict["apply-zone-layout"] {
+        if let layout = layoutJson.asStringOrNil, !layout.isEmpty {
+            rule.applyZoneLayout = layout
+        } else {
+            myErrors.append(expectedActualTypeError(expected: .string, actual: layoutJson.tomlType, backtrace + .key("apply-zone-layout")))
+        }
+    }
+
+    if let snapshotJson = dict["restore-workspace-snapshot"] {
+        if let snapshot = snapshotJson.asStringOrNil, !snapshot.isEmpty {
+            rule.restoreWorkspaceSnapshot = snapshot
+        } else {
+            myErrors.append(expectedActualTypeError(expected: .string, actual: snapshotJson.tomlType, backtrace + .key("restore-workspace-snapshot")))
+        }
+    }
+
+    if !myErrors.isEmpty {
+        errors += myErrors
+        return nil
+    }
+    return rule
 }
 
 private func parseOnMonitorChangedArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [MonitorChangedCallback] {

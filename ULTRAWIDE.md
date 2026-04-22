@@ -175,10 +175,10 @@ This means unplugging your ultrawide and re-attaching it later restores apps to 
 When zones are active on the focused workspace, the menu bar tray appends a zone indicator to the workspace name:
 
 ```
-1 : L [C] R
+1 : left [center] right
 ```
 
-Brackets mark the currently active zone (the zone containing the focused window, or the one-shot hint zone). The indicator is also shown in the icon tray as `L`, `C`, `R` square SF Symbols.
+Brackets mark the currently active zone (the zone containing the focused window, or the one-shot hint zone). Zone IDs are shown in full so that zones with the same first letter remain distinct (e.g. `main`, `messages`, `music`). Single-character zone IDs (e.g. `l`, `c`, `r`) continue to display as SF Symbol squares in the icon tray.
 
 ### Named Zone Layout Presets
 
@@ -237,6 +237,45 @@ alt-1 = 'zone-preset dev'
 alt-2 = 'zone-preset comms'
 alt-0 = 'zone-preset --reset'
 ```
+
+### Monitor-Profile Automation
+
+Declare named monitor profiles that are automatically matched and applied whenever the monitor configuration changes, at startup, and on config reload. The first matching profile wins.
+
+```toml
+[[monitor-profiles]]
+name = "home-ultrawide"
+match.min-aspect-ratio = 2.0
+apply-zone-layout = "dev"
+restore-workspace-snapshot = "home"
+
+[[monitor-profiles]]
+name = "laptop-only"
+match.monitor-count = 1
+apply-zone-layout = "disabled"
+```
+
+**Matching criteria** (all are optional; a profile with no `match` fields always matches):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `match.min-aspect-ratio` | float | Match if any connected monitor has `width/height ≥ value` |
+| `match.monitor-count` | int | Match if the total monitor count equals `value` |
+
+**Actions:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `apply-zone-layout` | string | Apply named zone preset, or `"disabled"` to suppress zones even on ultrawide |
+| `restore-workspace-snapshot` | string | Restore named snapshot — only fires on profile **change**, not repeated evaluation |
+
+**How this relates to `zone-preset`:** `apply-zone-layout = "name"` is equivalent to running `zone-preset name`. It changes `config.zones` at runtime, rebuilds zone containers on all workspaces with `force: true`, and emits a `zone-preset-changed` event.
+
+**`apply-zone-layout = "disabled"`:** Deactivates zone containers on all workspaces even if the monitor is ultrawide. Clearing the flag (by switching to a different profile without `disabled`) re-activates them normally.
+
+**Interaction with `[[on-monitor-changed]]`:** Both mechanisms fire on the same monitor-topology events. Monitor profiles fire after `on-monitor-changed` commands have been queued. Use `[[on-monitor-changed]]` for scripting and side effects; use `[[monitor-profiles]]` for declarative zone-layout switching.
+
+---
 
 ### on-monitor-changed
 

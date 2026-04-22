@@ -39,6 +39,8 @@ struct ReloadConfigCommand: Command {
                 for workspace in Workspace.all {
                     workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
                 }
+                // Re-evaluate monitor-profile automation with the new config and current monitors.
+                applyMatchingMonitorProfile()
             }
             result = true
         case .failure(let msg):

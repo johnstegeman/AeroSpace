@@ -302,6 +302,11 @@ private func rearrangeWorkspacesOnMonitors() {
                 }
             }
         }
+        // Apply [[monitor-profiles]] automation. Deferred in the same Task to run after the
+        // current layout pass completes and after on-monitor-changed commands have been queued.
+        Task { @MainActor in
+            applyMatchingMonitorProfile()
+        }
     }
 }
 
@@ -316,14 +321,17 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
 extension Workspace {
     @MainActor
     func ensureZoneContainers(for monitor: Monitor, force: Bool = false) {
-        if monitor.isUltrawide && zoneContainers.isEmpty {
+        // zonesDisabledByProfile overrides the ultrawide trigger: a monitor-profile rule with
+        // `apply-zone-layout = "disabled"` can suppress zones even on an ultrawide monitor.
+        let shouldHaveZones = monitor.isUltrawide && !zonesDisabledByProfile
+        if shouldHaveZones && zoneContainers.isEmpty {
             activateZones(monitorWidth: monitor.visibleRect.width)
-        } else if monitor.isUltrawide && !zoneContainers.isEmpty && force {
-            // Config reload: tear down and rebuild so updated widths/layouts take effect.
+        } else if shouldHaveZones && !zoneContainers.isEmpty && force {
+            // Config reload or preset change: tear down and rebuild so updated widths/layouts take effect.
             // deactivateZones auto-saves current assignments; activateZones restores them.
             deactivateZones()
             activateZones(monitorWidth: monitor.visibleRect.width)
-        } else if !monitor.isUltrawide && !zoneContainers.isEmpty {
+        } else if !shouldHaveZones && !zoneContainers.isEmpty {
             deactivateZones()
         }
     }

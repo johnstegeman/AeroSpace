@@ -66,6 +66,7 @@ struct Config: ConvenienceCopyable {
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
+    var monitorProfiles: [MonitorProfileRule] = []
     var onMonitorChanged: [MonitorChangedCallback] = []
     var hud: HUDConfig = HUDConfig()
     var borders: BorderConfig = BorderConfig()
@@ -74,6 +75,27 @@ struct Config: ConvenienceCopyable {
 struct FloatingConfig: ConvenienceCopyable, Equatable {
     /// App bundle IDs whose windows should float by default.
     var appIds: [String] = []
+}
+
+/// A declarative monitor-profile rule: matched against the current monitor set and applied
+/// automatically on monitor topology changes, startup, and config reload.
+struct MonitorProfileRule: ConvenienceCopyable, Equatable {
+    var name: String = ""
+    var matcher: MonitorProfileRuleMatcher = MonitorProfileRuleMatcher()
+    /// Named zone preset to apply when this profile matches, or "disabled" to suppress zones.
+    /// nil means "don't change the current zone layout".
+    var applyZoneLayout: String? = nil
+    /// Workspace snapshot to restore when this profile is newly activated.
+    var restoreWorkspaceSnapshot: String? = nil
+}
+
+/// Criteria for [[monitor-profiles]] matching. All fields are optional; omitting a field means
+/// the rule always matches on that criterion (i.e. it's a wildcard for that dimension).
+struct MonitorProfileRuleMatcher: ConvenienceCopyable, Equatable {
+    /// Match when at least one connected monitor has width/height aspect ratio >= this value.
+    var minAspectRatio: Double? = nil
+    /// Match when the total number of connected monitors equals this value.
+    var monitorCount: Int? = nil
 }
 
 /// Rule that fires when the monitor configuration changes (monitor connected or disconnected).

@@ -56,6 +56,10 @@ import Foundation
         for workspace in Workspace.all where !workspace.zoneContainers.isEmpty {
             workspace.restoreZoneMemory()
         }
+        // Apply monitor-profile automation for the startup monitor configuration.
+        // Runs after base zone containers and zone memory are set up so that preset
+        // application and snapshot restore see a fully-initialized workspace tree.
+        applyMatchingMonitorProfile()
         try await runLightSession(.startup, .forceRun) {
             smartLayoutAtStartup()
             _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv, .emptyStdin)

@@ -329,6 +329,7 @@ I would explicitly avoid a multi-parent model. This is probably the highest-effo
 ---
 
 ### 4. Make monitor-profile automation first-class
+**Status:** Done  
 **Priority:** High  
 **Impact:** High  
 **Effort:** Medium  
@@ -351,8 +352,9 @@ Ultrawide users routinely move between:
 - home office dock
 - office dock
 
-#### Recommendation
-Promote this into config-native behavior:
+#### What was built
+
+`[[monitor-profiles]]` is now a first-class config primitive. The first matching profile is applied automatically on monitor connect/disconnect, startup, and config reload.
 
 ```toml
 [[monitor-profiles]]
@@ -367,7 +369,13 @@ match.monitor-count = 1
 apply-zone-layout = "disabled"
 ```
 
-This should be declarative, deterministic, and observable in logs/events.
+Matching criteria: `match.min-aspect-ratio` (any connected monitor ≥ ratio) and `match.monitor-count` (total monitor count = N). Both are optional; a profile with no `match` fields always matches.
+
+Actions: `apply-zone-layout` applies a named zone preset or disables zones entirely (`"disabled"`). `restore-workspace-snapshot` restores a snapshot only on profile transition (not on config reload or repeated monitor evaluations).
+
+`apply-zone-layout = "disabled"` uses a new `zonesDisabledByProfile` flag that `ensureZoneContainers` respects, so zones stay suppressed even on ultrawide monitors until a different profile wins.
+
+Monitor profiles fire after `[[on-monitor-changed]]` commands are queued, so both mechanisms can coexist without ordering surprises.
 
 ---
 
@@ -806,7 +814,7 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 ### Phase 1: Foundation
 1. Done: Add zone-native query/event APIs
 2. Done: Generalize zone topology (change `qvwqtkpv`)
-3. Add monitor-profile automation
+3. Done: Add monitor-profile automation
 4. Add zone proportion persistence (low-effort, config-layer — land early)
 
 ### Phase 2: Workflow power
