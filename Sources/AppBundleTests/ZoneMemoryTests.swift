@@ -104,6 +104,40 @@ final class ZoneMemoryTests: XCTestCase {
         XCTAssertNil(memory.rememberedZone(for: window, profile: MonitorProfile([AnyMonitor(width: 3440, height: 1440)])))
     }
 
+    // MARK: - Stale zone IDs
+
+    /// After a layout change, remembered zone IDs that no longer exist in the active layout
+    /// must be silently ignored — the window stays in rootTilingContainer rather than crashing
+    /// or landing in the wrong zone.
+    func testStaleZoneId_silentlyDroppedOnRestore() {
+        let workspace = Workspace.get(byName: name)
+
+        // Activate the default 3-zone layout and record "right" for a window.
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let window = TestWindow.new(id: 1, parent: workspace.zoneContainers["right"]!)
+        let profile = MonitorProfile(monitors)
+        ZoneMemory.shared.rememberZone("right", for: window, profile: profile)
+
+        // Deactivate (simulates monitor disconnect).
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+
+        // Switch to a 2-zone layout that has no "right" zone.
+        config.zones.zones = [
+            ZoneDefinition(id: "main",      width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+
+        // Re-activate zones — restoreZoneMemory should move the window to the middle zone (fallback)
+        // rather than leaving it as a root tiling child outside the zone model.
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertFalse(workspace.zoneContainers.isEmpty, "2-zone layout should be active")
+        XCTAssertNil(workspace.zoneContainers["right"], "Old zone must not exist in new layout")
+        // defs = [main(0), secondary(1)]; middle index = 2/2 = 1 → secondary
+        let secondaryZone = workspace.zoneContainers["secondary"]!
+        XCTAssertTrue(secondaryZone.children.contains { $0 === window },
+                      "Window with stale zone ID should be rebound to the middle zone (secondary), not left in rootTilingContainer")
+    }
+
     // MARK: - Restore on zone activation
 
     /// Simulate a monitor reconnect: zones activate and windows are moved to their remembered zones.

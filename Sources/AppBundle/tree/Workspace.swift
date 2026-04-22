@@ -353,12 +353,18 @@ extension Workspace {
     @MainActor
     func restoreZoneMemory() {
         let profile = MonitorProfile([workspaceMonitor])
+        let defs = activeZoneDefinitions
+        // Fallback destination for windows whose remembered zone ID no longer exists in the active
+        // layout. Using the middle zone keeps them inside the zone model rather than leaving them
+        // as root tiling children that are invisible to zone-aware surfaces (list-zones, zone counts, etc.)
+        let fallbackZone: TilingContainer? = defs.isEmpty ? nil : zoneContainers[defs[defs.count / 2].id]
         let windows = rootTilingContainer.allLeafWindowsRecursive
         for window in windows {
-            guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
-                  let zone = zoneContainers[zoneName]
-            else { continue }
-            window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile) else { continue }
+            let zone = zoneContainers[zoneName] ?? fallbackZone
+            if let zone {
+                window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            }
         }
     }
 

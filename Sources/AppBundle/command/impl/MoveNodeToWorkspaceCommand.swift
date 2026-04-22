@@ -48,7 +48,11 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
         {
             targetContainer = zone
         } else {
-            targetContainer = targetWorkspace.zoneContainers["center"] ?? targetWorkspace.rootTilingContainer
+            // Fall back to the middle zone by definition order (index count/2), which is "center"
+            // for the default 3-zone layout. For N-zone layouts this picks the most central zone.
+            let defs = targetWorkspace.activeZoneDefinitions
+            let middleZone = defs.isEmpty ? nil : targetWorkspace.zoneContainers[defs[defs.count / 2].id]
+            targetContainer = middleZone ?? targetWorkspace.rootTilingContainer
         }
     } else {
         targetContainer = targetWorkspace.rootTilingContainer

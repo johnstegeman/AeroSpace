@@ -30,8 +30,7 @@ public final class TrayMenuModel: ObservableObject {
         }
         let parts = focus.workspace.activeZoneDefinitions.compactMap { def -> String? in
             guard zc[def.id] != nil else { return nil }
-            let label = String(def.id.prefix(1).uppercased())
-            return activeZoneName == def.id ? "[\(label)]" : label
+            return activeZoneName == def.id ? "[\(def.id)]" : def.id
         }
         return " : " + parts.joined(separator: " ")
     }()
@@ -90,10 +89,11 @@ public final class TrayMenuModel: ObservableObject {
         }
         for def in focus.workspace.activeZoneDefinitions {
             if zoneContainers[def.id] != nil {
-                let displayName = String(def.id.prefix(1).uppercased())
+                // Use the full zone ID as both the display label and the identity key so that
+                // zones with the same first letter (e.g. main/messages/music) remain distinct.
                 items.append(TrayItem(
                     type: .zone,
-                    name: displayName,
+                    name: def.id,
                     isActive: activeZoneName == def.id,
                     hasFullscreenWindows: false,
                 ))
