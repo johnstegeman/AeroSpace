@@ -62,6 +62,14 @@ func applyMatchingMonitorProfile() {
             updateTrayText()
         } else {
             aeroLog("monitor-profiles: profile '\(matched?.name ?? "?")' references unknown zone-preset '\(directive)' — ignoring")
+            // Unknown preset: still clear stale disabled state so zones aren't permanently
+            // suppressed when the previous matched profile had apply-zone-layout = "disabled".
+            if zonesDisabledByProfile {
+                zonesDisabledByProfile = false
+                for workspace in Workspace.all {
+                    workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
+                }
+            }
         }
     } else {
         // No directive in this profile (or no match). Clear any stale disabled state so that
