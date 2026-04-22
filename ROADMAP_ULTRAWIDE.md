@@ -421,7 +421,7 @@ This also makes testing much easier.
      - `zone-layout-changed`
      - `zone-window-count-changed`
    - Only after the first query/event surfaces exist and the event shapes are clearer in practice
-   - **Done in `PENDING`**
+   - **Done in `112a731a`** (`feat: add second-wave zone events`)
 
 #### Recommended order
 Ship the query surfaces before the event fan-out:
@@ -442,7 +442,7 @@ Current progress:
 - `zone-focused` / `zone-preset-changed`: done in `773863d9`
 - `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `f4de6e89`
 - per-window zone introspection via `list-windows` `%{window-zone}`: done in `f8706238`
-- `zone-layout-changed` / `zone-window-count-changed`: done in `PENDING`
+- `zone-layout-changed` / `zone-window-count-changed`: done in `112a731a`
 
 ---
 
