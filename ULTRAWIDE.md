@@ -387,6 +387,45 @@ When the user switches to a different workspace, all sticky floating windows on 
 
 ---
 
+### Floating Defaults
+
+Many real configs end up with a long run of identical `[[on-window-detected]]` rules whose only purpose is to float specific apps:
+
+```toml
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
+run = ['layout floating']
+```
+
+That works, but it is verbose and obscures the real intent: some apps simply belong in the floating layer by default.
+
+The fork now supports a dedicated config primitive for that common case:
+
+```toml
+[floating]
+app-ids = [
+  'com.apple.finder',
+  'com.raycast.macos',
+  'com.1password.1password',
+]
+```
+
+#### Why this was added
+
+- It replaces repetitive callback boilerplate with a declarative default.
+- It makes configs easier to read: “these apps float” instead of “run this callback for each app”.
+- It leaves `[[on-window-detected]]` available for the cases that are actually conditional or procedural.
+
+#### Behavior
+
+- Each listed bundle ID behaves as if AeroSpace had an `on-window-detected` rule that runs `layout floating`.
+- This is implemented as config-level sugar, so it composes cleanly with the existing callback pipeline.
+- Synthetic floating rules are inserted before explicit `[[on-window-detected]]` callbacks and set `check-further-callbacks = true`, so more specific user callbacks still run afterward.
+
+Use `[floating]` for simple “always float this app” defaults. Use `[[on-window-detected]]` when the action depends on title matching, workspace routing, startup state, or multi-step logic.
+
+---
+
 ### Window Borders
 
 An integrated border renderer that draws a colored outline around tiling windows — similar to jankyborders, but with zero lag because borders are updated synchronously as part of AeroSpace's own layout pass.

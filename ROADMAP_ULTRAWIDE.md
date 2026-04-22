@@ -296,6 +296,63 @@ Add events like:
 
 This also makes testing much easier.
 
+#### Suggested implementation steps
+
+1. **Baseline query command**
+   - Add `list-zones`
+   - JSON-first output, with a stable schema
+   - Start with the focused workspace only if that keeps scope down
+
+   Minimum useful fields:
+   - workspace name
+   - monitor ID / monitor name
+   - zone ID
+   - layout type
+   - whether the zone is focused
+   - window count
+   - current width / weight
+
+2. **Focused-zone query**
+   - Add `zone --json`
+   - Returns the active zone on the focused workspace
+   - Useful for bars, scripts, and debugging bindings
+
+3. **Subscription events**
+   - Add at least:
+     - `zone-focused`
+     - `zone-preset-changed`
+   - Prefer events that are explicit about cause rather than forcing consumers to diff snapshots
+
+4. **Formatting / templating integration**
+   - Add:
+     - `%{zone}`
+     - `%{zone-layout}`
+     - `%{zone-window-count}`
+   - Make these work anywhere existing formatting variables are supported
+
+5. **Per-zone window introspection**
+   - Add `list-zone-windows`
+   - Or extend `list-windows` with zone fields if that is cleaner
+   - This is where stack/tab zones and routing rules become much easier to debug
+
+6. **Second-wave events**
+   - Add:
+     - `zone-layout-changed`
+     - `zone-window-count-changed`
+   - Only after the first query/event surfaces exist and the event shapes are clearer in practice
+
+#### Recommended order
+Ship the query surfaces before the event fan-out:
+
+1. `list-zones`
+2. `zone --json`
+3. `zone-focused` / `zone-preset-changed`
+4. formatting variables
+5. `list-zone-windows`
+6. secondary zone events
+
+That order gives you immediate debugging value with low design risk, and it gives future work a stable inspection surface before you commit to a larger event taxonomy.
+
 ---
 
 ### 6. Per-zone insertion policy
@@ -332,6 +389,7 @@ This becomes much more powerful once `stack` exists.
 ---
 
 ### 7. First-class floating defaults
+**Status:** Done in `aff63975e1b6` (`feat: add [floating].app-ids config sugar`)  
 **Priority:** Medium-high  
 **Impact:** High  
 **Effort:** Low-medium  
@@ -415,7 +473,87 @@ If this works well, the same pattern likely makes sense for:
 
 ---
 
-### 8. Presentation / screen-share mode
+### 8. App-to-zone routing rules
+**Priority:** Medium-high  
+**Impact:** High  
+**Effort:** Low-medium  
+**Risk:** Low
+
+#### Why it matters
+Once stable zones exist, the natural next question is: where does a new window land? Right now the answer for most apps is "wherever AeroSpace decides" unless you write an `on-window-detected` callback per app. That works, but it is verbose for a very common case.
+
+On ultrawide the need is even sharper. Users have stable utility zones — a right column for comms, a left column for terminals — and they want specific apps to always open there without thinking about it.
+
+#### Recommendation
+Add a declarative routing table alongside `[floating]`:
+
+```toml
+[zones.app-routing]
+"com.tinyspeck.slackmacgap" = "right"
+"com.apple.mail" = "right"
+"com.googlecode.iterm2" = "left"
+"com.spotify.client" = "right"
+```
+
+This should apply only when a zone layout is active on the target monitor. If the workspace has no zones, fall through to normal tiling behavior.
+
+#### Implementation direction
+Same parse-time sugar approach as `[floating]`: lower each entry into a synthetic `on-window-detected` rule that calls `move-node-to-zone --no-focus`. The `--no-focus` flag is important — without it, opening a routed app like Slack or Mail steals focus from the current window.
+
+Note that parse-time sugar is slightly leaky here: the intended abstraction is "default routing", not "run a command on detection". If the callback pipeline is ever refactored, routing rules should be a first-class concept, not sugar. For now, sugar is the right tradeoff.
+
+#### Precedence
+- `[floating]` takes priority (a floating window is never routed to a zone)
+- `[zones.app-routing]` applies next
+- explicit `[[on-window-detected]]` callbacks remain the override for conditional logic
+
+#### Future symmetry
+Same pattern as `[floating]`. If both ship together they form a coherent declarative-defaults layer, with `[[on-window-detected]]` reserved for cases that need conditions.
+
+---
+
+### 9. Enhance zone memory
+**Priority:** Medium-high  
+**Impact:** Medium  
+**Effort:** Low-medium  
+**Risk:** Low
+
+#### Current state
+The fork already implements `ZoneMemory`: bundle-ID-keyed zone assignments, persisted to disk, restored on new-window detection and across monitor-profile changes. The core behavior is done.
+
+#### Why it matters to improve it
+`ZoneMemory` as implemented covers the common case, but it has a few gaps that will become more visible as zone layouts get richer:
+
+- **Scope is coarse.** It keys on bundle ID only. Apps with multiple window roles (e.g. a main editor window vs a quick-entry panel) get the same routing regardless.
+- **No UX for inspection or reset.** There is no command to see what zone memory has recorded, clear a specific entry, or clear all. Users can only observe indirectly.
+- **Observability is absent.** When a window is routed by zone memory, nothing is logged or emitted. Debugging unexpected routing is hard.
+- **Scope is per-monitor-profile, not per-workspace.** This is probably correct, but it should be explicit in config and docs.
+
+#### Recommendation
+Extend `ZoneMemory` incrementally:
+
+1. **Inspection and reset commands**
+   ```text
+   zone-memory list
+   zone-memory clear [--app-id <id>]
+   zone-memory clear --all
+   ```
+
+2. **Optional title-pattern key**
+   ```toml
+   [zones.memory]
+   key = "app-id"           # default, current behavior
+   # key = "app-id+title"   # opt-in: also considers window title
+   ```
+
+3. **Routing observability** — emit a `zone-memory-restored` event or log line when zone memory influences placement, so users can see why a window landed where it did.
+
+#### Interaction with app routing
+`[zones.app-routing]` (item 8) takes priority over zone memory. Zone memory is the fallback: "where did this window last live?" App routing is the explicit rule: "this app always goes here."
+
+---
+
+### 10. Presentation / screen-share mode
 **Priority:** Medium-high  
 **Impact:** Medium-high  
 **Effort:** Medium  
@@ -446,7 +584,7 @@ Behavior could include:
 
 ---
 
-### 9. Monitor arrangement / health diagnostics
+### 11. Monitor arrangement / health diagnostics
 **Priority:** Medium  
 **Impact:** Medium-high  
 **Effort:** Low-medium  
@@ -467,7 +605,36 @@ This is cheap and reduces support/debug churn.
 
 ---
 
-### 10. Lightweight zone picker / transient overlay
+### 12. Zone proportion persistence
+**Priority:** Medium  
+**Impact:** Medium  
+**Effort:** Low  
+**Risk:** Low
+
+#### Why it matters
+Zone widths can be adjusted at runtime via `zone-preset` or direct resize commands. But those adjustments are lost on restart — the config `widths` array is the only durable source of truth. If a user spends time tuning a layout interactively (wider center, narrower left), they currently have to manually transcribe those values back into their config.
+
+#### Recommendation
+Two complementary commands:
+
+```text
+zone-preset save <name>
+zone-preset export
+```
+
+`zone-preset save <name>` writes the current zone widths to state as a new named preset, separate from the TOML config. It does not overwrite config-defined presets — it adds to the runtime preset pool. The user can then refer to it by name in subsequent `zone-preset` calls for the session.
+
+`zone-preset export` prints TOML for the current layout to stdout, so the user can paste it directly into their config file. This is the path to making a layout permanent.
+
+#### Why not silent override on startup
+Silently loading state over config-defined presets creates a shadow config: the TOML says one thing, the runtime does another, and the user eventually forgets why. The `export` command keeps TOML as the authoritative source while still removing the manual transcription step.
+
+#### Scope
+Widths only, not layout type or zone count. Full layout editing is item 14.
+
+---
+
+### 13. Lightweight zone picker / transient overlay
 **Priority:** Medium  
 **Impact:** Medium  
 **Effort:** Medium  
@@ -494,7 +661,7 @@ This should remain command-first and optional, not a permanent GUI editor.
 
 ---
 
-### 11. Optional overview / layout editor later
+### 14. Optional overview / layout editor later
 **Priority:** Low  
 **Impact:** Medium  
 **Effort:** Very high  
@@ -518,16 +685,19 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 1. Add zone-native query/event APIs
 2. Generalize zone topology
 3. Add monitor-profile automation
+4. Add zone proportion persistence (low-effort, config-layer — land early)
 
 ### Phase 2: Workflow power
-4. Add true `stack` layout for zones
-5. Add per-zone insertion policy
-6. Add first-class floating defaults
-7. Add presentation/share preset
+5. Add true `stack` layout for zones
+6. Add per-zone insertion policy
+7. Done: first-class floating defaults (`aff63975e1b6`)
+8. Add app-to-zone routing rules
+9. Enhance zone memory
+10. Add presentation/share preset
 
 ### Phase 3: Advanced composition
-8. Add zone spanning
-9. Add lightweight transient zone picker
+11. Add zone spanning
+12. Add lightweight transient zone picker
 
 ## What I would build first if time is limited
 
