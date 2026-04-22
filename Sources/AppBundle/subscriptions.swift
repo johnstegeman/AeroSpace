@@ -20,7 +20,12 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
             let event: ServerEvent
             switch eventType {
                 case .focusChanged:
-                    event = .focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name, appName: f.windowOrNil?.app.name)
+                    let focusedZoneName: String? = f.windowOrNil.flatMap { window in
+                        guard let zc = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
+                        else { return nil }
+                        return f.workspace.zoneContainers.first(where: { $0.value === zc })?.key
+                    }
+                    event = .focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name, appName: f.windowOrNil?.app.name, zoneName: focusedZoneName)
                 case .workspaceChanged:
                     event = .workspaceChanged(workspace: f.workspace.name, prevWorkspace: f.workspace.name)
                 case .modeChanged:
