@@ -128,6 +128,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "on-monitor-changed": Parser(\.onMonitorChanged, parseOnMonitorChangedArray),
     "hud": Parser(\.hud, parseHUDConfig),
     "borders": Parser(\.borders, parseBorderConfig),
+    "floating": Parser(\.floating, parseFloatingConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
@@ -269,6 +270,7 @@ func tomlAnyToParsedConfigRecursive(any: Any, _ backtrace: ConfigBacktrace) -> P
             )]
         }
     }
+    config.onWindowDetected = synthesizeFloatingDefaults(config.floating) + config.onWindowDetected
     return (config, errors)
 }
 
@@ -287,6 +289,28 @@ func parseConfigVersion(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConf
 private let hudConfigParser: [String: any ParserProtocol<HUDConfig>] = [
     "active-on": Parser(\.activeOn, parseHUDActiveOn),
 ]
+
+private let floatingConfigParser: [String: any ParserProtocol<FloatingConfig>] = [
+    "app-ids": Parser(\.appIds, parseArrayOfStrings),
+]
+
+func parseFloatingConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> FloatingConfig {
+    parseTable(raw, FloatingConfig(), floatingConfigParser, backtrace, &errors)
+}
+
+private func synthesizeFloatingDefaults(_ floating: FloatingConfig) -> [WindowDetectedCallback] {
+    floating.appIds.map { appId in
+        WindowDetectedCallback(
+            matcher: WindowDetectedCallbackMatcher(
+                appId: appId,
+                appNameRegexSubstring: nil,
+                windowTitleRegexSubstring: nil
+            ),
+            checkFurtherCallbacks: true,
+            rawRun: [LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating]))],
+        )
+    }
+}
 
 func parseHUDConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> HUDConfig {
     parseTable(raw, HUDConfig(), hudConfigParser, backtrace, &errors)

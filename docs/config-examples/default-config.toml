@@ -84,6 +84,12 @@ offset-y = 0          # vertical shift per window in cascade mode
     outer.top =        0
     outer.right =      0
 
+# Apps that should float by default.
+# This is equivalent to writing one [[on-window-detected]] rule per app that runs 'layout floating'.
+# Uncomment and customize as needed.
+#[floating]
+#    app-ids = ['com.apple.finder', 'com.raycast.macos']
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented

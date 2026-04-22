@@ -350,6 +350,55 @@ final class ConfigTest: XCTestCase {
         ])
     }
 
+    func testParseFloatingDefaults() {
+        let (parsed, errors) = parseConfig(
+            """
+            [floating]
+                app-ids = ['com.apple.finder', 'com.raycast.macos']
+
+            [[on-window-detected]]
+                if.app-id = 'com.apple.systempreferences'
+                run = ['move-node-to-workspace W']
+            """,
+        )
+        assertEquals(errors, [])
+        assertEquals(parsed.floating, FloatingConfig(appIds: ["com.apple.finder", "com.raycast.macos"]))
+        assertEquals(parsed.onWindowDetected, [
+            WindowDetectedCallback(
+                matcher: WindowDetectedCallbackMatcher(
+                    appId: "com.apple.finder",
+                    appNameRegexSubstring: nil,
+                    windowTitleRegexSubstring: nil
+                ),
+                checkFurtherCallbacks: true,
+                rawRun: [
+                    LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating])),
+                ],
+            ),
+            WindowDetectedCallback(
+                matcher: WindowDetectedCallbackMatcher(
+                    appId: "com.raycast.macos",
+                    appNameRegexSubstring: nil,
+                    windowTitleRegexSubstring: nil
+                ),
+                checkFurtherCallbacks: true,
+                rawRun: [
+                    LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating])),
+                ],
+            ),
+            WindowDetectedCallback(
+                matcher: WindowDetectedCallbackMatcher(
+                    appId: "com.apple.systempreferences",
+                    appNameRegexSubstring: nil,
+                    windowTitleRegexSubstring: nil
+                ),
+                rawRun: [
+                    MoveNodeToWorkspaceCommand(args: MoveNodeToWorkspaceCmdArgs(workspace: "W")),
+                ],
+            ),
+        ])
+    }
+
     func testParseInlineTables() {
         let errors = parseConfig(
             """

@@ -62,12 +62,18 @@ struct Config: ConvenienceCopyable {
     var workspaceToMonitorForceAssignment: [String: [MonitorDescription]] = [:]
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
+    var floating: FloatingConfig = FloatingConfig()
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
     var onMonitorChanged: [MonitorChangedCallback] = []
     var hud: HUDConfig = HUDConfig()
     var borders: BorderConfig = BorderConfig()
+}
+
+struct FloatingConfig: ConvenienceCopyable {
+    /// App bundle IDs whose windows should float by default.
+    var appIds: [String] = []
 }
 
 /// Rule that fires when the monitor configuration changes (monitor connected or disconnected).
