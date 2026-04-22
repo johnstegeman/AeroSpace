@@ -112,6 +112,16 @@ Adds two zone-native subscription events:
 
 These were added so bars and scripts can react to zone actions directly instead of polling `list-zones` and diffing snapshots after every command.
 
+#### Formatting variables
+
+Adds three zone-native interpolation variables anywhere workspace format variables are supported:
+
+- `%{zone}` returns the active zone name, or `NULL-ZONE` when there is no active zone.
+- `%{zone-layout}` returns the active zone layout, or `NULL-ZONE-LAYOUT` when there is no active zone.
+- `%{zone-window-count}` returns the number of tiling windows in the active zone, or `0` when there is no active zone.
+
+Because these are implemented as workspace-scoped format variables, they work in `list-workspaces --format ...` directly and also in window formats that already inherit workspace state.
+
 ### Automatic Window Routing
 
 When a new window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:

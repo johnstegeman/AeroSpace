@@ -65,7 +65,7 @@ func snapshotZones(in workspace: Workspace) -> [ZoneSnapshot] {
             monitorId: monitor.monitorId_oneBased,
             monitorName: monitor.name,
             zoneId: zoneName,
-            layout: toZoneLayoutString(zone),
+            layout: zoneLayoutString(zone),
             isFocused: activeZoneName == zoneName,
             windowCount: zone.allLeafWindowsRecursive.count,
             weight: Double(zone.getWeight(.h)),
@@ -73,7 +73,7 @@ func snapshotZones(in workspace: Workspace) -> [ZoneSnapshot] {
     }
 }
 
-private func toZoneLayoutString(_ container: TilingContainer) -> String {
+func zoneLayoutString(_ container: TilingContainer) -> String {
     switch (container.layout, container.orientation) {
         case (.tiles, .h): LayoutCmdArgs.LayoutDescription.h_tiles.rawValue
         case (.tiles, .v): LayoutCmdArgs.LayoutDescription.v_tiles.rawValue

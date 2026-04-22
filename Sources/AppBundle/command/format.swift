@@ -171,6 +171,19 @@ extension FormatVar {
                     case .workspaceVisible: .success(.bool(w.isVisible))
                     case .workspaceFocused: .success(.bool(focus.workspace == w))
                     case .workspaceRootContainerLayout: .success(.string(toLayoutString(tc: w.rootTilingContainer)))
+                    case .zone: .success(.string(activeZoneName(in: w) ?? "NULL-ZONE"))
+                    case .zoneLayout:
+                        if let zoneName = activeZoneName(in: w), let zone = w.zoneContainers[zoneName] {
+                            .success(.string(zoneLayoutString(zone)))
+                        } else {
+                            .success(.string("NULL-ZONE-LAYOUT"))
+                        }
+                    case .zoneWindowCount:
+                        if let zoneName = activeZoneName(in: w), let zone = w.zoneContainers[zoneName] {
+                            .success(.int(zone.allLeafWindowsRecursive.count))
+                        } else {
+                            .success(.int(0))
+                        }
                 }
             case (.monitor(let m), .monitor(let f)):
                 return switch f {

@@ -400,7 +400,7 @@ This also makes testing much easier.
      - `zone-focused`
      - `zone-preset-changed`
    - Prefer events that are explicit about cause rather than forcing consumers to diff snapshots
-   - **Done in `PENDING`**
+   - **Done in `773863d9`** (`feat: add first-wave zone subscription events`)
 
 4. **Formatting / templating integration**
    - Add:
@@ -408,6 +408,7 @@ This also makes testing much easier.
      - `%{zone-layout}`
      - `%{zone-window-count}`
    - Make these work anywhere existing formatting variables are supported
+   - **Done in `PENDING`**
 
 5. **Per-zone window introspection**
    - Add `list-zone-windows`
@@ -436,7 +437,8 @@ Current progress:
 
 - `list-zones`: done in `6706a95b3444`
 - `zone --json`: done in `4cf4aae4`
-- `zone-focused` / `zone-preset-changed`: done in `PENDING`
+- `zone-focused` / `zone-preset-changed`: done in `773863d9`
+- `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `PENDING`
 
 ---
 
