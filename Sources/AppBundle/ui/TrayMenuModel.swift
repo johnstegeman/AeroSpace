@@ -22,8 +22,7 @@ public final class TrayMenuModel: ObservableObject {
         let zc = focus.workspace.zoneContainers
         guard !zc.isEmpty else { return "" }
         let activeZoneName: String? = if let window = focus.windowOrNil,
-                                         let container = window.parent as? TilingContainer,
-                                         container.isZoneContainer
+                                         let container = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
         {
             zc.first { $0.value === container }?.key
         } else {
@@ -82,8 +81,7 @@ public final class TrayMenuModel: ObservableObject {
     let zoneContainers = focus.workspace.zoneContainers
     if !zoneContainers.isEmpty {
         let activeZoneName: String? = if let window = focus.windowOrNil,
-                                         let container = window.parent as? TilingContainer,
-                                         container.isZoneContainer
+                                         let container = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
         {
             zoneContainers.first { $0.value === container }?.key
         } else {
