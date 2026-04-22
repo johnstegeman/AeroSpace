@@ -20,8 +20,10 @@ struct ZonePresetCommand: Command {
             workspace.savedZoneWeights = nil
             workspace.focusModeZone = nil
         }
-        // Rebuild zone containers on all visible workspaces with force=true to pick up new widths/layouts.
-        for workspace in Workspace.all where workspace.isVisible {
+        // Rebuild zone containers on all workspaces with force=true to pick up new widths/layouts.
+        // Include hidden workspaces: ensureZoneContainers is a no-op without force, so hidden ones
+        // would otherwise keep stale containers until restart.
+        for workspace in Workspace.all {
             workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
         }
         updateTrayText()
