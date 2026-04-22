@@ -35,7 +35,9 @@ struct FocusZoneCommand: Command {
 
         // If focus mode is active and targeting a different zone, switch the focused zone.
         if workspace.savedZoneWeights != nil, zoneName != workspace.focusModeZone {
-            ZoneFocusModeCommand(args: ZoneFocusModeCmdArgs(rawArgs: [], .on)).run(env, io)
+            var focusModeArgs = ZoneFocusModeCmdArgs(rawArgs: [], .on)
+            focusModeArgs.zone = zoneName
+            _ = ZoneFocusModeCommand(args: focusModeArgs).run(env, io)
         }
 
         if let mruWindow = zone.mostRecentWindowRecursive {
