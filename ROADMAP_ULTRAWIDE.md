@@ -414,13 +414,14 @@ This also makes testing much easier.
    - Add `list-zone-windows`
    - Or extend `list-windows` with zone fields if that is cleaner
    - This is where stack/tab zones and routing rules become much easier to debug
-   - **Done in `PENDING`** via `list-windows` `%{window-zone}`
+   - **Done in `f8706238`** (`feat: add window zone introspection`) via `list-windows` `%{window-zone}`
 
 6. **Second-wave events**
    - Add:
      - `zone-layout-changed`
      - `zone-window-count-changed`
    - Only after the first query/event surfaces exist and the event shapes are clearer in practice
+   - **Done in `PENDING`**
 
 #### Recommended order
 Ship the query surfaces before the event fan-out:
@@ -440,7 +441,8 @@ Current progress:
 - `zone --json`: done in `4cf4aae4`
 - `zone-focused` / `zone-preset-changed`: done in `773863d9`
 - `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `f4de6e89`
-- per-window zone introspection via `list-windows` `%{window-zone}`: done in `PENDING`
+- per-window zone introspection via `list-windows` `%{window-zone}`: done in `f8706238`
+- `zone-layout-changed` / `zone-window-count-changed`: done in `PENDING`
 
 ---
 

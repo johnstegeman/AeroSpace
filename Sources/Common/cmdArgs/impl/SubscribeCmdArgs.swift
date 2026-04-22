@@ -64,4 +64,6 @@ public enum ServerEventType: String, Codable, CaseIterable, Sendable {
     case monitorChanged = "monitor-changed"
     case zoneFocused = "zone-focused"
     case zonePresetChanged = "zone-preset-changed"
+    case zoneLayoutChanged = "zone-layout-changed"
+    case zoneWindowCountChanged = "zone-window-count-changed"
 }

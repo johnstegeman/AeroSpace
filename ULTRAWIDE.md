@@ -112,6 +112,15 @@ Adds two zone-native subscription events:
 
 These were added so bars and scripts can react to zone actions directly instead of polling `list-zones` and diffing snapshots after every command.
 
+#### `subscribe zone-layout-changed zone-window-count-changed`
+
+Adds the second wave of zone-native events:
+
+- `zone-layout-changed` emits when a zone's layout string changes, such as `h_tiles` to `h_accordion`.
+- `zone-window-count-changed` emits when the tiling window count for a zone changes.
+
+These events are driven from zone snapshot diffs, so they stay aligned with the observable `list-zones` surface instead of each command inventing its own event payload rules.
+
 #### Formatting variables
 
 Adds three zone-native interpolation variables anywhere workspace format variables are supported:

@@ -40,6 +40,7 @@ func setUpWorkspacesForTests() {
     TestApp.shared.windows = []
     broadcastEventForTesting = nil
     activeZonePresetName = nil
+    primeZoneEventBroadcastTracking()
 }
 
 extension ParsedCmd {

@@ -7,8 +7,14 @@ private struct Subscriber {
     let events: Set<ServerEventType>
 }
 
+private struct ZoneEventSnapshot: Equatable {
+    let layout: String
+    let windowCount: Int
+}
+
 @MainActor private var subscribers: [UniqueToken: Subscriber] = [:]
 @MainActor var broadcastEventForTesting: ((ServerEvent) -> Void)? = nil
+@MainActor private var lastZoneEventSnapshotsByWorkspace: [String: [String: ZoneEventSnapshot]] = [:]
 
 @MainActor
 func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: SubscribeCmdArgs) async {
@@ -18,33 +24,43 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
     if args.sendInitial {
         let f = focus
         for eventType in args.events {
-            let event: ServerEvent
+            let initialEvents: [ServerEvent]
             switch eventType {
                 case .focusChanged:
                     let focusedZoneName: String? = f.windowOrNil.flatMap { window in
                         zoneName(for: window, in: f.workspace)
                     }
-                    event = .focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name, appName: f.windowOrNil?.app.name, zoneName: focusedZoneName)
+                    initialEvents = [.focusChanged(windowId: f.windowOrNil?.windowId, workspace: f.workspace.name, appName: f.windowOrNil?.app.name, zoneName: focusedZoneName)]
                 case .workspaceChanged:
-                    event = .workspaceChanged(workspace: f.workspace.name, prevWorkspace: f.workspace.name)
+                    initialEvents = [.workspaceChanged(workspace: f.workspace.name, prevWorkspace: f.workspace.name)]
                 case .modeChanged:
-                    event = .modeChanged(mode: activeMode)
+                    initialEvents = [.modeChanged(mode: activeMode)]
                 case .focusedMonitorChanged:
-                    event = .focusedMonitorChanged(
+                    initialEvents = [.focusedMonitorChanged(
                         workspace: f.workspace.name,
                         monitorId_oneBased: f.workspace.workspaceMonitor.monitorId_oneBased ?? 0,
-                    )
+                    )]
                 case .zoneFocused:
                     guard let zoneName = activeZoneName(in: f.workspace) else { continue }
-                    event = .zoneFocused(workspace: f.workspace.name, zoneName: zoneName)
+                    initialEvents = [.zoneFocused(workspace: f.workspace.name, zoneName: zoneName)]
                 case .zonePresetChanged:
-                    event = .zonePresetChanged(workspace: f.workspace.name, presetName: activeZonePresetName)
+                    initialEvents = [.zonePresetChanged(workspace: f.workspace.name, presetName: activeZonePresetName)]
+                case .zoneLayoutChanged:
+                    initialEvents = snapshotZones(in: f.workspace).map {
+                        .zoneLayoutChanged(workspace: $0.workspace, zoneName: $0.zoneId, layout: $0.layout)
+                    }
+                case .zoneWindowCountChanged:
+                    initialEvents = snapshotZones(in: f.workspace).map {
+                        .zoneWindowCountChanged(workspace: $0.workspace, zoneName: $0.zoneId, windowCount: $0.windowCount)
+                    }
                 case .windowDetected, .bindingTriggered: continue
                 case .monitorChanged:
-                    event = .monitorChanged(monitorCount: monitors.count)
+                    initialEvents = [.monitorChanged(monitorCount: monitors.count)]
             }
-            if await connection.writeAtomic(event, jsonEncoder).error != nil {
-                return
+            for event in initialEvents {
+                if await connection.writeAtomic(event, jsonEncoder).error != nil {
+                    return
+                }
             }
         }
     }
@@ -69,4 +85,43 @@ func broadcastEvent(_ event: ServerEvent) {
             }
         }
     }
+}
+
+@MainActor
+func primeZoneEventBroadcastTracking() {
+    lastZoneEventSnapshotsByWorkspace = currentZoneEventSnapshotsByWorkspace()
+}
+
+@MainActor
+func broadcastZoneStateChangesIfNeeded() {
+    let current = currentZoneEventSnapshotsByWorkspace()
+    defer { lastZoneEventSnapshotsByWorkspace = current }
+    if refreshSessionEvent?.isStartup == true { return }
+
+    let workspaceNames = Set(lastZoneEventSnapshotsByWorkspace.keys).union(current.keys).sorted()
+    for workspaceName in workspaceNames {
+        let oldSnapshots = lastZoneEventSnapshotsByWorkspace[workspaceName] ?? [:]
+        let newSnapshots = current[workspaceName] ?? [:]
+        let extraZoneNames = newSnapshots.keys.filter { !Workspace.zoneNames.contains($0) }.sorted()
+        for zoneName in Workspace.zoneNames + extraZoneNames {
+            let oldSnapshot = oldSnapshots[zoneName]
+            guard let newSnapshot = newSnapshots[zoneName] else { continue }
+            if oldSnapshot?.layout != newSnapshot.layout {
+                broadcastEvent(.zoneLayoutChanged(workspace: workspaceName, zoneName: zoneName, layout: newSnapshot.layout))
+            }
+            if oldSnapshot?.windowCount != newSnapshot.windowCount {
+                broadcastEvent(.zoneWindowCountChanged(workspace: workspaceName, zoneName: zoneName, windowCount: newSnapshot.windowCount))
+            }
+        }
+    }
+}
+
+@MainActor
+private func currentZoneEventSnapshotsByWorkspace() -> [String: [String: ZoneEventSnapshot]] {
+    Dictionary(uniqueKeysWithValues: Workspace.all.map { workspace in
+        let snapshots = Dictionary(uniqueKeysWithValues: snapshotZones(in: workspace).map {
+            ($0.zoneId, ZoneEventSnapshot(layout: $0.layout, windowCount: $0.windowCount))
+        })
+        return (workspace.name, snapshots)
+    })
 }

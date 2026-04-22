@@ -54,6 +54,7 @@ func runHeavyCompleteRefreshSession(
                 // from macosMinimizedWindowsContainer back into its workspace, making focusWindow()
                 // succeed where the earlier calls above failed.
                 updateFocusCache(nativeFocused)
+                broadcastZoneStateChangesIfNeeded()
                 if shouldLayoutWorkspaces { try await layoutWorkspaces() }
             }
         }
@@ -90,6 +91,7 @@ func runLightSession<T>(
 
             updateTrayText()
             SecureInputPanel.shared.refresh()
+            broadcastZoneStateChangesIfNeeded()
             try await layoutWorkspaces()
             if focusBefore != focusAfter {
                 focusAfter?.nativeFocus() // syncFocusToMacOs

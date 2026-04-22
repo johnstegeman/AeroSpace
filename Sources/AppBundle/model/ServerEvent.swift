@@ -25,6 +25,10 @@ public struct ServerEvent: Codable, Sendable {
     private var zoneName: String?
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
     private var presetName: String?
+    // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
+    private var layout: String?
+    // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
+    private var windowCount: Int?
 
     public var eventType: ServerEventType { _event }
 
@@ -62,5 +66,13 @@ public struct ServerEvent: Codable, Sendable {
 
     public static func zonePresetChanged(workspace: String, presetName: String?) -> ServerEvent {
         ServerEvent(_event: .zonePresetChanged, workspace: workspace, presetName: presetName)
+    }
+
+    public static func zoneLayoutChanged(workspace: String, zoneName: String, layout: String) -> ServerEvent {
+        ServerEvent(_event: .zoneLayoutChanged, workspace: workspace, zoneName: zoneName, layout: layout)
+    }
+
+    public static func zoneWindowCountChanged(workspace: String, zoneName: String, windowCount: Int) -> ServerEvent {
+        ServerEvent(_event: .zoneWindowCountChanged, workspace: workspace, zoneName: zoneName, windowCount: windowCount)
     }
 }

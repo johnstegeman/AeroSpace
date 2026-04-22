@@ -49,4 +49,54 @@ final class ZoneSubscriptionEventTest: XCTestCase {
         assertEquals(result.exitCode.rawValue, 0)
         assertEquals(captured.map(normalizeJson), [#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"setUpWorkspacesForTests"}"#])
     }
+
+    func testMoveNodeToZoneBroadcastsZoneWindowCountChangedEvents() async throws {
+        let workspace = focus.workspace
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        _ = TestWindow.new(id: 1, parent: workspace.zoneContainers["left"].orDie())
+        let focusedWindow = TestWindow.new(id: 2, parent: workspace.zoneContainers["center"].orDie())
+        assertTrue(focusedWindow.focusWindow())
+        primeZoneEventBroadcastTracking()
+
+        var captured: [String] = []
+        broadcastEventForTesting = { event in
+            captured.append(JSONEncoder.aeroSpaceDefault.encodeToString(event).orDie())
+        }
+
+        let args = MoveNodeToZoneCmdArgs(rawArgs: [], .left)
+        let result = try await MoveNodeToZoneCommand(args: args).run(.defaultEnv, .emptyStdin)
+        broadcastZoneStateChangesIfNeeded()
+        await Task.yield()
+
+        let countEvents = captured
+            .map(normalizeJson)
+            .filter { $0.contains(#""_event":"zone-window-count-changed""#) }
+        assertEquals(result.exitCode.rawValue, 0)
+        assertEquals(countEvents, [
+            #"{"_event":"zone-window-count-changed","windowCount":2,"workspace":"setUpWorkspacesForTests","zoneName":"left"}"#,
+            #"{"_event":"zone-window-count-changed","windowCount":0,"workspace":"setUpWorkspacesForTests","zoneName":"center"}"#,
+        ])
+    }
+
+    func testZoneLayoutDiffBroadcastsZoneLayoutChangedEvent() async throws {
+        let workspace = focus.workspace
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        primeZoneEventBroadcastTracking()
+
+        var captured: [String] = []
+        broadcastEventForTesting = { event in
+            captured.append(JSONEncoder.aeroSpaceDefault.encodeToString(event).orDie())
+        }
+
+        workspace.zoneContainers["left"]?.layout = .accordion
+        broadcastZoneStateChangesIfNeeded()
+        await Task.yield()
+
+        let layoutEvents = captured
+            .map(normalizeJson)
+            .filter { $0.contains(#""_event":"zone-layout-changed""#) }
+        assertEquals(layoutEvents, [
+            #"{"_event":"zone-layout-changed","layout":"h_accordion","workspace":"setUpWorkspacesForTests","zoneName":"left"}"#,
+        ])
+    }
 }
