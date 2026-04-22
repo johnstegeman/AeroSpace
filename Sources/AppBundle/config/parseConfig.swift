@@ -558,21 +558,25 @@ private func parseMonitorProfileRule(_ raw: Json, _ backtrace: ConfigBacktrace, 
         myErrors.append(.semantic(backtrace, "'name' is required in [[monitor-profiles]]"))
     }
 
-    if let matchJson = dict["match"], let matchDict = matchJson.asDictOrNil {
-        let matchBt = backtrace + .key("match")
-        if let ratioJson = matchDict["min-aspect-ratio"] {
-            if let ratio = ratioJson.asDoubleOrNil, ratio > 0 {
-                rule.matcher.minAspectRatio = ratio
-            } else {
-                myErrors.append(expectedActualTypeError(expected: .float, actual: ratioJson.tomlType, matchBt + .key("min-aspect-ratio")))
+    if let matchJson = dict["match"] {
+        if let matchDict = matchJson.asDictOrNil {
+            let matchBt = backtrace + .key("match")
+            if let ratioJson = matchDict["min-aspect-ratio"] {
+                if let ratio = ratioJson.asDoubleOrNil, ratio > 0 {
+                    rule.matcher.minAspectRatio = ratio
+                } else {
+                    myErrors.append(expectedActualTypeError(expected: .float, actual: ratioJson.tomlType, matchBt + .key("min-aspect-ratio")))
+                }
             }
-        }
-        if let countJson = matchDict["monitor-count"] {
-            if let count = countJson.asIntOrNil, count > 0 {
-                rule.matcher.monitorCount = count
-            } else {
-                myErrors.append(expectedActualTypeError(expected: .int, actual: countJson.tomlType, matchBt + .key("monitor-count")))
+            if let countJson = matchDict["monitor-count"] {
+                if let count = countJson.asIntOrNil, count > 0 {
+                    rule.matcher.monitorCount = count
+                } else {
+                    myErrors.append(expectedActualTypeError(expected: .int, actual: countJson.tomlType, matchBt + .key("monitor-count")))
+                }
             }
+        } else {
+            myErrors.append(expectedActualTypeError(expected: .table, actual: matchJson.tomlType, backtrace + .key("match")))
         }
     }
 
