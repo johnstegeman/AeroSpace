@@ -43,10 +43,12 @@ final class StackIndicatorManager {
 
     private func updatePanel(for container: TilingContainer, id: ObjectIdentifier) {
         guard let contentRect = container.lastAppliedLayoutPhysicalRect else { return }
-        let windows = container.children.compactMap { $0 as? Window }
+        // One tab entry per direct child slot; if the child is a container, represent it
+        // by its most-recently-focused window so nested subtrees get a valid entry.
+        let windows = container.children.compactMap { $0.mostRecentWindowRecursive }
         guard !windows.isEmpty else { return }
 
-        let activeWindow = container.mostRecentChild as? Window
+        let activeWindow = container.mostRecentChild?.mostRecentWindowRecursive
         let ind = config.stackIndicator
         let iconSize = CGFloat(ind.iconSize)
         let iconPadding = CGFloat(ind.iconPadding)
