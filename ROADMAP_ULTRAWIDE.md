@@ -1,0 +1,535 @@
+# Ultrawide Fork Roadmap
+
+This roadmap focuses on changes that fit the purpose of this fork: making AeroSpace feel genuinely native on ultrawide monitors rather than merely "usable".
+
+The priorities below are based on:
+
+- the current design of this fork (`ULTRAWIDE.md`)
+- current AeroSpace capabilities and known gaps
+- patterns used by other window managers and zone-based tools
+- common ultrawide workflows: centered main app, narrow sidebars, monitor-profile switching, and screen-sharing constraints
+
+## Ranking
+
+### 1. Generalize zones beyond fixed `left/center/right`
+**Priority:** Very high  
+**Impact:** Very high  
+**Effort:** Medium-high  
+**Risk:** Medium
+
+#### Why it matters
+Three fixed zones are a strong default, but they are still only one opinionated layout. In practice:
+
+- `34"` users often want `1/3 + 1/3 + 1/3` or `2/3 + 1/3`
+- `38"/40"` users often want `25/50/25`
+- `49"/57"` users often want `20/60/20`, `25/50/25`, `4 columns`, or asymmetric side utility columns
+
+Other tools have converged on custom layouts rather than hardcoding a single topology.
+
+#### Recommendation
+Replace the fixed three-zone assumption with a monitor layout model like:
+
+```toml
+[[zones.layouts]]
+name = "uw-default"
+min-aspect-ratio = 2.0
+
+[[zones.layouts.zone]]
+id = "left"
+width = 0.22
+layout = "stack"
+
+[[zones.layouts.zone]]
+id = "center"
+width = 0.56
+layout = "tiles"
+
+[[zones.layouts.zone]]
+id = "right"
+width = 0.22
+layout = "stack"
+```
+
+Then let layouts have arbitrary counts and stable zone IDs.
+
+#### Why this should come first
+Several later features become much cleaner once zones stop being special-cased triples:
+
+- spanning / merged zones
+- per-zone insertion policy
+- stack/tab sidebars
+- per-monitor-profile defaults
+- better query APIs
+
+---
+
+### 2. Add true stacked/tabbed zones
+**Priority:** Very high  
+**Impact:** Very high  
+**Effort:** High  
+**Risk:** Medium-high
+
+#### Why it matters
+This is the clearest UX gap between the current fork and what ultrawide users actually do.
+
+Side zones are often not "show many windows at once" regions. They are:
+
+- chat / Slack / Discord
+- mail
+- music
+- notes
+- logs / dashboards
+- a queue of terminals or docs
+
+Those zones benefit from **preserving one slot and switching within it**, not from recursively tiling or visually overlapping more windows.
+
+#### How this differs from current accordion zones
+Your current implementation has two accordion variants:
+
+- `overlap`: all children are laid out in the same container with peek padding around the MRU child
+- `cascade`: all children are laid out simultaneously with positional offsets
+
+And the new indicator adds:
+
+- a floating icon strip
+- click-to-focus
+- highlight of the currently focused child
+- a layout inset so windows do not sit underneath the overlay
+
+That is useful, but it is still **accordion with better discoverability**, not a true stack/tab model.
+
+#### Specifically: accordion + indicator vs stack/tab
+
+##### Current accordion + indicator
+- Every child window is still an independently laid out window in the container.
+- In `cascade`, every child gets a real frame at once.
+- In `overlap`, every child still gets a frame; they just mostly cover each other.
+- The active window is effectively derived from MRU / z-order behavior.
+- The indicator is an external overlay panel, not part of the tiling model itself.
+- Adding a new window still increases visual complexity inside the same accordion container.
+- The container still behaves like a normal tiling container with accordion-specific focus semantics.
+
+##### True stack/tab zone
+- The zone owns a list of windows, but only one child is visually presented in the content slot at a time.
+- The tab/stack bar is part of the zone model, not just an overlay decorating an accordion container.
+- The active child is explicit state, not just inferred from MRU.
+- Opening a second, third, or tenth window does **not** shrink the visible content area.
+- Cycling becomes a first-class action: next tab, previous tab, move focused tab left/right, send to stack, expel from stack.
+- The side zone stays a stable width utility panel no matter how many windows you park there.
+
+#### What this enables that accordion does not
+- A Slack/mail/Spotify/sidebar zone that never gets visually messy
+- A terminal stack in a narrow column without cascade peeking
+- A browser-doc-reference stack where only one item is visible at a time
+- Better screen sharing, because the visible shape remains stable
+- Clean support for commands like:
+
+```text
+focus-stack next
+focus-stack prev
+move-node-to-stack right
+stack-node-with right
+unstack-node
+toggle-zone-tabbar
+```
+
+#### Concrete design direction
+Two plausible implementations:
+
+1. **Dedicated zone-local stack layout**
+   - New layout type: `stack` or `tabs`
+   - Explicit `activeChildIndex`
+   - Optional `tabbar-position = left|right|top|bottom`
+
+2. **Container stacking primitive**
+   - General "many windows in one container, one visible at a time" primitive
+   - Reusable outside zones later
+
+For this fork, I would start with a **zone-local layout**. It fits the feature goal and keeps the blast radius smaller.
+
+#### Recommendation
+Implement `stack` first, with optional icon-only or icon+title bar. Treat it as a distinct layout from accordion.
+
+---
+
+### 3. Add zone spanning / merged zones
+**Priority:** High  
+**Impact:** High  
+**Effort:** High  
+**Risk:** Medium-high
+
+#### Why it matters
+A lot of ultrawide workflows are not "three independent columns forever". They are:
+
+- narrow left utility
+- wide centered editor
+- occasional editor + preview spanning center+right
+- temporary wide browser/doc window spanning two zones
+
+This is especially common for users who prefer a centered `2/3` main window.
+
+#### Recommendation
+Support temporary or persistent adjacency merges:
+
+```text
+move-node-to-zone center+right
+toggle-zone-span right
+span-zone center right
+unspan-zone center
+```
+
+Or model it as assigning a window to multiple adjacent zone IDs.
+
+#### Architectural note
+This gets easier once zones are generalized and stop being hardcoded triples.
+
+---
+
+### 4. Make monitor-profile automation first-class
+**Priority:** High  
+**Impact:** High  
+**Effort:** Medium  
+**Risk:** Low-medium
+
+#### Why it matters
+This fork already has good raw ingredients:
+
+- zone presets
+- zone memory
+- monitor-change hooks
+- workspace snapshots
+
+But the intended workflow still feels too script-driven.
+
+Ultrawide users routinely move between:
+
+- laptop only
+- laptop + ultrawide
+- home office dock
+- office dock
+
+#### Recommendation
+Promote this into config-native behavior:
+
+```toml
+[[monitor-profiles]]
+name = "home-ultrawide"
+match.min-aspect-ratio = 2.0
+apply-zone-layout = "uw-default"
+restore-workspace-snapshot = "home-dev"
+
+[[monitor-profiles]]
+name = "laptop-only"
+match.monitor-count = 1
+apply-zone-layout = "disabled"
+```
+
+This should be declarative, deterministic, and observable in logs/events.
+
+---
+
+### 5. Add zone-native query commands and events
+**Priority:** High  
+**Impact:** High  
+**Effort:** Medium  
+**Risk:** Low
+
+#### Why it matters
+Once the fork has its own zone model, external automation needs first-class visibility into it.
+
+Right now the scripting story is workable but still indirect.
+
+#### Recommendation
+Add:
+
+- `list-zones`
+- `list-zone-windows`
+- `zone --json`
+- `%{zone}`
+- `%{zone-layout}`
+- `%{zone-preset}`
+- `%{zone-is-focused}`
+- `%{zone-window-count}`
+
+Add events like:
+
+- `zone-focused`
+- `zone-layout-changed`
+- `zone-preset-changed`
+- `zone-window-count-changed`
+
+This also makes testing much easier.
+
+---
+
+### 6. Per-zone insertion policy
+**Priority:** Medium-high  
+**Impact:** High  
+**Effort:** Medium  
+**Risk:** Low-medium
+
+#### Why it matters
+Different zones want different new-window behavior.
+
+Examples:
+
+- center editor zone: insert after focused
+- left utilities zone: append to stack
+- right comms zone: replace active tab or append in background
+
+#### Recommendation
+Allow:
+
+```toml
+[zones.behavior.left]
+new-window = "append"
+
+[zones.behavior.center]
+new-window = "after-focused"
+
+[zones.behavior.right]
+new-window = "append-hidden"
+```
+
+This becomes much more powerful once `stack` exists.
+
+---
+
+### 7. First-class floating defaults
+**Priority:** Medium-high  
+**Impact:** High  
+**Effort:** Low-medium  
+**Risk:** Low
+
+#### Why it matters
+Many real configs contain a long run of `[[on-window-detected]]` rules that all mean the same thing:
+
+- match app bundle ID
+- run `layout floating`
+
+That is expressive, but it is the wrong abstraction level for a common default behavior.
+
+Typical examples:
+
+- Finder
+- Raycast
+- password managers
+- chat apps
+- mail apps
+- utility terminals
+- meeting apps
+
+#### Recommendation
+Add a dedicated config primitive:
+
+```toml
+[floating]
+app-ids = [
+  "com.apple.finder",
+  "com.raycast.macos",
+  "com.1password.1password",
+  "Cisco-Systems.Spark",
+]
+```
+
+Possible later expansion:
+
+```toml
+[floating]
+app-ids = [...]
+app-name-regex-substrings = ["^Finder$"]
+window-title-regex-substrings = ["^Quick Look$", "Picture in Picture"]
+```
+
+#### Why this is better than `[[on-window-detected]]`
+- Much less verbose for a very common case
+- Easier to document and discover
+- Lower cognitive overhead in real configs
+- Potentially cheaper code path than generic callback matching
+
+#### Implementation direction
+Two reasonable approaches:
+
+1. **Parse-time sugar**
+   - Parse `[floating]`
+   - Lower it internally to synthetic `on-window-detected` callbacks that run `layout floating`
+   - Minimal behavior risk
+
+2. **Dedicated runtime fast path**
+   - Add `Config.floatingDefaults`
+   - If a detected window’s app bundle ID matches, float it directly
+   - Keep `[[on-window-detected]]` for more complex workflows
+
+For this fork, I would start with **parse-time sugar** unless you explicitly want to clean up the callback pipeline now.
+
+#### Precedence recommendation
+The clean rule set would be:
+
+- built-in floating defaults establish the baseline
+- explicit `[[on-window-detected]]` remains the escape hatch for special cases
+- docs should say: use `[floating]` for simple app-wide defaults, use callbacks for conditional automation
+
+#### Future symmetry
+If this works well, the same pattern likely makes sense for:
+
+- `[sticky]`
+- `[scratchpad]`
+- `[workspace-defaults]`
+- zone/workspace app routing defaults
+
+---
+
+### 8. Presentation / screen-share mode
+**Priority:** Medium-high  
+**Impact:** Medium-high  
+**Effort:** Medium  
+**Risk:** Low
+
+#### Why it matters
+Ultrawides are awkward for screen sharing. Users often want:
+
+- centered 16:9 or 21:9-safe content
+- comms/tools hidden or collapsed
+- one-command transition in and out
+
+#### Recommendation
+Add a command or preset class like:
+
+```text
+zone-preset share
+presentation-mode on
+presentation-mode off
+```
+
+Behavior could include:
+
+- force center-focused layout
+- collapse side zones
+- optionally move chat to a hidden stack
+- expose a "share-safe region" query for automation
+
+---
+
+### 9. Monitor arrangement / health diagnostics
+**Priority:** Medium  
+**Impact:** Medium-high  
+**Effort:** Low-medium  
+**Risk:** Low
+
+#### Why it matters
+Upstream AeroSpace already depends on proper monitor arrangement for hidden-window parking. This fork is even more geometry-sensitive.
+
+#### Recommendation
+Add:
+
+- `doctor monitors`
+- `doctor zones`
+- startup warning if arrangement is unsafe
+- explicit explanation of which monitor/edge is invalid
+
+This is cheap and reduces support/debug churn.
+
+---
+
+### 10. Lightweight zone picker / transient overlay
+**Priority:** Medium  
+**Impact:** Medium  
+**Effort:** Medium  
+**Risk:** Low-medium
+
+#### Why it matters
+Keyboard-first users still benefit from a temporary visual aid when:
+
+- applying presets
+- moving windows between zones
+- spanning zones
+- targeting a stack/tab zone
+
+#### Recommendation
+Provide a transient overlay that shows:
+
+- zone IDs
+- active zone
+- occupancy count
+- layout type
+- current preset
+
+This should remain command-first and optional, not a permanent GUI editor.
+
+---
+
+### 11. Optional overview / layout editor later
+**Priority:** Low  
+**Impact:** Medium  
+**Effort:** Very high  
+**Risk:** High
+
+#### Why it matters
+There is precedent in other systems for:
+
+- visual zone editing
+- overview mode
+- drag-and-drop across logical regions
+
+But this is probably not aligned with AeroSpace’s general philosophy unless kept extremely lightweight.
+
+#### Recommendation
+Do not build this early. If anything, ship a CLI-first custom-layout format first and consider a helper UI only later.
+
+## Suggested implementation order
+
+### Phase 1: Foundation
+1. Generalize zone topology
+2. Add zone-native query/event APIs
+3. Add monitor-profile automation
+
+### Phase 2: Workflow power
+4. Add true `stack` layout for zones
+5. Add per-zone insertion policy
+6. Add first-class floating defaults
+7. Add presentation/share preset
+
+### Phase 3: Advanced composition
+8. Add zone spanning
+9. Add lightweight transient zone picker
+
+## What I would build first if time is limited
+
+If only one major feature gets built next, I would choose:
+
+### `stack` zones
+
+Reason:
+
+- biggest real-world UX improvement
+- most visible distinction from upstream AeroSpace
+- highly complementary to your current zone model
+- matches how people actually use narrow side columns on ultrawides
+- lets the center zone remain "real tiling" while side zones become stable utility rails
+
+## Notes on naming
+
+If you keep `accordion`, I would avoid overloading it further.
+
+Recommended taxonomy:
+
+- `tiles`: all children visible, split space
+- `accordion`: all children visible, overlapped/cascaded
+- `stack`: one child visible, cycle through children
+- `tabs`: `stack` with a more explicit top/bottom tab strip presentation
+
+Depending on implementation, `tabs` can simply be a presentation variant of `stack`.
+
+## Source signals behind this roadmap
+
+- AeroSpace emphasizes CLI-first scripting, shared workspaces across monitors, and careful monitor arrangement.
+- FancyZones and Rectangle Pro strongly validate custom layouts, quick layout switching, last-known-zone behavior, and display-triggered layout changes.
+- Komorebi explicitly recommends an ultrawide-specific stack-oriented layout and supports stacked containers.
+- Amethyst includes multiple widescreen-specific layouts but not a true zone model.
+- niri demonstrates the value of preserving width, tabbed columns, overview, and monitor/workspace persistence concepts.
+
+The common thread is consistent:
+
+**On ultrawides, users want stable horizontal regions first, and then different behaviors inside each region.**
+
+Your fork already solves the first half. The next big win is to make the behavior inside each region more specialized.
