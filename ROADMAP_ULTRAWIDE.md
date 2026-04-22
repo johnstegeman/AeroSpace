@@ -14,7 +14,7 @@ The priorities below are based on:
 ### 1. Generalize zones beyond fixed `left/center/right`
 **Priority:** Very high  
 **Impact:** Very high  
-**Effort:** Medium-high  
+**Effort:** High  
 **Risk:** Medium
 
 #### Why it matters
@@ -52,6 +52,15 @@ layout = "stack"
 
 Then let layouts have arbitrary counts and stable zone IDs.
 
+#### Migration note
+This is a likely config-format break if done literally. The current fork uses a flat `[zones]` table with fixed `widths` and `layouts`, so a move to `[[zones.layouts]]` needs an explicit migration plan:
+
+- support both schemas for a deprecation window, or
+- gate the new schema behind a config-version bump, or
+- provide a compatibility shim that lowers the old flat model into the new dynamic one
+
+I would not land this as a silent replacement.
+
 #### Why this should come first
 Several later features become much cleaner once zones stop being special-cased triples:
 
@@ -67,7 +76,7 @@ Several later features become much cleaner once zones stop being special-cased t
 **Priority:** Very high  
 **Impact:** Very high  
 **Effort:** High  
-**Risk:** Medium-high
+**Risk:** High
 
 #### Why it matters
 This is the clearest UX gap between the current fork and what ultrawide users actually do.
@@ -147,8 +156,30 @@ Two plausible implementations:
 
 For this fork, I would start with a **zone-local layout**. It fits the feature goal and keeps the blast radius smaller.
 
+#### Architectural caveat
+This is riskier than a normal new layout because the current tree and layout code assume that child windows in a tiling container participate in layout normally. A true stack means some children are owned by the container but not visually presented. That likely requires:
+
+- explicit active-child state in the container or zone model
+- a defined treatment for non-visible-but-owned children in traversal/query code
+- careful interaction with hidden-window parking and any code that assumes `allLeafWindowsRecursive` implies "laid out right now"
+
+That does not make the feature a bad idea, but it does make it a deeper tree-model change than the current wording implied.
+
+#### Focus mode interaction
+`zone-focus-mode` needs explicit treatment here. If a stack zone is collapsed and later re-expanded, its active-child selection must survive intact. That state needs to live on the zone/container model, not be derived from transient focus alone.
+
 #### Recommendation
 Implement `stack` first, with optional icon-only or icon+title bar. Treat it as a distinct layout from accordion.
+
+For command naming, prefer a zone-local namespace such as:
+
+```text
+focus-zone-stack next
+focus-zone-stack prev
+move-node-to-zone-stack right
+```
+
+This avoids potential confusion with existing or future upstream uses of "stack".
 
 ---
 
@@ -181,7 +212,12 @@ unspan-zone center
 Or model it as assigning a window to multiple adjacent zone IDs.
 
 #### Architectural note
-This gets easier once zones are generalized and stop being hardcoded triples.
+This gets easier once zones are generalized and stop being hardcoded triples, but it still has a real data-model mismatch with the current tree. Today every window has exactly one parent. Spanning therefore likely needs a new primitive:
+
+- a synthetic merged container that temporarily replaces adjacent zones, or
+- a zone-group abstraction that owns a combined rect while preserving single parentage
+
+I would explicitly avoid a multi-parent model. This is probably the highest-effort item in the advanced phase.
 
 ---
 
@@ -479,8 +515,8 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 ## Suggested implementation order
 
 ### Phase 1: Foundation
-1. Generalize zone topology
-2. Add zone-native query/event APIs
+1. Add zone-native query/event APIs
+2. Generalize zone topology
 3. Add monitor-profile automation
 
 ### Phase 2: Workflow power
@@ -533,3 +569,18 @@ The common thread is consistent:
 **On ultrawides, users want stable horizontal regions first, and then different behaviors inside each region.**
 
 Your fork already solves the first half. The next big win is to make the behavior inside each region more specialized.
+
+## Upstream drift strategy
+
+This is a fork, so architectural ambition needs to be balanced against rebase cost.
+
+Guidelines worth following:
+
+- keep zone-specific behavior isolated in clearly named files/modules where possible
+- prefer additive config and command surfaces over invasive rewrites when the UX win is similar
+- treat tree-model changes as expensive because they increase merge friction with upstream AeroSpace
+- land observability and config-layer features earlier, since they are both useful and comparatively easy to carry forward
+
+That is another reason to front-load query/event APIs and config-native defaults before the deepest tree changes.
+
+---
