@@ -17,6 +17,14 @@ struct ZonePresetCommand: Command {
             }
             config.zones = config.zones.copy(\.zones, preset.zones)
             activeZonePresetName = name
+        } else if let name = args.saveName {
+            let preset = ZonePreset(name: name, zones: config.zones.zones)
+            config.zonePresets[name] = preset
+            io.out("Saved zone preset '\(name)' (\(preset.zones.count) zones)")
+            return .succ
+        } else if args.export {
+            io.out(exportCurrentZones())
+            return .succ
         }
         // Exit focus mode on all workspaces before rebuilding — stale savedZoneWeights from
         // before the preset would otherwise overwrite the new preset widths on zone-focus-mode off.
@@ -34,4 +42,22 @@ struct ZonePresetCommand: Command {
         broadcastEvent(.zonePresetChanged(workspace: focus.workspace.name, presetName: activeZonePresetName))
         return .succ
     }
+}
+
+/// Serialises the current zone layout as a `[[zone-presets]]` TOML block
+/// that can be pasted directly into an AeroSpace config file.
+@MainActor
+private func exportCurrentZones() -> String {
+    let name = activeZonePresetName ?? "my-layout"
+    var lines: [String] = []
+    lines.append("[[zone-presets]]")
+    lines.append("name = \"\(name)\"")
+    for zone in config.zones.zones {
+        lines.append("")
+        lines.append("[[zone-presets.zone]]")
+        lines.append("id = \"\(zone.id)\"")
+        lines.append("width = \(zone.width)")
+        lines.append("layout = \"\(zone.layout.rawValue)\"")
+    }
+    return lines.joined(separator: "\n")
 }

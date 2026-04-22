@@ -186,6 +186,8 @@ let zone_focus_mode_help_generated = """
 let zone_preset_help_generated = """
     USAGE: zone-preset [-h|--help] <preset-name>
        OR: zone-preset [-h|--help] --reset
+       OR: zone-preset [-h|--help] --save <name>
+       OR: zone-preset [-h|--help] --export
     """
 let workspace_back_and_forth_help_generated = """
     USAGE: workspace-back-and-forth [-h|--help]

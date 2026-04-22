@@ -225,9 +225,13 @@ layout = "tiles"
 Switch presets with:
 
 ```
-zone-preset dev       # apply the "dev" preset
-zone-preset --reset   # restore the original zones config from the config file
+zone-preset dev          # apply the "dev" preset
+zone-preset --reset      # restore the original zones config from the config file
+zone-preset --save dev   # save the current zone widths/layouts as a new runtime preset named "dev"
+zone-preset --export     # print the current zones as a [[zone-presets]] TOML block (paste into config)
 ```
+
+`--save <name>` captures whatever zone layout is currently active — useful after tweaking widths with `balance-sizes` or interactively resizing zones. The saved preset is available immediately as `zone-preset <name>` for the rest of the session but is not persisted to disk; use `--export` to get a TOML snippet you can paste into your config file to make it permanent.
 
 Per-zone gap overrides (`[zones.overrides.*]`) are **not** part of presets and survive preset switches.
 
