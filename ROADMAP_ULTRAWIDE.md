@@ -408,12 +408,13 @@ This also makes testing much easier.
      - `%{zone-layout}`
      - `%{zone-window-count}`
    - Make these work anywhere existing formatting variables are supported
-   - **Done in `PENDING`**
+   - **Done in `f4de6e89`** (`feat: add zone format variables`)
 
 5. **Per-zone window introspection**
    - Add `list-zone-windows`
    - Or extend `list-windows` with zone fields if that is cleaner
    - This is where stack/tab zones and routing rules become much easier to debug
+   - **Done in `PENDING`** via `list-windows` `%{window-zone}`
 
 6. **Second-wave events**
    - Add:
@@ -438,7 +439,8 @@ Current progress:
 - `list-zones`: done in `6706a95b3444`
 - `zone --json`: done in `4cf4aae4`
 - `zone-focused` / `zone-preset-changed`: done in `773863d9`
-- `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `PENDING`
+- `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `f4de6e89`
+- per-window zone introspection via `list-windows` `%{window-zone}`: done in `PENDING`
 
 ---
 

@@ -163,6 +163,7 @@ extension FormatVar {
                     case .windowId: .success(.int(w.window.windowId))
                     case .windowIsFullscreen: .success(.bool(w.window.isFullscreen))
                     case .windowTitle: .success(.string(w.title.orDie("Title wasn't prefeched")))
+                    case .windowZone: .success(.string(zoneName(for: w.window) ?? "NULL-ZONE"))
                     case .windowLayout, .windowParentContainerLayout: toLayoutResult(w: w.window)
                 }
             case (.workspace(let w), .workspace(let f)):

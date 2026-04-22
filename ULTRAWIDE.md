@@ -122,6 +122,14 @@ Adds three zone-native interpolation variables anywhere workspace format variabl
 
 Because these are implemented as workspace-scoped format variables, they work in `list-workspaces --format ...` directly and also in window formats that already inherit workspace state.
 
+#### `list-windows --format '%{window-zone}'`
+
+Adds per-window zone introspection to the existing `list-windows` surface instead of introducing a parallel `list-zone-windows` command.
+
+- `%{window-zone}` returns the zone that actually contains the window.
+- Windows outside the zone system report `NULL-ZONE`.
+- The variable is JSON-safe, so scripts can use `list-windows --format '%{window-id} %{window-zone}' --json` and group windows by zone without re-deriving membership from geometry.
+
 ### Automatic Window Routing
 
 When a new window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:

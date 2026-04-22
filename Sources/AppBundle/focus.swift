@@ -198,9 +198,7 @@ extension Workspace {
     }
 
     let focusedZoneName: String? = focus.windowOrNil.flatMap { window in
-        guard let zc = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
-        else { return nil }
-        return focus.workspace.zoneContainers.first(where: { $0.value === zc })?.key
+        zoneName(for: window, in: focus.workspace)
     }
     broadcastEvent(.focusChanged(
         windowId: focus.windowOrNil?.windowId,
