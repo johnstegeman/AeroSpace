@@ -52,6 +52,10 @@ struct SwapCommand: Command {
         if args.swapFocus {
             return .from(bool: targetWindow.focusWindow())
         }
+        // Without --swap-focus the focused window stays the same but swapWindows rebinds
+        // trigger MRU updates on each bind(). Restore currentWindow as MRU so it stays
+        // visible in any stack container it landed in after the swap.
+        currentWindow.markAsMostRecentChild()
         return .succ
     }
 }
