@@ -25,21 +25,23 @@ struct ZoneFocusModeCommand: Command {
             if let named = args.zone, workspace.zoneContainers[named] != nil {
                 targetZone = named
             } else if let current = focus.windowOrNil.flatMap({ w in
-                Workspace.zoneNames.first { workspace.zoneContainers[$0]?.allLeafWindowsRecursive.contains(where: { $0 === w }) == true }
+                workspace.activeZoneDefinitions.first { workspace.zoneContainers[$0.id]?.allLeafWindowsRecursive.contains(where: { $0 === w }) == true }?.id
             }) {
                 targetZone = current
             } else if let mru = workspace.mruZones.first(where: { workspace.zoneContainers[$0] != nil }) {
                 targetZone = mru
             } else {
-                targetZone = Workspace.zoneNames[1] // default: center
+                // Default: middle zone (index count/2), which is "center" for a 3-zone layout.
+                let defs = workspace.activeZoneDefinitions
+                targetZone = defs[defs.count / 2].id
             }
 
             // Capture current weights before collapsing — only on first entry so that switching
             // zones while focus mode is already active doesn't snapshot the collapsed 8px slivers.
             if workspace.savedZoneWeights == nil {
                 var saved: [String: CGFloat] = [:]
-                for name in Workspace.zoneNames {
-                    saved[name] = workspace.zoneContainers[name]?.getWeight(.h)
+                for def in workspace.activeZoneDefinitions {
+                    saved[def.id] = workspace.zoneContainers[def.id]?.getWeight(.h)
                 }
                 workspace.savedZoneWeights = saved
             }
@@ -48,19 +50,19 @@ struct ZoneFocusModeCommand: Command {
             // Collapse non-focused zones; give focused zone the remaining space.
             // Always compute totalWeight from the original saved weights (not collapsed state).
             let collapsedWeight = CGFloat(config.zones.focusModeCollapsedWidth)
-            let nonFocusedCount = CGFloat(Workspace.zoneNames.count - 1)
+            let nonFocusedCount = CGFloat(workspace.activeZoneDefinitions.count - 1)
             let totalWeight = workspace.savedZoneWeights!.values.compactMap { $0 }.reduce(0, +)
-            for name in Workspace.zoneNames {
-                guard let zone = workspace.zoneContainers[name] else { continue }
-                zone.setWeight(.h, name == targetZone
+            for def in workspace.activeZoneDefinitions {
+                guard let zone = workspace.zoneContainers[def.id] else { continue }
+                zone.setWeight(.h, def.id == targetZone
                     ? max(collapsedWeight, totalWeight - nonFocusedCount * collapsedWeight)
                     : collapsedWeight)
             }
         } else {
             // Restore saved weights.
             if let saved = workspace.savedZoneWeights {
-                for name in Workspace.zoneNames {
-                    if let zone = workspace.zoneContainers[name], let weight = saved[name] {
+                for def in workspace.activeZoneDefinitions {
+                    if let zone = workspace.zoneContainers[def.id], let weight = saved[def.id] {
                         zone.setWeight(.h, weight)
                     }
                 }

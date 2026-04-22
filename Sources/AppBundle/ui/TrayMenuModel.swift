@@ -28,10 +28,10 @@ public final class TrayMenuModel: ObservableObject {
         } else {
             focus.workspace.focusedZone
         }
-        let labels = [("left", "L"), ("center", "C"), ("right", "R")]
-        let parts = labels.compactMap { (name, label) -> String? in
-            guard zc[name] != nil else { return nil }
-            return activeZoneName == name ? "[\(label)]" : label
+        let parts = focus.workspace.activeZoneDefinitions.compactMap { def -> String? in
+            guard zc[def.id] != nil else { return nil }
+            let label = String(def.id.prefix(1).uppercased())
+            return activeZoneName == def.id ? "[\(label)]" : label
         }
         return " : " + parts.joined(separator: " ")
     }()
@@ -88,12 +88,13 @@ public final class TrayMenuModel: ObservableObject {
             // Fall back to the one-shot hint set by focus-zone on an empty zone
             focus.workspace.focusedZone
         }
-        for (name, displayName) in [("left", "L"), ("center", "C"), ("right", "R")] {
-            if zoneContainers[name] != nil {
+        for def in focus.workspace.activeZoneDefinitions {
+            if zoneContainers[def.id] != nil {
+                let displayName = String(def.id.prefix(1).uppercased())
                 items.append(TrayItem(
                     type: .zone,
                     name: displayName,
-                    isActive: activeZoneName == name,
+                    isActive: activeZoneName == def.id,
                     hasFullscreenWindows: false,
                 ))
             }

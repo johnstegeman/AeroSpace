@@ -102,8 +102,7 @@ func broadcastZoneStateChangesIfNeeded() {
     for workspaceName in workspaceNames {
         let oldSnapshots = lastZoneEventSnapshotsByWorkspace[workspaceName] ?? [:]
         let newSnapshots = current[workspaceName] ?? [:]
-        let extraZoneNames = newSnapshots.keys.filter { !Workspace.zoneNames.contains($0) }.sorted()
-        for zoneName in Workspace.zoneNames + extraZoneNames {
+        for zoneName in Set(oldSnapshots.keys).union(newSnapshots.keys).sorted() {
             let oldSnapshot = oldSnapshots[zoneName]
             guard let newSnapshot = newSnapshots[zoneName] else { continue }
             if oldSnapshot?.layout != newSnapshot.layout {

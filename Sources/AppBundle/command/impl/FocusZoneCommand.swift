@@ -15,11 +15,12 @@ struct FocusZoneCommand: Command {
         if args.scope == .mru {
             // Pick the most-recently-used zone that is not the current zone.
             let currentZone = focus.windowOrNil.flatMap { w in
-                Workspace.zoneNames.first { workspace.zoneContainers[$0]?.allLeafWindowsRecursive.contains(where: { $0 === w }) == true }
+                workspace.activeZoneDefinitions.first { workspace.zoneContainers[$0.id]?.allLeafWindowsRecursive.contains(where: { $0 === w }) == true }?.id
             }
             zoneName = workspace.mruZones.first(where: { $0 != currentZone })
-                ?? Workspace.zoneNames.first(where: { $0 != currentZone })
-                ?? Workspace.zoneNames[0]
+                ?? workspace.activeZoneDefinitions.first { $0.id != currentZone }?.id
+                ?? workspace.activeZoneDefinitions.first?.id
+                ?? ""
         } else {
             zoneName = args.zone!.rawValue
         }

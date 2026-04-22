@@ -67,7 +67,8 @@ func zoneName(for window: Window, in workspace: Workspace? = nil) -> String? {
 func snapshotZones(in workspace: Workspace) -> [ZoneSnapshot] {
     let activeZoneName = activeZoneName(in: workspace)
     let monitor = workspace.workspaceMonitor
-    return Workspace.zoneNames.compactMap { zoneName in
+    return workspace.activeZoneDefinitions.compactMap { def in
+        let zoneName = def.id
         guard let zone = workspace.zoneContainers[zoneName] else { return nil }
         return ZoneSnapshot(
             workspace: workspace.name,

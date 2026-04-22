@@ -68,10 +68,6 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     /// and geometry helpers so they work for any N-zone layout, not just the hardcoded 3.
     var activeZoneDefinitions: [ZoneDefinition] = []
 
-    /// Canonical ordered list of zone names. Use this everywhere instead of hardcoded string arrays.
-    /// Kept for call sites that haven't been migrated to activeZoneDefinitions yet (Phase 2).
-    static let zoneNames: [String] = ["left", "center", "right"]
-
     @MainActor
     private init(_ name: String) {
         self.name = name

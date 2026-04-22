@@ -20,7 +20,8 @@ struct WorkspaceSnapshotCommand: Command {
         var workspacesJson: [[String: Any]] = []
         for workspace in Workspace.all where !workspace.isScratchpad {
             var zonesJson: [String: [[String: String]]] = [:]
-            for zoneName in Workspace.zoneNames {
+            for def in workspace.activeZoneDefinitions {
+                let zoneName = def.id
                 guard let zone = workspace.zoneContainers[zoneName] else { continue }
                 let entries = zone.allLeafWindowsRecursive
                     .compactMap { ($0 as? MacWindow)?.app.rawAppBundleId }
@@ -79,10 +80,8 @@ enum WorkspaceSnapshot {
             guard let wsName = wsJson["name"] as? String else { continue }
             let workspace = Workspace.get(byName: wsName)
             if let zonesJson = wsJson["zones"] as? [String: [[String: String]]] {
-                for zoneName in Workspace.zoneNames {
-                    guard let entries = zonesJson[zoneName],
-                          let zone = workspace.zoneContainers[zoneName]
-                    else { continue }
+                for (zoneName, entries) in zonesJson {
+                    guard let zone = workspace.zoneContainers[zoneName] else { continue }
                     for entry in entries {
                         guard let bundleId = entry["bundleId"] else { continue }
                         if let window = findWindow(bundleId: bundleId, placed: &placed) {

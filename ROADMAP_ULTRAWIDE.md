@@ -91,7 +91,7 @@ Replace the parallel `widths: [Double]` and `layouts: [Layout]` arrays in `Zones
 Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]`. This keeps existing configs working while the new schema lands.
 
 **Step 2 — Replace `Workspace.zoneNames` with `activeZoneDefinitions`**  
-**Partial in `3d84e0ff`: `activeZoneDefinitions` added and wired up. Static `zoneNames` kept for remaining callsites; removed in phase 2 (step 5).**
+**Done in `3d84e0ff` (introduced) + `006e998a` (static removed, all callsites migrated)**
 
 Remove `static let zoneNames: [String] = ["left", "center", "right"]`.
 
@@ -110,7 +110,8 @@ Leave the `monitor.isUltrawide` trigger unchanged for now. The goal of this step
 
 Teaching `ensureZoneContainers` to select among multiple layouts by monitor criteria (aspect ratio, resolution, etc.) is a related but separate refactor. Coupling it here risks making the topology change much harder to review and revert. That work belongs in item 4 of the roadmap (monitor-profile automation), once the topology model itself is stable.
 
-**Step 5 — Update consumers of `Workspace.zoneNames`**
+**Step 5 — Update consumers of `Workspace.zoneNames`**  
+**Done in `006e998a`**
 
 Replace all `Workspace.zoneNames` callsites with `workspace.activeZoneDefinitions.map(\.id)` or iteration over `activeZoneDefinitions` directly. Files to update:
 
