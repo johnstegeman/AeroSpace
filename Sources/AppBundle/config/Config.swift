@@ -96,11 +96,17 @@ struct MonitorChangedMatcher: ConvenienceCopyable, Equatable {
     var anyMonitorMinAspectRatio: Double? = nil
 }
 
+/// A single zone in a zone layout — stable ID, proportional width, and default layout.
+struct ZoneDefinition {
+    var id: String
+    var width: Double
+    var layout: Layout
+}
+
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
 struct ZonePreset: ConvenienceCopyable {
     var name: String
-    var widths: [Double]
-    var layouts: [Layout]
+    var zones: [ZoneDefinition]
 }
 
 struct HUDConfig: ConvenienceCopyable {
@@ -159,12 +165,13 @@ enum AccordionMode: String {
 }
 
 struct ZonesConfig: ConvenienceCopyable {
-    /// Proportional widths for left/center/right zones. Must have exactly 3 elements summing to 1.0.
-    /// Falls back to equal thirds if absent or invalid.
-    var widths: [Double] = [1.0 / 3, 1.0 / 3, 1.0 / 3]
-    /// Default layout for left/center/right zones. Must have exactly 3 elements.
-    /// Falls back to tiles if absent or invalid.
-    var layouts: [Layout] = [.tiles, .tiles, .tiles]
+    /// Ordered zone definitions. Each entry has a stable ID, a proportional width, and a layout.
+    /// Widths must sum to 1.0. Defaults to three equal tiles named left/center/right.
+    var zones: [ZoneDefinition] = [
+        ZoneDefinition(id: "left",   width: 1.0 / 3, layout: .tiles),
+        ZoneDefinition(id: "center", width: 1.0 / 3, layout: .tiles),
+        ZoneDefinition(id: "right",  width: 1.0 / 3, layout: .tiles),
+    ]
     /// Gap in pixels between zone containers. Does not affect gaps within zones.
     var gap: Int = 0
     /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.

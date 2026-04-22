@@ -15,7 +15,7 @@ struct ZonePresetCommand: Command {
             guard let preset = config.zonePresets[name] else {
                 return .fail(io.err("zone-preset: unknown preset '\(name)'. Available: \(config.zonePresets.keys.sorted().joined(separator: ", "))"))
             }
-            config.zones = config.zones.copy(\.widths, preset.widths).copy(\.layouts, preset.layouts)
+            config.zones = config.zones.copy(\.zones, preset.zones)
             activeZonePresetName = name
         }
         // Exit focus mode on all workspaces before rebuilding — stale savedZoneWeights from

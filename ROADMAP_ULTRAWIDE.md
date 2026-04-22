@@ -74,7 +74,8 @@ Several later features become much cleaner once zones stop being special-cased t
 
 The change has a wide blast radius — `Workspace.zoneNames` is a static `["left", "center", "right"]` referenced in at least ten files. The safest approach is to work inside-out: new data model first, then wire it up, then update consumers one at a time.
 
-**Step 1 — Define `ZoneDefinition` and update `ZonesConfig`**
+**Step 1 — Define `ZoneDefinition` and update `ZonesConfig`**  
+**Done in `3d84e0ff` (phase 1 commit)**
 
 Add a new struct:
 ```swift
@@ -87,15 +88,17 @@ struct ZoneDefinition {
 
 Replace the parallel `widths: [Double]` and `layouts: [Layout]` arrays in `ZonesConfig` with `zones: [ZoneDefinition]`. Validation: at least 1 zone, widths sum to 1.0.
 
-Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]` and log a deprecation warning. This keeps existing configs working while the new schema lands.
+Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]`. This keeps existing configs working while the new schema lands.
 
-**Step 2 — Replace `Workspace.zoneNames` with `activeZoneDefinitions`**
+**Step 2 — Replace `Workspace.zoneNames` with `activeZoneDefinitions`**  
+**Partial in `3d84e0ff`: `activeZoneDefinitions` added and wired up. Static `zoneNames` kept for remaining callsites; removed in phase 2 (step 5).**
 
 Remove `static let zoneNames: [String] = ["left", "center", "right"]`.
 
 Add `var activeZoneDefinitions: [ZoneDefinition]` on `Workspace`, set when zones are activated and cleared when deactivated. This is the single canonical ordered source — IDs and layout info are derived from it. `zoneContainers` remains a `[String: TilingContainer]` dictionary keyed by zone ID, but order always comes from `activeZoneDefinitions`. Keeping two ordered sequences in sync is the sync risk; one ordered source avoids it entirely.
 
-**Step 3 — Update `activateZones` / `deactivateZones`**
+**Step 3 — Update `activateZones` / `deactivateZones`**  
+**Done in `3d84e0ff`**
 
 `activateZones` currently zips `zoneNames` with parallel `widths` and `layouts` arrays. Replace with iteration over `config.zones.zones: [ZoneDefinition]`. Remove the `layouts.count == 3` hardcode check at `Workspace.swift:339`.
 
@@ -129,7 +132,8 @@ Replace all `Workspace.zoneNames` callsites with `workspace.activeZoneDefinition
 *Tests and fixtures:*
 - Any test or help text that hardcodes `left|center|right` as the complete valid set
 
-**Step 6 — Update presets**
+**Step 6 — Update presets**  
+**Done in `3d84e0ff`**
 
 Zone presets currently store `widths` and `layouts` arrays of length 3. They need to store `[ZoneDefinition]` instead, or at minimum a partial override (widths-only for same-topology presets, full replacement for topology changes). The `zone-preset` command applies preset values to `config.zones`; that assignment must be updated to replace the `zones` array, not just the parallel arrays.
 

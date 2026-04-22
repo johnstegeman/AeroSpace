@@ -25,15 +25,28 @@ A new `[zones]` table in the TOML config controls zone behavior:
 
 ```toml
 [zones]
-# Proportional widths for left / center / right (must sum to 1.0)
-widths = [0.25, 0.50, 0.25]
-
-# Default tiling layout for each zone
-layouts = ["tiles", "accordion", "tiles"]
-
 # Gap in pixels between zone containers (separate from inner gaps)
 gap = 8
+
+[[zones.zone]]
+id = "left"
+width = 0.25
+layout = "tiles"
+
+[[zones.zone]]
+id = "center"
+width = 0.50
+layout = "tiles"
+
+[[zones.zone]]
+id = "right"
+width = 0.25
+layout = "tiles"
 ```
+
+Zone widths must sum to 1.0. Zone IDs can be any non-empty string; the default three-zone config uses `left`, `center`, and `right`. Layouts default to `tiles` if omitted.
+
+The old `widths = [...]` and `layouts = [...]` flat arrays are still accepted for backward compatibility but are deprecated — migrate to `[[zones.zone]]` entries.
 
 ### New Commands
 
@@ -174,13 +187,39 @@ Define named sets of zone widths and layouts in the config, then switch between 
 ```toml
 [[zone-presets]]
 name = "dev"
-widths = [0.25, 0.50, 0.25]
-layouts = ["accordion", "tiles", "tiles"]
+
+[[zone-presets.zone]]
+id = "left"
+width = 0.25
+layout = "accordion"
+
+[[zone-presets.zone]]
+id = "center"
+width = 0.50
+layout = "tiles"
+
+[[zone-presets.zone]]
+id = "right"
+width = 0.25
+layout = "tiles"
 
 [[zone-presets]]
 name = "comms"
-widths = [0.20, 0.60, 0.20]
-layouts = ["tiles", "accordion", "tiles"]
+
+[[zone-presets.zone]]
+id = "left"
+width = 0.20
+layout = "tiles"
+
+[[zone-presets.zone]]
+id = "center"
+width = 0.60
+layout = "accordion"
+
+[[zone-presets.zone]]
+id = "right"
+width = 0.20
+layout = "tiles"
 ```
 
 Switch presets with:

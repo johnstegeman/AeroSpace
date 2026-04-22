@@ -64,8 +64,12 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     var savedZoneWeights: [String: CGFloat]? = nil
     /// Name of the currently focused zone when zone focus mode is active. nil when focus mode is off.
     var focusModeZone: String? = nil
+    /// Ordered zone definitions that were active when zones were last activated. Drives deactivation
+    /// and geometry helpers so they work for any N-zone layout, not just the hardcoded 3.
+    var activeZoneDefinitions: [ZoneDefinition] = []
 
     /// Canonical ordered list of zone names. Use this everywhere instead of hardcoded string arrays.
+    /// Kept for call sites that haven't been migrated to activeZoneDefinitions yet (Phase 2).
     static let zoneNames: [String] = ["left", "center", "right"]
 
     @MainActor
@@ -332,21 +336,20 @@ extension Workspace {
     private func activateZones(monitorWidth: CGFloat) {
         aeroLog("activateZones: ws:\(name) monitorWidth=\(monitorWidth)")
         activeZoneProfile = MonitorProfile([workspaceMonitor])
+        activeZoneDefinitions = config.zones.zones
         savedRootOrientation = rootTilingContainer.orientation
         rootTilingContainer.changeOrientation(.h)
         rootTilingContainer.layout = .tiles
-        let widths = validatedZoneWidths(config.zones.widths)
-        let layouts = config.zones.layouts.count == 3 ? config.zones.layouts : [Layout.tiles, .tiles, .tiles]
-        for (name, (proportion, layout)) in zip(Workspace.zoneNames, zip(widths, layouts)) {
+        for def in activeZoneDefinitions {
             let container = TilingContainer(
                 parent: rootTilingContainer,
-                adaptiveWeight: monitorWidth * proportion,
+                adaptiveWeight: monitorWidth * def.width,
                 .h,
-                layout,
+                def.layout,
                 index: INDEX_BIND_LAST,
             )
             container.isZoneContainer = true
-            zoneContainers[name] = container
+            zoneContainers[def.id] = container
         }
         restoreZoneMemory()
     }
@@ -368,16 +371,15 @@ extension Workspace {
         aeroLog("deactivateZones: called for ws:\(name), zoneContainers=\(zoneContainers.keys.sorted())")
         // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
         if let profile = activeZoneProfile {
-            for name in Workspace.zoneNames {
-                guard let zone = zoneContainers[name] else { continue }
+            for (zoneName, zone) in zoneContainers {
                 for window in zone.allLeafWindowsRecursive {
-                    ZoneMemory.shared.rememberZone(name, for: window, profile: profile)
+                    ZoneMemory.shared.rememberZone(zoneName, for: window, profile: profile)
                 }
             }
         }
         activeZoneProfile = nil
-        for name in Workspace.zoneNames {
-            guard let zone = zoneContainers[name] else { continue }
+        activeZoneDefinitions = []
+        for (_, zone) in zoneContainers {
             for child in zone.children {
                 child.bind(to: rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
             }
@@ -399,8 +401,8 @@ extension Workspace {
     /// reflect actual zone proportions rather than the 8px collapsed slivers.
     @MainActor
     func theoreticalZoneRect(for zoneName: String) -> Rect? {
-        let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
-        guard containers.count == 3 else { return nil }
+        let containers = activeZoneDefinitions.compactMap { def in zoneContainers[def.id].map { (def.id, $0) } }
+        guard !containers.isEmpty else { return nil }
         let monitorRect = workspaceMonitor.visibleRect
         let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, c in
             saved?[name] ?? c.getWeight(.h)
@@ -424,8 +426,8 @@ extension Workspace {
     /// real proportions, not collapsed slivers.
     @MainActor
     func zoneForWindowRect(_ windowRect: Rect) -> String? {
-        let containers = Workspace.zoneNames.compactMap { name in zoneContainers[name].map { (name, $0) } }
-        guard containers.count == 3 else { return nil }
+        let containers = activeZoneDefinitions.compactMap { def in zoneContainers[def.id].map { (def.id, $0) } }
+        guard !containers.isEmpty else { return nil }
 
         let monitorRect = workspaceMonitor.visibleRect
         let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, c in
@@ -457,11 +459,4 @@ extension Workspace {
         guard windowArea > 0, let bestZone, bestOverlapArea / windowArea > 0.5 else { return nil }
         return bestZone
     }
-}
-
-private func validatedZoneWidths(_ widths: [Double]) -> [Double] {
-    guard widths.count == 3, abs(widths.reduce(0, +) - 1.0) < 0.01, widths.allSatisfy({ $0 > 0 }) else {
-        return [1.0 / 3, 1.0 / 3, 1.0 / 3]
-    }
-    return widths
 }

@@ -34,7 +34,11 @@ final class ZoneSubscriptionEventTest: XCTestCase {
     }
 
     func testZonePresetBroadcastsZonePresetChangedEvent() async throws {
-        config.zonePresets["balanced"] = ZonePreset(name: "balanced", widths: [25, 50, 25], layouts: [.tiles, .tiles, .tiles])
+        config.zonePresets["balanced"] = ZonePreset(name: "balanced", zones: [
+            ZoneDefinition(id: "left",   width: 0.25, layout: .tiles),
+            ZoneDefinition(id: "center", width: 0.50, layout: .tiles),
+            ZoneDefinition(id: "right",  width: 0.25, layout: .tiles),
+        ])
         let workspace = focus.workspace
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
 

@@ -360,16 +360,112 @@ private func parseAccordionMode(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pa
     }
 }
 
-private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
-    "widths": Parser(\.widths, parseZoneWidths),
-    "layouts": Parser(\.layouts, parseZoneLayouts),
+// Non-zone fields parsed by the standard table parser.
+private let zonesConfigNonZoneParser: [String: any ParserProtocol<ZonesConfig>] = [
     "gap": Parser(\.gap, parseInt),
     "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
     "overrides": Parser(\.overrides, parseZoneGapOverrides),
 ]
 
 func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
-    parseTable(raw, ZonesConfig(), zonesConfigParser, backtrace, &errors)
+    var result = parseTable(raw, ZonesConfig(), zonesConfigNonZoneParser, backtrace, &errors)
+    let dict = raw.asDictOrNil ?? [:]
+
+    if let rawZone = dict["zone"] {
+        // New format: [[zones.zone]] array of zone definitions.
+        if let zones = parseZoneDefinitions(rawZone, backtrace + .key("zone"), &errors) {
+            result.zones = zones
+        }
+    } else if dict["widths"] != nil || dict["layouts"] != nil {
+        // Legacy format: zones.widths and zones.layouts arrays. Deprecated; use [[zones.zone]].
+        if let zones = parseLegacyZoneArrays(dict, backtrace, &errors) {
+            result.zones = zones
+        }
+    }
+    return result
+}
+
+private func parseZoneDefinitions(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [ZoneDefinition]? {
+    guard let arr = raw.asArrayOrNil else {
+        errors.append(expectedActualTypeError(expected: .array, actual: raw.tomlType, backtrace))
+        return nil
+    }
+    guard !arr.isEmpty else {
+        errors.append(.semantic(backtrace, "zones.zone must have at least 1 entry"))
+        return nil
+    }
+    var defs: [ZoneDefinition] = []
+    for (index, elem) in arr.enumerated() {
+        let bt = backtrace + .index(index)
+        guard let dict = elem.asDictOrNil else {
+            errors.append(expectedActualTypeError(expected: .table, actual: elem.tomlType, bt))
+            return nil
+        }
+        guard let rawId = dict["id"], let id = rawId.asStringOrNil, !id.isEmpty else {
+            errors.append(.semantic(bt, "zone entry must have a non-empty 'id' string"))
+            return nil
+        }
+        guard let rawWidth = dict["width"] else {
+            errors.append(.semantic(bt, "zone entry '\(id)' must have a 'width' field"))
+            return nil
+        }
+        guard case .success(let width) = parseDouble(rawWidth, bt + .key("width")), width > 0 else {
+            errors.append(.semantic(bt + .key("width"), "zone '\(id)' width must be a positive number"))
+            return nil
+        }
+        let layout: Layout
+        if let rawLayout = dict["layout"] {
+            switch parseLayout(rawLayout, bt + .key("layout")) {
+                case .success(let l): layout = l
+                case .failure(let e): errors.append(e); return nil
+            }
+        } else {
+            layout = .tiles
+        }
+        defs.append(ZoneDefinition(id: id, width: width, layout: layout))
+    }
+    // Validate widths sum to 1.0.
+    let total = defs.reduce(0.0) { $0 + $1.width }
+    guard abs(total - 1.0) < 0.01 else {
+        errors.append(.semantic(backtrace, "zone widths must sum to 1.0 (got \(total))"))
+        return nil
+    }
+    // Validate unique IDs.
+    let ids = defs.map(\.id)
+    if Set(ids).count != ids.count {
+        errors.append(.semantic(backtrace, "zone IDs must be unique"))
+        return nil
+    }
+    return defs
+}
+
+/// Parse legacy `widths = [...]` + `layouts = [...]` arrays and synthesize ZoneDefinitions.
+/// IDs default to ["left", "center", "right"] for 3 zones, or "zone1"..."zoneN" otherwise.
+private func parseLegacyZoneArrays(
+    _ dict: [String: Json],
+    _ backtrace: ConfigBacktrace,
+    _ errors: inout [ConfigParseError]
+) -> [ZoneDefinition]? {
+    let widths: [Double]
+    if let rawWidths = dict["widths"] {
+        switch parseZoneWidths(rawWidths, backtrace + .key("widths")) {
+            case .success(let w): widths = w
+            case .failure(let e): errors.append(e); return nil
+        }
+    } else {
+        widths = [1.0/3, 1.0/3, 1.0/3]
+    }
+    let layouts: [Layout]
+    if let rawLayouts = dict["layouts"] {
+        switch parseZoneLayouts(rawLayouts, backtrace + .key("layouts"), widths.count) {
+            case .success(let l): layouts = l
+            case .failure(let e): errors.append(e); return nil
+        }
+    } else {
+        layouts = Array(repeating: .tiles, count: widths.count)
+    }
+    let defaultIds = widths.count == 3 ? ["left", "center", "right"] : (1...widths.count).map { "zone\($0)" }
+    return zip(zip(defaultIds, widths), layouts).map { ZoneDefinition(id: $0.0, width: $0.1, layout: $1) }
 }
 
 private func parseZoneGapOverrides(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZoneGapOverride] {
@@ -400,8 +496,8 @@ private func parseOptionalInt(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pars
 private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Double]> {
     parseTomlArray(raw, backtrace)
         .flatMap { arr -> ParsedConfig<[Double]> in
-            guard arr.count == 3 else {
-                return .failure(.semantic(backtrace, "zones.widths must have exactly 3 elements, got \(arr.count)"))
+            guard !arr.isEmpty else {
+                return .failure(.semantic(backtrace, "zones.widths must not be empty"))
             }
             return arr.enumerated().mapAllOrFailure { (index, elem) in
                 parseDouble(elem, backtrace + .index(index))
@@ -409,17 +505,17 @@ private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> Parse
         }
         .flatMap { widths in
             guard abs(widths.reduce(0, +) - 1.0) < 0.01, widths.allSatisfy({ $0 > 0 }) else {
-                return .failure(.semantic(backtrace, "zones.widths must be 3 positive values summing to 1.0"))
+                return .failure(.semantic(backtrace, "zones.widths must be positive values summing to 1.0"))
             }
             return .success(widths)
         }
 }
 
-private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Layout]> {
+private func parseZoneLayouts(_ raw: Json, _ backtrace: ConfigBacktrace, _ expectedCount: Int) -> ParsedConfig<[Layout]> {
     parseTomlArray(raw, backtrace)
         .flatMap { arr -> ParsedConfig<[Layout]> in
-            guard arr.count == 3 else {
-                return .failure(.semantic(backtrace, "zones.layouts must have exactly 3 elements, got \(arr.count)"))
+            guard arr.count == expectedCount else {
+                return .failure(.semantic(backtrace, "zones.layouts must have \(expectedCount) elements to match zones.widths, got \(arr.count)"))
             }
             return arr.enumerated().mapAllOrFailure { (index, elem) in
                 parseLayout(elem, backtrace + .index(index))
@@ -490,17 +586,26 @@ private func parseZonePresetsArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ 
             errors.append(.semantic(bt, "zone-preset must have a 'name' string field"))
             continue
         }
-        let preset = parseTable(elem, ZonePreset(name: name, widths: [1.0/3, 1.0/3, 1.0/3], layouts: [.tiles, .tiles, .tiles]), zonePresetParser, bt, &errors)
-        result[name] = preset
+        var preset = ZonePreset(name: name, zones: [])
+        if let rawZone = dict["zone"] {
+            if let zones = parseZoneDefinitions(rawZone, bt + .key("zone"), &errors) {
+                preset.zones = zones
+            }
+        } else if dict["widths"] != nil || dict["layouts"] != nil {
+            // Legacy format: widths/layouts arrays in a preset.
+            if let zones = parseLegacyZoneArrays(dict, bt, &errors) {
+                preset.zones = zones
+            }
+        } else {
+            errors.append(.semantic(bt, "zone-preset '\(name)' must have at least one [[zone-presets.zone]] entry"))
+            continue
+        }
+        if !preset.zones.isEmpty {
+            result[name] = preset
+        }
     }
     return result
 }
-
-private let zonePresetParser: [String: any ParserProtocol<ZonePreset>] = [
-    "name": Parser(\.name, parseString),
-    "widths": Parser(\.widths, parseZoneWidths),
-    "layouts": Parser(\.layouts, parseZoneLayouts),
-]
 
 func parseDouble(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Double> {
     raw.asDoubleOrNil.orFailure(expectedActualTypeError(expected: .float, actual: raw.tomlType, backtrace))
