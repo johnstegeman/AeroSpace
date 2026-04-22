@@ -18,7 +18,8 @@ struct ZonePresetCommand: Command {
             config.zones = config.zones.copy(\.zones, preset.zones)
             activeZonePresetName = name
         } else if let name = args.saveName {
-            let preset = ZonePreset(name: name, zones: config.zones.zones)
+            let zones = liveZoneDefinitions(workspace: focus.workspace)
+            let preset = ZonePreset(name: name, zones: zones)
             config.zonePresets[name] = preset
             io.out("Saved zone preset '\(name)' (\(preset.zones.count) zones)")
             return .succ
@@ -44,6 +45,27 @@ struct ZonePresetCommand: Command {
     }
 }
 
+/// Returns the current live zone definitions for `workspace`, reading actual container weights
+/// rather than `config.zones.zones`. When focus mode is on the saved (pre-collapse) weights are
+/// used so the exported proportions reflect the user's real intent, not the 8 px slivers.
+/// Falls back to `config.zones.zones` when no zone containers are active.
+@MainActor
+private func liveZoneDefinitions(workspace: Workspace) -> [ZoneDefinition] {
+    let defs = workspace.activeZoneDefinitions
+    guard !defs.isEmpty else { return config.zones.zones }
+    let saved = workspace.savedZoneWeights
+    var raw: [(id: String, weight: CGFloat, layout: Layout)] = []
+    for def in defs {
+        let container = workspace.zoneContainers[def.id]
+        let weight = saved?[def.id] ?? container?.getWeight(.h) ?? CGFloat(def.width)
+        let layout = container?.layout ?? def.layout
+        raw.append((def.id, weight, layout))
+    }
+    let total = raw.reduce(0.0) { $0 + $1.weight }
+    guard total > 0 else { return config.zones.zones }
+    return raw.map { ZoneDefinition(id: $0.id, width: Double($0.weight / total), layout: $0.layout) }
+}
+
 /// Serialises the current zone layout as a `[[zone-presets]]` TOML block
 /// that can be pasted directly into an AeroSpace config file.
 @MainActor
@@ -52,7 +74,7 @@ private func exportCurrentZones() -> String {
     var lines: [String] = []
     lines.append("[[zone-presets]]")
     lines.append("name = \"\(name)\"")
-    for zone in config.zones.zones {
+    for zone in liveZoneDefinitions(workspace: focus.workspace) {
         lines.append("")
         lines.append("[[zone-presets.zone]]")
         lines.append("id = \"\(zone.id)\"")
