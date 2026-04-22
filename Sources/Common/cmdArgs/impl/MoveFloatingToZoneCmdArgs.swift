@@ -6,20 +6,16 @@ public struct MoveFloatingToZoneCmdArgs: CmdArgs {
         allowInConfig: true,
         help: move_floating_to_zone_help_generated,
         flags: [:],
-        posArgs: [newMandatoryPosArgParser(\.zone, parseMoveFloatingToZoneArg, placeholder: MoveFloatingToZoneCmdArgs.Zone.unionLiteral)],
+        posArgs: [newMandatoryPosArgParser(\.zone, parseMoveFloatingToZoneArg, placeholder: "<zone-id>")],
     )
 
-    public var zone: Lateinit<Zone> = .uninitialized
-
-    public enum Zone: String, CaseIterable, Sendable {
-        case left, center, right
-    }
+    public var zone: Lateinit<String> = .uninitialized
 }
 
 func parseMoveFloatingToZoneCmdArgs(_ args: StrArrSlice) -> ParsedCmd<MoveFloatingToZoneCmdArgs> {
     parseSpecificCmdArgs(MoveFloatingToZoneCmdArgs(rawArgs: args), args)
 }
 
-private func parseMoveFloatingToZoneArg(i: PosArgParserInput) -> ParsedCliArgs<MoveFloatingToZoneCmdArgs.Zone> {
-    .init(parseEnum(i.arg, MoveFloatingToZoneCmdArgs.Zone.self), advanceBy: 1)
+private func parseMoveFloatingToZoneArg(i: PosArgParserInput) -> ParsedCliArgs<String> {
+    .init(.success(i.arg), advanceBy: 1)
 }

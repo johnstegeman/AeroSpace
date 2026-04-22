@@ -144,13 +144,18 @@ Do not flush `ZoneMemory` when the zone count changes. Memory is keyed by stable
 
 `ZoneMemory` stores zone IDs as strings — already stable-by-ID, so no structural change needed. However, if a zone ID is removed (e.g. a 3-zone layout becomes 2-zone), stale memory entries for the removed ID should be silently dropped on lookup rather than causing an error. Verify this is already the case; if not, add a guard in `rememberedZone`.
 
-**Step 8 — Remove hardcoded zone enums from all command args**
+**Step 8 — Remove hardcoded zone enums from all command args**  
+**Done in `f303c813`**
 
 Any command args type that currently models zone names as a static enum or validates against a hardcoded set at parse time must be updated. The fixed set (`left`, `center`, `right`) no longer exists after this change.
 
 Candidates: `FocusZoneCmdArgs`, `MoveNodeToZoneCmdArgs`, `MoveFloatingToZoneCmdArgs`, and any other args type with a zone name field. For all of them: accept any `String` at parse time and validate against `workspace.activeZoneDefinitions.map(\.id)` at execution time, failing with a clear “zone 'X' not found” error. This is consistent with how workspace names and other dynamic IDs are handled elsewhere.
 
-**Step 9 — Update tests**
+**Step 7 — Verify `ZoneMemory`**  
+**Done (no change needed): `ZoneMemory` stores zone IDs as strings. Stale IDs are silently dropped on lookup already.**
+
+**Step 8 — Remove hardcoded zone enums from all command args**  
+**Done in `f303c813`**
 
 Files with hardcoded zone assumptions:
 - `ZoneEnsureContainersTest.swift` — covers 3-zone activate/deactivate; add tests for 2-zone and 4-zone layouts

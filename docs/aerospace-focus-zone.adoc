@@ -9,7 +9,7 @@ include::util/man-attributes.adoc[]
 == Synopsis
 [verse]
 // tag::synopsis[]
-aerospace focus-zone [-h|--help] (left|center|right)
+aerospace focus-zone [-h|--help] (<zone-id>)
 
 // end::synopsis[]
 
@@ -30,7 +30,7 @@ include::./util/conditional-options-header.adoc[]
 
 -h, --help:: Print help
 
-left|center|right:: The name of the zone to focus.
+<zone-id>:: The name of the zone to focus.
 
 // end::body[]
 

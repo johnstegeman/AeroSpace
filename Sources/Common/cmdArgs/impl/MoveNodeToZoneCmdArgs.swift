@@ -8,19 +8,15 @@ public struct MoveNodeToZoneCmdArgs: CmdArgs {
         flags: [
             "--no-focus": ArgParser(\.noFocus, constSubArgParserFun(true)),
         ],
-        posArgs: [newMandatoryPosArgParser(\.zone, parseZoneArg, placeholder: MoveNodeToZoneCmdArgs.Zone.unionLiteral)],
+        posArgs: [newMandatoryPosArgParser(\.zone, parseZoneArg, placeholder: "<zone-id>")],
     )
 
     public var noFocus: Bool = false
-    public var zone: Lateinit<Zone> = .uninitialized
+    public var zone: Lateinit<String> = .uninitialized
 
-    public init(rawArgs: [String], _ zone: Zone) {
+    public init(rawArgs: [String], _ zone: String) {
         self.commonState = .init(rawArgs.slice)
         self.zone = .initialized(zone)
-    }
-
-    public enum Zone: String, CaseIterable, Sendable {
-        case left, center, right
     }
 }
 
@@ -28,6 +24,6 @@ func parseMoveNodeToZoneCmdArgs(_ args: StrArrSlice) -> ParsedCmd<MoveNodeToZone
     parseSpecificCmdArgs(MoveNodeToZoneCmdArgs(rawArgs: args), args)
 }
 
-private func parseZoneArg(i: PosArgParserInput) -> ParsedCliArgs<MoveNodeToZoneCmdArgs.Zone> {
-    .init(parseEnum(i.arg, MoveNodeToZoneCmdArgs.Zone.self), advanceBy: 1)
+private func parseZoneArg(i: PosArgParserInput) -> ParsedCliArgs<String> {
+    .init(.success(i.arg), advanceBy: 1)
 }

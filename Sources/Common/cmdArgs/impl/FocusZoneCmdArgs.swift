@@ -9,15 +9,11 @@ public struct FocusZoneCmdArgs: CmdArgs {
             "--scope": ArgParser(\.scope, upcastArgParserFun(parseFocusZoneScopeArg)),
         ],
         // Zone is optional: omitted when --scope is provided.
-        posArgs: [ArgParser(\.zone, upcastArgParserFun(parseFocusZoneEnumArg))],
+        posArgs: [ArgParser(\.zone, upcastArgParserFun(parseFocusZoneNameArg))],
     )
 
     public var scope: Scope? = nil
-    public var zone: Zone? = nil
-
-    public enum Zone: String, CaseIterable, Sendable {
-        case left, center, right
-    }
+    public var zone: String? = nil
 
     public enum Scope: String, CaseIterable, Sendable {
         case mru
@@ -34,8 +30,8 @@ func parseFocusZoneCmdArgs(_ args: StrArrSlice) -> ParsedCmd<FocusZoneCmdArgs> {
         }
 }
 
-private func parseFocusZoneEnumArg(i: PosArgParserInput) -> ParsedCliArgs<FocusZoneCmdArgs.Zone> {
-    .init(parseEnum(i.arg, FocusZoneCmdArgs.Zone.self), advanceBy: 1)
+private func parseFocusZoneNameArg(i: PosArgParserInput) -> ParsedCliArgs<String> {
+    .init(.success(i.arg), advanceBy: 1)
 }
 
 private func parseFocusZoneScopeArg(i: SubArgParserInput) -> ParsedCliArgs<FocusZoneCmdArgs.Scope> {

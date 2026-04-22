@@ -67,7 +67,7 @@ final class ZoneSubscriptionEventTest: XCTestCase {
             captured.append(JSONEncoder.aeroSpaceDefault.encodeToString(event).orDie())
         }
 
-        let args = MoveNodeToZoneCmdArgs(rawArgs: [], .left)
+        let args = MoveNodeToZoneCmdArgs(rawArgs: [], "left")
         let result = try await MoveNodeToZoneCommand(args: args).run(.defaultEnv, .emptyStdin)
         broadcastZoneStateChangesIfNeeded()
         await Task.yield()

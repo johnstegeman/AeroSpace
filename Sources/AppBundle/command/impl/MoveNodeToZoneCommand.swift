@@ -8,7 +8,7 @@ struct MoveNodeToZoneCommand: Command {
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
         let workspace = window.nodeWorkspace ?? focus.workspace
-        let zoneName = args.zone.val.rawValue
+        let zoneName = args.zone.val
         guard let zone = workspace.zoneContainers[zoneName] else {
             return .fail(io.err("move-node-to-zone: zones not active on this workspace"))
         }

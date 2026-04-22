@@ -22,7 +22,7 @@ struct FocusZoneCommand: Command {
                 ?? workspace.activeZoneDefinitions.first?.id
                 ?? ""
         } else {
-            zoneName = args.zone!.rawValue
+            zoneName = args.zone!
         }
 
         guard let zone = workspace.zoneContainers[zoneName] else {

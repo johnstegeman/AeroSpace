@@ -20,7 +20,7 @@ struct MoveFloatingToZoneCommand: Command {
             default:
                 return .fail(io.err("move-floating-to-zone: focused window is not floating or tiling"))
         }
-        let zoneName = args.zone.val.rawValue
+        let zoneName = args.zone.val
         guard let toZone = workspace.zoneContainers[zoneName] else {
             return .fail(io.err("move-floating-to-zone: zones not active on this workspace"))
         }

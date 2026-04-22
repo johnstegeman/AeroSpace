@@ -42,7 +42,7 @@ let focus_monitor_help_generated = """
        OR: focus-monitor [-h|--help] <monitor-pattern>...
     """
 let focus_zone_help_generated = """
-    USAGE: focus-zone [-h|--help] (left|center|right)
+    USAGE: focus-zone [-h|--help] (<zone-id>)
        OR: focus-zone [-h|--help] --scope mru
     """
 let focus_help_generated = """
@@ -105,7 +105,7 @@ let mode_help_generated = """
     USAGE: mode [-h|--help] <binding-mode>
     """
 let move_floating_to_zone_help_generated = """
-    USAGE: move-floating-to-zone [-h|--help] (left|center|right)
+    USAGE: move-floating-to-zone [-h|--help] (<zone-id>)
     """
 let move_mouse_help_generated = """
     USAGE: move-mouse [-h|--help] [--fail-if-noop] <mouse-position>
@@ -124,7 +124,7 @@ let move_node_to_workspace_help_generated = """
                                   [--window-id <window-id>] <workspace-name>
     """
 let move_node_to_zone_help_generated = """
-    USAGE: move-node-to-zone [-h|--help] [--no-focus] (left|center|right)
+    USAGE: move-node-to-zone [-h|--help] [--no-focus] (<zone-id>)
     """
 let move_workspace_to_monitor_help_generated = """
     USAGE: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around] (left|down|up|right)
