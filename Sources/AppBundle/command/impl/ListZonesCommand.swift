@@ -1,7 +1,7 @@
 import Common
 import Foundation
 
-private struct ZoneSnapshot: Encodable {
+struct ZoneSnapshot: Encodable {
     let workspace: String
     let monitorId: Int?
     let monitorName: String
@@ -43,14 +43,19 @@ struct ListZonesCommand: Command {
 }
 
 @MainActor
-private func snapshotZones(in workspace: Workspace) -> [ZoneSnapshot] {
-    let activeZoneName: String? = if let window = focus.windowOrNil,
-                                     let zoneContainer = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
+func activeZoneName(in workspace: Workspace) -> String? {
+    if let window = focus.windowOrNil,
+       let zoneContainer = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
     {
         workspace.zoneContainers.first { $0.value === zoneContainer }?.key
     } else {
         workspace.focusedZone
     }
+}
+
+@MainActor
+func snapshotZones(in workspace: Workspace) -> [ZoneSnapshot] {
+    let activeZoneName = activeZoneName(in: workspace)
     let monitor = workspace.workspaceMonitor
     return Workspace.zoneNames.compactMap { zoneName in
         guard let zone = workspace.zoneContainers[zoneName] else { return nil }

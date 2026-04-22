@@ -77,6 +77,32 @@ Repositions a floating window into the named zone without converting it to a til
 
 Pops up an NSMenu of all workspaces at the center of the focused window (or monitor if no window is focused). Selecting an entry switches focus to that workspace. Useful for quickly navigating workspaces without remembering keybindings.
 
+#### `list-zones`
+#### `zone --json`
+
+Query the current zone state for scripts, bars, and debugging.
+
+`list-zones` returns the zones on the focused workspace as JSON, one object per zone. The first implementation is intentionally narrow: focused workspace only, JSON-first, and stable field names:
+
+```json
+[
+  {
+    "workspace": "1",
+    "monitor-id": 1,
+    "monitor-name": "DELL U4025QW",
+    "zone-id": "left",
+    "layout": "h_accordion",
+    "is-focused": false,
+    "window-count": 2,
+    "weight": 1100.8
+  }
+]
+```
+
+`zone --json` returns the single active zone object for the focused workspace. This is useful when a bar item or script only needs "where am I right now?" rather than the whole zone list.
+
+These commands were added to make zone behavior observable without scraping the menu bar or re-deriving state from window positions. They are the foundation for later zone events, formatting variables, and richer debugging tools.
+
 ### Automatic Window Routing
 
 When a new window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:

@@ -70,6 +70,82 @@ Several later features become much cleaner once zones stop being special-cased t
 - per-monitor-profile defaults
 - better query APIs
 
+#### Implementation steps
+
+The change has a wide blast radius — `Workspace.zoneNames` is a static `["left", "center", "right"]` referenced in at least ten files. The safest approach is to work inside-out: new data model first, then wire it up, then update consumers one at a time.
+
+**Step 1 — Define `ZoneDefinition` and update `ZonesConfig`**
+
+Add a new struct:
+```swift
+struct ZoneDefinition {
+    let id: String        // stable zone ID, e.g. "left", "center", "right", "main"
+    let width: Double     // proportional width, must sum to 1.0 across all zones
+    let layout: Layout
+}
+```
+
+Replace the parallel `widths: [Double]` and `layouts: [Layout]` arrays in `ZonesConfig` with `zones: [ZoneDefinition]`. Validation: at least 1 zone, widths sum to 1.0.
+
+Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]` and log a deprecation warning. This keeps existing configs working while the new schema lands.
+
+**Step 2 — Replace `Workspace.zoneNames` with an instance property**
+
+Remove `static let zoneNames: [String] = ["left", "center", "right"]`.
+
+Add `var activeZoneIds: [String]` on `Workspace`, populated from the active `ZoneDefinition` list when zones are activated. This preserves definition order (a dictionary does not). All existing `Workspace.zoneNames` callsites switch to `workspace.activeZoneIds` or `zoneContainers.keys` in definition order.
+
+**Step 3 — Update `activateZones` / `deactivateZones`**
+
+`activateZones` currently zips `zoneNames` with parallel `widths` and `layouts` arrays. Replace with iteration over `config.zones.zones: [ZoneDefinition]`. Remove the `layouts.count == 3` hardcode check at `Workspace.swift:339`.
+
+`deactivateZones` currently iterates `Workspace.zoneNames` in two loops. Replace with `activeZoneIds` (the instance property set in step 2), so it iterates the actual active zones rather than the hardcoded triple.
+
+**Step 4 — Update `ensureZoneContainers` trigger**
+
+The current trigger is `monitor.isUltrawide` (a binary flag based on aspect ratio). With generalized layouts, the trigger should ask: does this monitor match any layout's criteria? The minimal change is to keep `isUltrawide` as the trigger but make it configurable via the layout's `min-aspect-ratio` field, rather than a hardcoded threshold.
+
+Longer term, `ensureZoneContainers` picks the best-matching layout for the monitor and activates that layout's zone list. This is the hook that makes per-monitor-profile zone layouts work.
+
+**Step 5 — Update consumers of `Workspace.zoneNames`**
+
+Files to update, roughly in order of risk:
+
+- `WorkspaceSnapshotCommand.swift` — two loops over `zoneNames`; replace with `workspace.activeZoneIds`
+- `FocusZoneCommand.swift` — remove `zoneNames[0]` fallback; use `activeZoneIds.first`
+- `ZoneFocusModeCommand.swift` — remove `zoneNames[1]` ("default: center") assumption; use MRU or `activeZoneIds.first`; `zoneNames.count - 1` becomes `activeZoneIds.count - 1`
+- `TrayMenuModel.swift` — replace the two hardcoded `[("left", "L"), ("center", "C"), ("right", "R")]` arrays with a dynamic list derived from `zoneContainers` in definition order; derive short labels from the zone ID (first character uppercased, or a user-defined `label` field on `ZoneDefinition`)
+
+**Step 6 — Update presets**
+
+Zone presets currently store `widths` and `layouts` arrays of length 3. They need to store `[ZoneDefinition]` instead, or at minimum a partial override (widths-only for same-topology presets, full replacement for topology changes). The `zone-preset` command applies preset values to `config.zones`; that assignment must be updated to replace the `zones` array, not just the parallel arrays.
+
+Consider whether a preset that changes zone count (e.g. 3 → 4 columns) should also flush `ZoneMemory` entries for zones that no longer exist. It probably should.
+
+**Step 7 — Update `ZoneMemory`**
+
+`ZoneMemory` stores zone IDs as strings — already stable-by-ID, so no structural change needed. However, if a zone ID is removed (e.g. a 3-zone layout becomes 2-zone), stale memory entries for the removed ID should be silently dropped on lookup rather than causing an error. Verify this is already the case; if not, add a guard in `rememberedZone`.
+
+**Step 8 — Update `FocusZoneCmdArgs` validation**
+
+Zone name validation in `FocusZoneCmdArgs` currently validates against the known set at parse time. With dynamic IDs, validation must move to command execution time (against `workspace.activeZoneIds`), or accept any string and fail at runtime with a clear error. The latter is simpler and consistent with how other ID-bearing commands work.
+
+**Step 9 — Update tests**
+
+Files with hardcoded zone assumptions:
+- `ZoneEnsureContainersTest.swift` — covers 3-zone activate/deactivate; add tests for 2-zone and 4-zone layouts
+- `ZoneMemoryTests.swift` — add a test that stale zone IDs are dropped on lookup after a layout change
+- `ZoneNewWindowPlacementTest.swift` — parameterise on zone count
+
+`FakeMonitor.ultrawide` should remain valid as a test fixture; the trigger condition change in step 4 just needs to be reflected in how `FakeMonitor` reports its aspect ratio.
+
+**Step 10 — Config migration and docs**
+
+Once the new schema is stable:
+- Update `docs/` and man pages with the new `[[zones.layouts.zone]]` syntax
+- Document the deprecation timeline for the old flat `[zones]` table
+- Update `ULTRAWIDE.md` example configs
+
 ---
 
 ### 2. Add true stacked/tabbed zones
@@ -302,6 +378,7 @@ This also makes testing much easier.
    - Add `list-zones`
    - JSON-first output, with a stable schema
    - Start with the focused workspace only if that keeps scope down
+   - **Done in `6706a95b3444`** (`feat: add list-zones query command`)
 
    Minimum useful fields:
    - workspace name
@@ -316,6 +393,7 @@ This also makes testing much easier.
    - Add `zone --json`
    - Returns the active zone on the focused workspace
    - Useful for bars, scripts, and debugging bindings
+   - **Done in `PENDING`**
 
 3. **Subscription events**
    - Add at least:
@@ -352,6 +430,11 @@ Ship the query surfaces before the event fan-out:
 6. secondary zone events
 
 That order gives you immediate debugging value with low design risk, and it gives future work a stable inspection surface before you commit to a larger event taxonomy.
+
+Current progress:
+
+- `list-zones`: done in `6706a95b3444`
+- `zone --json`: done in `PENDING`
 
 ---
 
