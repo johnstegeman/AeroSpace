@@ -89,46 +89,61 @@ Replace the parallel `widths: [Double]` and `layouts: [Layout]` arrays in `Zones
 
 Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]` and log a deprecation warning. This keeps existing configs working while the new schema lands.
 
-**Step 2 — Replace `Workspace.zoneNames` with an instance property**
+**Step 2 — Replace `Workspace.zoneNames` with `activeZoneDefinitions`**
 
 Remove `static let zoneNames: [String] = ["left", "center", "right"]`.
 
-Add `var activeZoneIds: [String]` on `Workspace`, populated from the active `ZoneDefinition` list when zones are activated. This preserves definition order (a dictionary does not). All existing `Workspace.zoneNames` callsites switch to `workspace.activeZoneIds` or `zoneContainers.keys` in definition order.
+Add `var activeZoneDefinitions: [ZoneDefinition]` on `Workspace`, set when zones are activated and cleared when deactivated. This is the single canonical ordered source — IDs and layout info are derived from it. `zoneContainers` remains a `[String: TilingContainer]` dictionary keyed by zone ID, but order always comes from `activeZoneDefinitions`. Keeping two ordered sequences in sync is the sync risk; one ordered source avoids it entirely.
 
 **Step 3 — Update `activateZones` / `deactivateZones`**
 
 `activateZones` currently zips `zoneNames` with parallel `widths` and `layouts` arrays. Replace with iteration over `config.zones.zones: [ZoneDefinition]`. Remove the `layouts.count == 3` hardcode check at `Workspace.swift:339`.
 
-`deactivateZones` currently iterates `Workspace.zoneNames` in two loops. Replace with `activeZoneIds` (the instance property set in step 2), so it iterates the actual active zones rather than the hardcoded triple.
+`deactivateZones` currently iterates `Workspace.zoneNames` in two loops. Replace with `activeZoneDefinitions.map(\.id)` (set in step 2), so it iterates the actual active zones rather than the hardcoded triple.
 
-**Step 4 — Update `ensureZoneContainers` trigger**
+**Step 4 — Keep current trigger; activate arbitrary zone definitions**
 
-The current trigger is `monitor.isUltrawide` (a binary flag based on aspect ratio). With generalized layouts, the trigger should ask: does this monitor match any layout's criteria? The minimal change is to keep `isUltrawide` as the trigger but make it configurable via the layout's `min-aspect-ratio` field, rather than a hardcoded threshold.
+Leave the `monitor.isUltrawide` trigger unchanged for now. The goal of this step is purely to make the activated zone list dynamic — `activateZones` iterates `config.zones.zones: [ZoneDefinition]` rather than zipping hardcoded parallel arrays.
 
-Longer term, `ensureZoneContainers` picks the best-matching layout for the monitor and activates that layout's zone list. This is the hook that makes per-monitor-profile zone layouts work.
+Teaching `ensureZoneContainers` to select among multiple layouts by monitor criteria (aspect ratio, resolution, etc.) is a related but separate refactor. Coupling it here risks making the topology change much harder to review and revert. That work belongs in item 4 of the roadmap (monitor-profile automation), once the topology model itself is stable.
 
 **Step 5 — Update consumers of `Workspace.zoneNames`**
 
-Files to update, roughly in order of risk:
+Replace all `Workspace.zoneNames` callsites with `workspace.activeZoneDefinitions.map(\.id)` or iteration over `activeZoneDefinitions` directly. Files to update:
 
-- `WorkspaceSnapshotCommand.swift` — two loops over `zoneNames`; replace with `workspace.activeZoneIds`
-- `FocusZoneCommand.swift` — remove `zoneNames[0]` fallback; use `activeZoneIds.first`
-- `ZoneFocusModeCommand.swift` — remove `zoneNames[1]` ("default: center") assumption; use MRU or `activeZoneIds.first`; `zoneNames.count - 1` becomes `activeZoneIds.count - 1`
-- `TrayMenuModel.swift` — replace the two hardcoded `[("left", "L"), ("center", "C"), ("right", "R")]` arrays with a dynamic list derived from `zoneContainers` in definition order; derive short labels from the zone ID (first character uppercased, or a user-defined `label` field on `ZoneDefinition`)
+*Command implementations:*
+- `WorkspaceSnapshotCommand.swift` — two loops over `zoneNames`
+- `FocusZoneCommand.swift` — remove `zoneNames[0]` fallback; use `activeZoneDefinitions.first?.id`
+- `ZoneFocusModeCommand.swift` — remove `zoneNames[1]` ("default: center") assumption; use MRU or `activeZoneDefinitions.first?.id`; `zoneNames.count - 1` becomes `activeZoneDefinitions.count - 1`
+- `MoveNodeToZoneCommand.swift` — any validation against the fixed name set
+- `MoveFloatingToZoneCommand.swift` — same
+
+*Query and event layer (easy to miss):*
+- `ListZonesCommand.swift` — currently enumerates zones; verify it uses `zoneContainers` keys, not `zoneNames`
+- `ZoneCommand.swift` — same
+- `subscriptions.swift` — `broadcastZoneStateChangesIfNeeded` uses `Workspace.zoneNames` to order zone iteration; replace with `activeZoneDefinitions` ordering
+
+*UI:*
+- `TrayMenuModel.swift` — two hardcoded `[("left", "L"), ("center", "C"), ("right", "R")]` arrays; replace with dynamic list from `activeZoneDefinitions` in definition order; derive short label from zone ID first character uppercased, or add an optional `label` field to `ZoneDefinition`
+
+*Tests and fixtures:*
+- Any test or help text that hardcodes `left|center|right` as the complete valid set
 
 **Step 6 — Update presets**
 
 Zone presets currently store `widths` and `layouts` arrays of length 3. They need to store `[ZoneDefinition]` instead, or at minimum a partial override (widths-only for same-topology presets, full replacement for topology changes). The `zone-preset` command applies preset values to `config.zones`; that assignment must be updated to replace the `zones` array, not just the parallel arrays.
 
-Consider whether a preset that changes zone count (e.g. 3 → 4 columns) should also flush `ZoneMemory` entries for zones that no longer exist. It probably should.
+Do not flush `ZoneMemory` when the zone count changes. Memory is keyed by stable zone ID; stale IDs for zones that no longer exist in the active layout are silently ignored on lookup. This makes layout switching safe to reason about — if the user returns to an older topology, the remembered assignments are still there.
 
 **Step 7 — Update `ZoneMemory`**
 
 `ZoneMemory` stores zone IDs as strings — already stable-by-ID, so no structural change needed. However, if a zone ID is removed (e.g. a 3-zone layout becomes 2-zone), stale memory entries for the removed ID should be silently dropped on lookup rather than causing an error. Verify this is already the case; if not, add a guard in `rememberedZone`.
 
-**Step 8 — Update `FocusZoneCmdArgs` validation**
+**Step 8 — Remove hardcoded zone enums from all command args**
 
-Zone name validation in `FocusZoneCmdArgs` currently validates against the known set at parse time. With dynamic IDs, validation must move to command execution time (against `workspace.activeZoneIds`), or accept any string and fail at runtime with a clear error. The latter is simpler and consistent with how other ID-bearing commands work.
+Any command args type that currently models zone names as a static enum or validates against a hardcoded set at parse time must be updated. The fixed set (`left`, `center`, `right`) no longer exists after this change.
+
+Candidates: `FocusZoneCmdArgs`, `MoveNodeToZoneCmdArgs`, `MoveFloatingToZoneCmdArgs`, and any other args type with a zone name field. For all of them: accept any `String` at parse time and validate against `workspace.activeZoneDefinitions.map(\.id)` at execution time, failing with a clear “zone 'X' not found” error. This is consistent with how workspace names and other dynamic IDs are handled elsewhere.
 
 **Step 9 — Update tests**
 
@@ -137,7 +152,7 @@ Files with hardcoded zone assumptions:
 - `ZoneMemoryTests.swift` — add a test that stale zone IDs are dropped on lookup after a layout change
 - `ZoneNewWindowPlacementTest.swift` — parameterise on zone count
 
-`FakeMonitor.ultrawide` should remain valid as a test fixture; the trigger condition change in step 4 just needs to be reflected in how `FakeMonitor` reports its aspect ratio.
+`FakeMonitor.ultrawide` remains valid as a test fixture — the `isUltrawide` trigger is unchanged in this work (step 4).
 
 **Step 10 — Config migration and docs**
 
