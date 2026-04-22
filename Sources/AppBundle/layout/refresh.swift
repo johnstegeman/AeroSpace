@@ -187,6 +187,7 @@ enum OptimalHideCorner {
 private func layoutWorkspaces() async throws {
     if !TrayMenuModel.shared.isEnabled {
         AccordionIndicatorManager.shared.hideAll()
+        StackIndicatorManager.shared.hideAll()
         for workspace in Workspace.all {
             workspace.allLeafWindowsRecursive.forEach { ($0 as! MacWindow).unhideFromCorner() } // todo as!
             try await workspace.layoutWorkspace() // Unhide tiling windows from corner
@@ -235,6 +236,7 @@ private func layoutWorkspaces() async throws {
 
     await BorderController.shared.sync()
     AccordionIndicatorManager.shared.refresh()
+    StackIndicatorManager.shared.refresh()
 }
 
 @MainActor

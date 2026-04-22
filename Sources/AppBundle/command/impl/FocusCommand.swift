@@ -19,7 +19,7 @@ struct FocusCommand: Command {
             case .direction(let direction):
                 let window = target.windowOrNil
                 if let (parent, ownIndex) = window?.closestParent(hasChildrenInDirection: direction, withLayout: nil) {
-                    guard let windowToFocus = parent.children[ownIndex + direction.accordionFocusOffset(parent)]
+                    guard let windowToFocus = parent.children[ownIndex + direction.containerFocusOffset(parent)]
                         .findLeafWindowRecursive(snappedTo: direction.opposite) else { return .fail }
                     return .from(bool: windowToFocus.focusWindow())
                 } else {
@@ -194,6 +194,11 @@ extension TreeNode {
             case .window(let window):
                 return window
             case .tilingContainer(let container):
+                // Stack containers always enter via the most-recently-focused child, regardless
+                // of which direction we're arriving from.
+                if container.layout == .stack {
+                    return container.mostRecentChild?.findLeafWindowRecursive(snappedTo: direction)
+                }
                 if direction.orientation == container.orientation {
                     return (direction.isPositive ? container.children.last : container.children.first)?
                         .findLeafWindowRecursive(snappedTo: direction)

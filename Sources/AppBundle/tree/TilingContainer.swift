@@ -59,14 +59,20 @@ extension TilingContainer {
 enum Layout: String {
     case tiles
     case accordion
+    case stack
 }
 
 extension TilingContainer {
     /// Whether a direction matches this container for navigation purposes.
+    /// Stack containers always match up/down (cycling through the stack) and never match
+    /// left/right (so those pass through to the parent for zone-level navigation).
     /// When `accordion-indicator.vertical-navigation` is enabled, accordion containers
     /// accept up/down directions regardless of their actual orientation.
     @MainActor
     func matchesDirection(_ direction: CardinalDirection) -> Bool {
+        if layout == .stack {
+            return direction.orientation == .v // up/down cycle within stack; left/right navigate zones
+        }
         if config.accordionIndicator.accordionVerticalNavigation && layout == .accordion && direction.orientation == .v {
             return true
         }
@@ -76,15 +82,19 @@ extension TilingContainer {
 
 extension CardinalDirection {
     /// Returns the focus offset for navigating within a container.
+    /// Stack containers: up = previous (-1), down = next (+1).
     /// When vertical navigation is enabled for accordion, up/down map to previous/next.
     @MainActor
-    func accordionFocusOffset(_ container: TilingContainer) -> Int {
+    func containerFocusOffset(_ container: TilingContainer) -> Int {
+        if container.layout == .stack && orientation == .v {
+            return self == .up ? -1 : 1
+        }
         if config.accordionIndicator.accordionVerticalNavigation && container.layout == .accordion && orientation == .v {
-            // up = previous (-1), down = next (+1)
             return self == .up ? -1 : 1
         }
         return focusOffset
     }
+
 }
 
 extension String {
@@ -96,3 +106,4 @@ extension String {
         }
     }
 }
+

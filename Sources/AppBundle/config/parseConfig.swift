@@ -115,6 +115,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "automatically-unhide-macos-hidden-apps": Parser(\.automaticallyUnhideMacosHiddenApps, parseBool),
     "accordion": Parser(\.accordion, parseAccordionConfig),
     "accordion-indicator": Parser(\.accordionIndicator, parseAccordionIndicator),
+    "stack-indicator": Parser(\.stackIndicator, parseStackIndicator),
     persistentWorkspacesKey: Parser(\.persistentWorkspaces, parsePersistentWorkspaces),
     "exec-on-workspace-change": Parser(\.execOnWorkspaceChange, parseArrayOfStrings),
     "exec": Parser(\.execConfig, parseExecConfig),

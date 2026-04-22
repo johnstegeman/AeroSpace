@@ -89,11 +89,42 @@ extension TreeNode {
                         width: layoutWidth, height: layoutHeight,
                     )
                 }
+                // Reserve space for the stack indicator bar when it will be shown.
+                // The bar is anchored inside the zone; content is inset away from the bar edge.
+                // Update lastAppliedLayoutPhysicalRect to the inset (content) rect so
+                // StackIndicatorManager can compute the bar position relative to content.
+                if container.isZoneContainer,
+                   container.layout == .stack,
+                   !container.children.isEmpty,
+                   config.stackIndicator.enabled
+                {
+                    let ind = config.stackIndicator
+                    let barMargin: CGFloat = 4 // must match StackIndicator.swift
+                    let barInset = CGFloat(ind.barHeight) + barMargin
+                    switch ind.position {
+                        case .top:
+                            layoutPoint.y += barInset
+                            layoutHeight  -= barInset
+                        case .bottom:
+                            layoutHeight  -= barInset
+                        case .left:
+                            layoutPoint.x += barInset
+                            layoutWidth   -= barInset
+                        case .right:
+                            layoutWidth   -= barInset
+                    }
+                    lastAppliedLayoutPhysicalRect = Rect(
+                        topLeftX: layoutPoint.x, topLeftY: layoutPoint.y,
+                        width: layoutWidth, height: layoutHeight,
+                    )
+                }
                 switch container.layout {
                     case .tiles:
                         try await container.layoutTiles(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)
                     case .accordion:
                         try await container.layoutAccordion(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)
+                    case .stack:
+                        try await container.layoutStack(layoutPoint, width: layoutWidth, height: layoutHeight, virtual: virtual, context)
                 }
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer,
                  .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:
@@ -238,6 +269,20 @@ extension TilingContainer {
                         )
                 }
             }
+        }
+    }
+
+    /// Stack layout: all children occupy the same rect (stacked on top of each other).
+    /// Only the most-recently-focused child is visible; others are behind it in z-order.
+    /// The active child is laid out last so macOS window focus brings it to the front.
+    @MainActor
+    fileprivate func layoutStack(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
+        let activeChild = mostRecentChild
+        for child in children where child !== activeChild {
+            try await child.layoutRecursive(point, width: width, height: height, virtual: virtual, context)
+        }
+        if let activeChild {
+            try await activeChild.layoutRecursive(point, width: width, height: height, virtual: virtual, context)
         }
     }
 }

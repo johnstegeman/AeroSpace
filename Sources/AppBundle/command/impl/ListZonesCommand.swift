@@ -89,5 +89,6 @@ func zoneLayoutString(_ container: TilingContainer) -> String {
         case (.tiles, .v): LayoutCmdArgs.LayoutDescription.v_tiles.rawValue
         case (.accordion, .h): LayoutCmdArgs.LayoutDescription.h_accordion.rawValue
         case (.accordion, .v): LayoutCmdArgs.LayoutDescription.v_accordion.rawValue
+        case (.stack, _): LayoutCmdArgs.LayoutDescription.stack.rawValue
     }
 }

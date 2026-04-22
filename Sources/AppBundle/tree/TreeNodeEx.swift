@@ -93,7 +93,7 @@ extension TreeNode {
                 case .tilingContainer(let parent):
                     (layout == nil || parent.layout == layout) &&
                         parent.matchesDirection(direction) &&
-                        (node.ownIndex.map { parent.children.indices.contains($0 + direction.accordionFocusOffset(parent)) } ?? true)
+                        (node.ownIndex.map { parent.children.indices.contains($0 + direction.containerFocusOffset(parent)) } ?? true)
             }
         })
         guard let innermostChild else { return nil }

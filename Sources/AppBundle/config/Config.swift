@@ -48,6 +48,7 @@ struct Config: ConvenienceCopyable {
     var automaticallyUnhideMacosHiddenApps: Bool = false
     var accordion: AccordionConfig = AccordionConfig()
     var accordionIndicator: AccordionIndicatorConfig = AccordionIndicatorConfig()
+    var stackIndicator: StackIndicatorConfig = StackIndicatorConfig()
     var enableNormalizationOppositeOrientationForNestedContainers: Bool = true
     var persistentWorkspaces: OrderedSet<String> = []
     var execOnWorkspaceChange: [String] = [] // todo deprecate
@@ -215,4 +216,18 @@ struct ZoneGapOverride: ConvenienceCopyable {
 
 enum DefaultContainerOrientation: String {
     case horizontal, vertical, auto
+}
+
+struct StackIndicatorConfig: ConvenienceCopyable, Equatable {
+    var enabled: Bool = false
+    var iconSize: Int = 20
+    var iconPadding: Int = 4
+    var barPadding: Int = 4
+    var barHeight: Int = 28
+    var position: StackIndicatorPosition = .top
+    var showTitle: Bool = true
+}
+
+enum StackIndicatorPosition: String, Equatable {
+    case top, bottom, left, right
 }

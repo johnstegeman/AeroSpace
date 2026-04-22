@@ -434,7 +434,7 @@ Collapsed zones remain visible at 8px. Zone weights captured at `on` time are re
 
 ### Per-Zone Default Layouts
 
-Each zone can have its own default tiling layout (`tiles`, `accordion`). When `ensureZoneContainers()` creates a zone container for the first time it applies the configured layout for that position.
+Each zone can have its own default tiling layout (`tiles`, `accordion`, `stack`). When `ensureZoneContainers()` creates a zone container for the first time it applies the configured layout for that position.
 
 ### Workspace Snapshots
 
@@ -494,6 +494,50 @@ vertical-navigation = false  # if true, up/down always navigates accordion regar
 ```
 
 The inset is computed from `icon-size + bar-padding * 2 + 4` (the fixed gap between indicator and window edge) and applied during the layout pass — so it participates in all the same gap override and zone focus mode math as the rest of the layout.
+
+### Stack Layout for Zones
+
+A `stack` zone layout shows one window at a time — the most-recently-focused child fills the entire zone rect, and all other children are stacked behind it (at the same position, in z-order behind the active window). This is ideal for narrow utility columns (chat, mail, music) where you want a stable-width region that never gets visually messy regardless of how many windows you park there.
+
+```toml
+[[zones.zone]]
+id = "left"
+width = 0.22
+layout = "stack"    # one window visible at a time
+
+[[zones.zone]]
+id = "center"
+width = 0.56
+layout = "tiles"
+
+[[zones.zone]]
+id = "right"
+width = 0.22
+layout = "stack"
+```
+
+**Navigation:** `focus up` / `focus down` cycles through stack children (previous / next). `focus left` / `focus right` navigates to the adjacent zone, as normal.
+
+**Stack indicator bar:** A tab-bar-style overlay shows each window's app icon and name. Clicking an entry focuses that window. The active entry is highlighted.
+
+```toml
+[stack-indicator]
+enabled = true
+bar-height = 28           # height of the bar in points
+icon-size = 20            # app icon size in points
+icon-padding = 4          # padding between icon and label
+bar-padding = 4           # padding inside the bar panel
+position = "top"          # top | bottom | left | right
+show-title = true         # show app name next to icon
+```
+
+The bar is positioned inside the zone: content is inset by `bar-height + 4` on the `position` side, and the bar panel fills the remaining strip. The inset participates in the same layout pass as gap overrides and zone focus mode.
+
+**Runtime toggle:** `layout stack` changes the focused window's parent container to stack layout, exactly like `layout accordion`. Toggle between layouts with:
+
+```
+layout tiles stack      # toggle current zone between tiles and stack
+```
 
 ### DFS Scope for Accordion Cycling
 

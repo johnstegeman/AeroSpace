@@ -15,7 +15,7 @@ struct MoveCommand: Command {
         switch parent.cases {
             case .tilingContainer(let parent):
                 let indexOfCurrent = currentWindow.ownIndex.orDie()
-                let indexOfSiblingTarget = indexOfCurrent + direction.accordionFocusOffset(parent)
+                let indexOfSiblingTarget = indexOfCurrent + direction.containerFocusOffset(parent)
                 if parent.matchesDirection(direction) && parent.children.indices.contains(indexOfSiblingTarget) {
                     switch parent.children[indexOfSiblingTarget].tilingTreeNodeCasesOrDie() {
                         case .tilingContainer(let topLevelSiblingTargetContainer):

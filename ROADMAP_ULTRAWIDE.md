@@ -12,6 +12,7 @@ The priorities below are based on:
 ## Ranking
 
 ### 1. Generalize zones beyond fixed `left/center/right`
+**Status:** Done (`qtwxxpty` → `ovokwwpx` → `ylppmznp` → `qvwqtkpv`, bug fixes `loqpplvv`)  
 **Priority:** Very high  
 **Impact:** Very high  
 **Effort:** High  
@@ -75,7 +76,7 @@ Several later features become much cleaner once zones stop being special-cased t
 The change has a wide blast radius — `Workspace.zoneNames` is a static `["left", "center", "right"]` referenced in at least ten files. The safest approach is to work inside-out: new data model first, then wire it up, then update consumers one at a time.
 
 **Step 1 — Define `ZoneDefinition` and update `ZonesConfig`**  
-**Done in `3d84e0ff` (phase 1 commit)**
+**Done in `qtwxxpty`**
 
 Add a new struct:
 ```swift
@@ -91,14 +92,14 @@ Replace the parallel `widths: [Double]` and `layouts: [Layout]` arrays in `Zones
 Add a compatibility shim in `parseZonesConfig`: if old `widths` + `layouts` arrays are detected, synthesize `[ZoneDefinition]` with IDs `["left", "center", "right"]`. This keeps existing configs working while the new schema lands.
 
 **Step 2 — Replace `Workspace.zoneNames` with `activeZoneDefinitions`**  
-**Done in `3d84e0ff` (introduced) + `006e998a` (static removed, all callsites migrated)**
+**Done in `qtwxxpty` (introduced) + `ovokwwpx` (static removed, all callsites migrated)**
 
 Remove `static let zoneNames: [String] = ["left", "center", "right"]`.
 
 Add `var activeZoneDefinitions: [ZoneDefinition]` on `Workspace`, set when zones are activated and cleared when deactivated. This is the single canonical ordered source — IDs and layout info are derived from it. `zoneContainers` remains a `[String: TilingContainer]` dictionary keyed by zone ID, but order always comes from `activeZoneDefinitions`. Keeping two ordered sequences in sync is the sync risk; one ordered source avoids it entirely.
 
 **Step 3 — Update `activateZones` / `deactivateZones`**  
-**Done in `3d84e0ff`**
+**Done in `qtwxxpty`**
 
 `activateZones` currently zips `zoneNames` with parallel `widths` and `layouts` arrays. Replace with iteration over `config.zones.zones: [ZoneDefinition]`. Remove the `layouts.count == 3` hardcode check at `Workspace.swift:339`.
 
@@ -111,7 +112,7 @@ Leave the `monitor.isUltrawide` trigger unchanged for now. The goal of this step
 Teaching `ensureZoneContainers` to select among multiple layouts by monitor criteria (aspect ratio, resolution, etc.) is a related but separate refactor. Coupling it here risks making the topology change much harder to review and revert. That work belongs in item 4 of the roadmap (monitor-profile automation), once the topology model itself is stable.
 
 **Step 5 — Update consumers of `Workspace.zoneNames`**  
-**Done in `006e998a`**
+**Done in `ovokwwpx`**
 
 Replace all `Workspace.zoneNames` callsites with `workspace.activeZoneDefinitions.map(\.id)` or iteration over `activeZoneDefinitions` directly. Files to update:
 
@@ -134,7 +135,7 @@ Replace all `Workspace.zoneNames` callsites with `workspace.activeZoneDefinition
 - Any test or help text that hardcodes `left|center|right` as the complete valid set
 
 **Step 6 — Update presets**  
-**Done in `3d84e0ff`**
+**Done in `qtwxxpty`**
 
 Zone presets currently store `widths` and `layouts` arrays of length 3. They need to store `[ZoneDefinition]` instead, or at minimum a partial override (widths-only for same-topology presets, full replacement for topology changes). The `zone-preset` command applies preset values to `config.zones`; that assignment must be updated to replace the `zones` array, not just the parallel arrays.
 
@@ -145,7 +146,7 @@ Do not flush `ZoneMemory` when the zone count changes. Memory is keyed by stable
 `ZoneMemory` stores zone IDs as strings — already stable-by-ID, so no structural change needed. However, if a zone ID is removed (e.g. a 3-zone layout becomes 2-zone), stale memory entries for the removed ID should be silently dropped on lookup rather than causing an error. Verify this is already the case; if not, add a guard in `rememberedZone`.
 
 **Step 8 — Remove hardcoded zone enums from all command args**  
-**Done in `f303c813`**
+**Done in `ylppmznp`**
 
 Any command args type that currently models zone names as a static enum or validates against a hardcoded set at parse time must be updated. The fixed set (`left`, `center`, `right`) no longer exists after this change.
 
@@ -155,7 +156,7 @@ Candidates: `FocusZoneCmdArgs`, `MoveNodeToZoneCmdArgs`, `MoveFloatingToZoneCmdA
 **Done (no change needed): `ZoneMemory` stores zone IDs as strings. Stale IDs are silently dropped on lookup already.**
 
 **Step 8 — Remove hardcoded zone enums from all command args**  
-**Done in `f303c813`**
+**Done in `ylppmznp`**
 
 Any command args type that currently models zone names as a static enum or validates against a hardcoded set at parse time must be updated. The fixed set (`left`, `center`, `right`) no longer exists after this change.
 
@@ -180,6 +181,7 @@ Added tests covering the generalized topology:
 ---
 
 ### 2. Add true stacked/tabbed zones
+**Status:** Done (`pxnulloq`)  
 **Priority:** Very high  
 **Impact:** Very high  
 **Effort:** High  
@@ -329,7 +331,7 @@ I would explicitly avoid a multi-parent model. This is probably the highest-effo
 ---
 
 ### 4. Make monitor-profile automation first-class
-**Status:** Done  
+**Status:** Done (`uqmmoork`)  
 **Priority:** High  
 **Impact:** High  
 **Effort:** Medium  
@@ -380,6 +382,7 @@ Monitor profiles fire after `[[on-monitor-changed]]` commands are queued, so bot
 ---
 
 ### 5. Add zone-native query commands and events
+**Status:** Done (`qtkonmou` → `xylnmvnq` → `pnsmzrpo` → `qvuquoks` → `rxvzunsm` → `murrvuyu`)  
 **Priority:** High  
 **Impact:** High  
 **Effort:** Medium  
@@ -417,7 +420,7 @@ This also makes testing much easier.
    - Add `list-zones`
    - JSON-first output, with a stable schema
    - Start with the focused workspace only if that keeps scope down
-   - **Done in `6706a95b3444`** (`feat: add list-zones query command`)
+   - **Done in `qtkonmou`** (`feat: add list-zones query command`)
 
    Minimum useful fields:
    - workspace name
@@ -432,14 +435,14 @@ This also makes testing much easier.
    - Add `zone --json`
    - Returns the active zone on the focused workspace
    - Useful for bars, scripts, and debugging bindings
-   - **Done in `4cf4aae4`** (`feat: add zone --json query command`)
+   - **Done in `xylnmvnq`** (`feat: add zone --json query command`)
 
 3. **Subscription events**
    - Add at least:
      - `zone-focused`
      - `zone-preset-changed`
    - Prefer events that are explicit about cause rather than forcing consumers to diff snapshots
-   - **Done in `773863d9`** (`feat: add first-wave zone subscription events`)
+   - **Done in `pnsmzrpo`** (`feat: add first-wave zone subscription events`)
 
 4. **Formatting / templating integration**
    - Add:
@@ -447,20 +450,20 @@ This also makes testing much easier.
      - `%{zone-layout}`
      - `%{zone-window-count}`
    - Make these work anywhere existing formatting variables are supported
-   - **Done in `f4de6e89`** (`feat: add zone format variables`)
+   - **Done in `qvuquoks`** (`feat: add zone format variables`)
 
 5. **Per-zone window introspection**
    - Add `list-zone-windows`
    - Or extend `list-windows` with zone fields if that is cleaner
    - This is where stack/tab zones and routing rules become much easier to debug
-   - **Done in `f8706238`** (`feat: add window zone introspection`) via `list-windows` `%{window-zone}`
+   - **Done in `rxvzunsm`** (`feat: add window zone introspection`) via `list-windows` `%{window-zone}`
 
 6. **Second-wave events**
    - Add:
      - `zone-layout-changed`
      - `zone-window-count-changed`
    - Only after the first query/event surfaces exist and the event shapes are clearer in practice
-   - **Done in `112a731a`** (`feat: add second-wave zone events`)
+   - **Done in `murrvuyu`** (`feat: add second-wave zone events`)
 
 #### Recommended order
 Ship the query surfaces before the event fan-out:
@@ -476,12 +479,12 @@ That order gives you immediate debugging value with low design risk, and it give
 
 Current progress:
 
-- `list-zones`: done in `6706a95b3444`
-- `zone --json`: done in `4cf4aae4`
-- `zone-focused` / `zone-preset-changed`: done in `773863d9`
-- `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `f4de6e89`
-- per-window zone introspection via `list-windows` `%{window-zone}`: done in `f8706238`
-- `zone-layout-changed` / `zone-window-count-changed`: done in `112a731a`
+- `list-zones`: done in `qtkonmou`
+- `zone --json`: done in `xylnmvnq`
+- `zone-focused` / `zone-preset-changed`: done in `pnsmzrpo`
+- `%{zone}` / `%{zone-layout}` / `%{zone-window-count}`: done in `qvuquoks`
+- per-window zone introspection via `list-windows` `%{window-zone}`: done in `rxvzunsm`
+- `zone-layout-changed` / `zone-window-count-changed`: done in `murrvuyu`
 
 ---
 
@@ -519,7 +522,7 @@ This becomes much more powerful once `stack` exists.
 ---
 
 ### 7. First-class floating defaults
-**Status:** Done in `aff63975e1b6` (`feat: add [floating].app-ids config sugar`)  
+**Status:** Done in `lvuzyuss` (`feat: add [floating].app-ids config sugar`)  
 **Priority:** Medium-high  
 **Impact:** High  
 **Effort:** Low-medium  
@@ -736,6 +739,7 @@ This is cheap and reduces support/debug churn.
 ---
 
 ### 12. Zone proportion persistence
+**Status:** Done in `xvnumvsr` (`zone-preset --save <name>` and `zone-preset --export`)  
 **Priority:** Medium  
 **Impact:** Medium  
 **Effort:** Low  
@@ -812,15 +816,15 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 ## Suggested implementation order
 
 ### Phase 1: Foundation
-1. Done: Add zone-native query/event APIs
-2. Done: Generalize zone topology (change `qvwqtkpv`)
-3. Done: Add monitor-profile automation
-4. Add zone proportion persistence (low-effort, config-layer — land early)
+1. Done: Add zone-native query/event APIs (`qtkonmou` → `xylnmvnq` → `pnsmzrpo` → `qvuquoks` → `rxvzunsm` → `murrvuyu`)
+2. Done: Generalize zone topology (`qtwxxpty` → `ovokwwpx` → `ylppmznp` → `qvwqtkpv`, bugs `loqpplvv`)
+3. Done: Add monitor-profile automation (`uqmmoork`)
+4. Done: Add zone proportion persistence (`xvnumvsr`)
 
 ### Phase 2: Workflow power
-5. Add true `stack` layout for zones
+5. Done: Add true `stack` layout for zones (`pxnulloq`)
 6. Add per-zone insertion policy
-7. Done: first-class floating defaults (`aff63975e1b6`)
+7. Done: first-class floating defaults (`lvuzyuss`)
 8. Add app-to-zone routing rules
 9. Enhance zone memory
 10. Add presentation/share preset
