@@ -69,6 +69,13 @@ include::aerospace-focus-monitor.adoc[tags=synopsis]
 include::aerospace-focus-monitor.adoc[tags=purpose]
 include::aerospace-focus-monitor.adoc[tags=body]
 
+== focus-zone
+----
+include::aerospace-focus-zone.adoc[tags=synopsis]
+----
+include::aerospace-focus-zone.adoc[tags=purpose]
+include::aerospace-focus-zone.adoc[tags=body]
+
 == fullscreen
 ----
 include::aerospace-fullscreen.adoc[tags=synopsis]

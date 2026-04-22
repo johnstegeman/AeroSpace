@@ -63,4 +63,44 @@ final class ZoneEnsureContainersTest: XCTestCase {
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
         XCTAssertEqual(workspace.rootTilingContainer.orientation, .h)
     }
+
+    func testEnsureZoneContainers_twoZones() {
+        config.zones.zones = [
+            ZoneDefinition(id: "main",      width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertEqual(workspace.rootTilingContainer.children.count, 2)
+        XCTAssertNotNil(workspace.zoneContainers["main"])
+        XCTAssertNotNil(workspace.zoneContainers["secondary"])
+        XCTAssertNil(workspace.zoneContainers["left"], "3-zone names must not appear in a 2-zone layout")
+        XCTAssertEqual(workspace.activeZoneDefinitions.map(\.id), ["main", "secondary"])
+    }
+
+    func testEnsureZoneContainers_fourZones() {
+        config.zones.zones = [
+            ZoneDefinition(id: "zone1", width: 0.20, layout: .tiles),
+            ZoneDefinition(id: "zone2", width: 0.35, layout: .tiles),
+            ZoneDefinition(id: "zone3", width: 0.30, layout: .accordion),
+            ZoneDefinition(id: "zone4", width: 0.15, layout: .tiles),
+        ]
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertEqual(workspace.rootTilingContainer.children.count, 4)
+        for id in ["zone1", "zone2", "zone3", "zone4"] {
+            XCTAssertNotNil(workspace.zoneContainers[id], "\(id) should exist")
+            XCTAssertTrue(workspace.zoneContainers[id]!.isZoneContainer)
+        }
+        XCTAssertEqual(workspace.activeZoneDefinitions.map(\.id), ["zone1", "zone2", "zone3", "zone4"])
+    }
+
+    func testEnsureZoneContainers_deactivate_clearsActiveZoneDefinitions() {
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertEqual(workspace.activeZoneDefinitions.count, 3)
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+        XCTAssertTrue(workspace.activeZoneDefinitions.isEmpty)
+        XCTAssertTrue(workspace.zoneContainers.isEmpty)
+    }
 }

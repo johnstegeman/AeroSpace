@@ -301,7 +301,11 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
             index: mruWindow.ownIndex.orDie() + 1,
         )
     } else {
-        let parent = workspace.zoneContainers["center"] ?? workspace.rootTilingContainer
+        // Fall back to the middle zone by definition order (index count/2), which is "center" for
+        // the default 3-zone layout. For N-zone layouts this picks the most central zone available.
+        let defs = workspace.activeZoneDefinitions
+        let middleZone = defs.isEmpty ? nil : workspace.zoneContainers[defs[defs.count / 2].id]
+        let parent = middleZone ?? workspace.rootTilingContainer
         return BindingData(
             parent: parent,
             adaptiveWeight: WEIGHT_AUTO,

@@ -32,6 +32,22 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
         XCTAssertTrue(window.parent === workspace.rootTilingContainer, "No zones → should fall back to rootTilingContainer")
     }
 
+    /// With a 2-zone layout (no "center"), a new window with no MRU should fall back to
+    /// defs[count/2] — the second zone — rather than rootTilingContainer.
+    func testNewWindow_fallbackToMiddleZone_twoZoneLayout() async throws {
+        config.zones.zones = [
+            ZoneDefinition(id: "main",      width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertNil(workspace.zoneContainers["center"], "2-zone layout must not have a center zone")
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+        try await window.relayoutWindow(on: workspace, forceTile: true)
+        let secondary = workspace.zoneContainers["secondary"]!
+        XCTAssertTrue(window.parent === secondary, "No MRU + no center → should land in defs[count/2] = secondary zone")
+    }
+
     func testFloatingWindow_doesNotOccupyZone() {
         let workspace = Workspace.get(byName: name)
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)

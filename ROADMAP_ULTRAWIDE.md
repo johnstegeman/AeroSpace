@@ -157,19 +157,25 @@ Candidates: `FocusZoneCmdArgs`, `MoveNodeToZoneCmdArgs`, `MoveFloatingToZoneCmdA
 **Step 8 — Remove hardcoded zone enums from all command args**  
 **Done in `f303c813`**
 
-Files with hardcoded zone assumptions:
-- `ZoneEnsureContainersTest.swift` — covers 3-zone activate/deactivate; add tests for 2-zone and 4-zone layouts
-- `ZoneMemoryTests.swift` — add a test that stale zone IDs are dropped on lookup after a layout change
-- `ZoneNewWindowPlacementTest.swift` — parameterise on zone count
+Any command args type that currently models zone names as a static enum or validates against a hardcoded set at parse time must be updated. The fixed set (`left`, `center`, `right`) no longer exists after this change.
+
+**Step 9 — Test additions**  
+**Done in change `qvwqtkpv` (phase 4)**
+
+Added tests covering the generalized topology:
+- `ZoneEnsureContainersTest`: 2-zone layout (main/secondary), 4-zone layout, deactivate clears `activeZoneDefinitions`
+- `ZoneMemoryTests`: stale zone ID silently dropped on restore after layout change
+- `ZoneNewWindowPlacementTest`: 2-zone fallback goes to `defs[count/2]` (second zone), not `rootTilingContainer`
 
 `FakeMonitor.ultrawide` remains valid as a test fixture — the `isUltrawide` trigger is unchanged in this work (step 4).
 
-**Step 10 — Config migration and docs**
+**Step 10 — Config migration and docs**  
+**Done in change `qvwqtkpv` (phase 4)**
 
-Once the new schema is stable:
-- Update `docs/` and man pages with the new `[[zones.layouts.zone]]` syntax
-- Document the deprecation timeline for the old flat `[zones]` table
-- Update `ULTRAWIDE.md` example configs
+- Fixed `parseConfig.swift`: `[[zones.zone]]` entries were silently emitting "Unknown key" errors because `parseTable` didn't know about the `zone` key. Added no-op entries for `zone`, `widths`, and `layouts` in `zonesConfigNonZoneParser` — each key is suppressed at the table level and handled manually in `parseZonesConfig`.
+- Updated `docs/commands.adoc` to include the `focus-zone` command (was missing from the master index).
+- Updated `docs/aerospace-focus-zone.adoc`, `docs/aerospace-move-node-to-zone.adoc`, `docs/aerospace-move-floating-to-zone.adoc`: replaced `left|center|right` with `<zone-id>` throughout synopsis and body.
+- Updated `ULTRAWIDE.md` example configs from flat `widths`/`layouts` arrays to `[[zones.zone]]` table format.
 
 ---
 
@@ -798,8 +804,8 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 ## Suggested implementation order
 
 ### Phase 1: Foundation
-1. Add zone-native query/event APIs
-2. Generalize zone topology
+1. Done: Add zone-native query/event APIs
+2. Done: Generalize zone topology (change `qvwqtkpv`)
 3. Add monitor-profile automation
 4. Add zone proportion persistence (low-effort, config-layer — land early)
 

@@ -361,10 +361,15 @@ private func parseAccordionMode(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pa
 }
 
 // Non-zone fields parsed by the standard table parser.
+// "zone", "widths", "layouts" are intentionally skipped here — parseZonesConfig handles them
+// manually after parseTable runs, so they must be listed to suppress "Unknown key" errors.
 private let zonesConfigNonZoneParser: [String: any ParserProtocol<ZonesConfig>] = [
     "gap": Parser(\.gap, parseInt),
     "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
     "overrides": Parser(\.overrides, parseZoneGapOverrides),
+    "zone":    Parser(\.zones, skipParsing([ZoneDefinition]())),  // handled manually below
+    "widths":  Parser(\.zones, skipParsing([ZoneDefinition]())),  // legacy; handled manually below
+    "layouts": Parser(\.zones, skipParsing([ZoneDefinition]())),  // legacy; handled manually below
 ]
 
 func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
