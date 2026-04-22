@@ -71,7 +71,7 @@ struct Config: ConvenienceCopyable {
     var borders: BorderConfig = BorderConfig()
 }
 
-struct FloatingConfig: ConvenienceCopyable {
+struct FloatingConfig: ConvenienceCopyable, Equatable {
     /// App bundle IDs whose windows should float by default.
     var appIds: [String] = []
 }

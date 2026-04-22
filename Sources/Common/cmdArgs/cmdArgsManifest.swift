@@ -23,6 +23,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case listExecEnvVars = "list-exec-env-vars"
     case listModes = "list-modes"
     case listMonitors = "list-monitors"
+    case listZones = "list-zones"
     case listWindows = "list-windows"
     case listWorkspaces = "list-workspaces"
     case macosNativeFullscreen = "macos-native-fullscreen"
@@ -102,6 +103,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseListModesCmdArgs)
             case .listMonitors:
                 result[kind.rawValue] = SubCommandParser(parseListMonitorsCmdArgs)
+            case .listZones:
+                result[kind.rawValue] = SubCommandParser(parseListZonesCmdArgs)
             case .listWindows:
                 result[kind.rawValue] = SubCommandParser(parseListWindowsCmdArgs)
             case .listWorkspaces:
