@@ -110,6 +110,8 @@ struct BorderConfig: ConvenienceCopyable {
     var activeColor: AeroColor = AeroColor(argb: 0xff5e81ac)
     /// Inactive window border color. Transparent by default (no border for inactive windows).
     var inactiveColor: AeroColor = .transparent
+    /// App bundle IDs that should never receive a border (e.g. ["com.apple.AppStore"]).
+    var ignoredApps: [String] = []
 }
 
 /// An ARGB color stored as four UInt8 components. Sendable and TOML-parseable.

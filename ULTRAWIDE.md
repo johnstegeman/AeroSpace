@@ -401,6 +401,10 @@ width = 2.0
 # 0xAARRGGBB hex integer format
 active-color = 0xff5e81ac     # border on the focused window
 inactive-color = 0x00000000   # 0x00... = transparent = no border for inactive windows
+
+# App bundle IDs that should never receive a border.
+# Useful for apps whose install/auth dialogs break when an overlay panel is present.
+ignore-app-ids = ["com.apple.AppStore", "com.apple.systempreferences"]
 ```
 
 Setting `inactive-color` to a non-transparent color draws borders around all visible tiling windows (not just the focused one). Setting it to `0x00000000` (the default) means only the focused window gets a border.

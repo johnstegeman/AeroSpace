@@ -305,6 +305,7 @@ private let borderConfigParser: [String: any ParserProtocol<BorderConfig>] = [
     "corner-radius": Parser(\.cornerRadius, parseDouble),
     "active-color": Parser(\.activeColor, parseAeroColor),
     "inactive-color": Parser(\.inactiveColor, parseAeroColor),
+    "ignore-app-ids": Parser(\.ignoredApps, parseArrayOfStrings),
 ]
 
 func parseBorderConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> BorderConfig {

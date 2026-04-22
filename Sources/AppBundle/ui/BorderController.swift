@@ -27,6 +27,7 @@ final class BorderController {
         for workspace in Workspace.all where workspace.isVisible {
             for window in workspace.allLeafWindowsRecursive {
                 guard let mac = window as? MacWindow, !mac.isHiddenInCorner else { continue }
+                if let bid = mac.macApp.rawAppBundleId, cfg.ignoredApps.contains(bid) { continue }
 
                 // Tiling windows have a rect from the layout pass.
                 // Floating windows (parent is Workspace) get their rect via the AX API.
