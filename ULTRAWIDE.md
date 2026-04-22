@@ -103,6 +103,15 @@ Query the current zone state for scripts, bars, and debugging.
 
 These commands were added to make zone behavior observable without scraping the menu bar or re-deriving state from window positions. They are the foundation for later zone events, formatting variables, and richer debugging tools.
 
+#### `subscribe zone-focused zone-preset-changed`
+
+Adds two zone-native subscription events:
+
+- `zone-focused` emits when the active zone changes, including the empty-zone path where `focus-zone` targets a zone that does not yet contain a window.
+- `zone-preset-changed` emits after `zone-preset` rebuilds the zone containers and includes the new preset name, or `null` when `zone-preset --reset` restores the default widths/layouts.
+
+These were added so bars and scripts can react to zone actions directly instead of polling `list-zones` and diffing snapshots after every command.
+
 ### Automatic Window Routing
 
 When a new window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:

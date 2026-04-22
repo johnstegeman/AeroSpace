@@ -85,6 +85,12 @@ final class ClientServerTest: XCTestCase {
 
             (.bindingTriggered(mode: "main", binding: "alt-h"),
              #"{"_event":"binding-triggered","binding":"alt-h","mode":"main"}"#),
+
+            (.zoneFocused(workspace: "1", zoneName: "center"),
+             #"{"_event":"zone-focused","workspace":"1","zoneName":"center"}"#),
+
+            (.zonePresetChanged(workspace: "1", presetName: "balanced"),
+             #"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"1"}"#),
         ]
         for (event, expectedJson) in testData {
             let data = try! encoder.encode(event)
@@ -101,6 +107,8 @@ final class ClientServerTest: XCTestCase {
             (#"{"_event":"mode-changed","mode":"resize"}"#, .modeChanged),
             (#"{"_event":"window-detected","windowId":456}"#, .windowDetected),
             (#"{"_event":"binding-triggered","mode":"main","binding":"alt-h"}"#, .bindingTriggered),
+            (#"{"_event":"zone-focused","workspace":"1","zoneName":"center"}"#, .zoneFocused),
+            (#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"1"}"#, .zonePresetChanged),
         ]
         for (json, expectedEventType) in testData {
             let data = json.data(using: .utf8)!

@@ -8,6 +8,7 @@ private struct Subscriber {
 }
 
 @MainActor private var subscribers: [UniqueToken: Subscriber] = [:]
+@MainActor var broadcastEventForTesting: ((ServerEvent) -> Void)? = nil
 
 @MainActor
 func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: SubscribeCmdArgs) async {
@@ -35,6 +36,11 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
                         workspace: f.workspace.name,
                         monitorId_oneBased: f.workspace.workspaceMonitor.monitorId_oneBased ?? 0,
                     )
+                case .zoneFocused:
+                    guard let zoneName = activeZoneName(in: f.workspace) else { continue }
+                    event = .zoneFocused(workspace: f.workspace.name, zoneName: zoneName)
+                case .zonePresetChanged:
+                    event = .zonePresetChanged(workspace: f.workspace.name, presetName: activeZonePresetName)
                 case .windowDetected, .bindingTriggered: continue
                 case .monitorChanged:
                     event = .monitorChanged(monitorCount: monitors.count)
@@ -57,6 +63,7 @@ private let jsonEncoder: JSONEncoder = {
 
 func broadcastEvent(_ event: ServerEvent) {
     Task { @MainActor in
+        broadcastEventForTesting?(event)
         for (id, subscriber) in subscribers {
             guard subscriber.events.contains(event.eventType) else { continue }
             if await subscriber.connection.writeAtomic(event, jsonEncoder).error != nil {

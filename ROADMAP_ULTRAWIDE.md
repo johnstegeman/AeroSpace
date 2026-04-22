@@ -393,13 +393,14 @@ This also makes testing much easier.
    - Add `zone --json`
    - Returns the active zone on the focused workspace
    - Useful for bars, scripts, and debugging bindings
-   - **Done in `PENDING`**
+   - **Done in `4cf4aae4`** (`feat: add zone --json query command`)
 
 3. **Subscription events**
    - Add at least:
      - `zone-focused`
      - `zone-preset-changed`
    - Prefer events that are explicit about cause rather than forcing consumers to diff snapshots
+   - **Done in `PENDING`**
 
 4. **Formatting / templating integration**
    - Add:
@@ -434,7 +435,8 @@ That order gives you immediate debugging value with low design risk, and it give
 Current progress:
 
 - `list-zones`: done in `6706a95b3444`
-- `zone --json`: done in `PENDING`
+- `zone --json`: done in `4cf4aae4`
+- `zone-focused` / `zone-preset-changed`: done in `PENDING`
 
 ---
 

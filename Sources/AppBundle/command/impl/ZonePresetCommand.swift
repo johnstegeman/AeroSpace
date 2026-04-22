@@ -1,6 +1,8 @@
 import AppKit
 import Common
 
+@MainActor var activeZonePresetName: String? = nil
+
 struct ZonePresetCommand: Command {
     let args: ZonePresetCmdArgs
     /*conforms*/ let shouldResetClosedWindowsCache: Bool = false
@@ -8,11 +10,13 @@ struct ZonePresetCommand: Command {
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
         if args.reset {
             config.zones = defaultZonesConfig
+            activeZonePresetName = nil
         } else if let name = args.presetName {
             guard let preset = config.zonePresets[name] else {
                 return .fail(io.err("zone-preset: unknown preset '\(name)'. Available: \(config.zonePresets.keys.sorted().joined(separator: ", "))"))
             }
             config.zones = config.zones.copy(\.widths, preset.widths).copy(\.layouts, preset.layouts)
+            activeZonePresetName = name
         }
         // Exit focus mode on all workspaces before rebuilding — stale savedZoneWeights from
         // before the preset would otherwise overwrite the new preset widths on zone-focus-mode off.
@@ -27,6 +31,7 @@ struct ZonePresetCommand: Command {
             workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
         }
         updateTrayText()
+        broadcastEvent(.zonePresetChanged(workspace: focus.workspace.name, presetName: activeZonePresetName))
         return .succ
     }
 }

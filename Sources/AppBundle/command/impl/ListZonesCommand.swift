@@ -44,7 +44,8 @@ struct ListZonesCommand: Command {
 
 @MainActor
 func activeZoneName(in workspace: Workspace) -> String? {
-    if let window = focus.windowOrNil,
+    if focus.workspace === workspace,
+       let window = focus.windowOrNil,
        let zoneContainer = window.parents.first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
     {
         workspace.zoneContainers.first { $0.value === zoneContainer }?.key

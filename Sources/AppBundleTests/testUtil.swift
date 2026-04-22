@@ -38,6 +38,8 @@ func setUpWorkspacesForTests() {
 
     TestApp.shared.focusedWindow = nil
     TestApp.shared.windows = []
+    broadcastEventForTesting = nil
+    activeZonePresetName = nil
 }
 
 extension ParsedCmd {
