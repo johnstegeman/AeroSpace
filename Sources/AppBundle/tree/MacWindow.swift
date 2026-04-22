@@ -4,6 +4,9 @@ import Common
 final class MacWindow: Window {
     let macApp: MacApp
     private var prevUnhiddenProportionalPositionInsideWorkspaceRect: CGPoint?
+    /// Most-recently fetched AX window title, updated asynchronously before each layout pass.
+    /// Initialized to app name so the indicator shows something useful before the first async fetch.
+    @MainActor var cachedTitle: String = ""
 
     @MainActor
     private init(_ id: UInt32, _ actor: MacApp, lastFloatingSize: CGSize?, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat, index: Int) {

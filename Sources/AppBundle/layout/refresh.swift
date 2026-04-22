@@ -236,6 +236,19 @@ private func layoutWorkspaces() async throws {
 
     await BorderController.shared.sync()
     AccordionIndicatorManager.shared.refresh()
+    // Pre-fetch AX titles for all windows visible in stack zones so the indicator can show
+    // window titles synchronously. Only done when the indicator is enabled and showTitle is on.
+    if config.stackIndicator.enabled && config.stackIndicator.showTitle {
+        let stackWindows: [MacWindow] = Workspace.all
+            .filter { $0.isVisible }
+            .flatMap { ws in ws.zoneContainers.values.filter { $0.layout == .stack }.flatMap { $0.allLeafWindowsRecursive } }
+            .compactMap { $0 as? MacWindow }
+        for window in stackWindows {
+            if let title = try? await window.macApp.getAxTitle(window.windowId) {
+                window.cachedTitle = title
+            }
+        }
+    }
     StackIndicatorManager.shared.refresh()
 }
 

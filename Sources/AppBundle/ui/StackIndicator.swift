@@ -63,7 +63,9 @@ final class StackIndicatorManager {
                 NSImage(named: NSImage.applicationIconName)!
             }
             let title: String = if let macWindow = window as? MacWindow {
-                macWindow.macApp.nsApp.localizedName ?? ""
+                macWindow.cachedTitle.isEmpty
+                    ? (macWindow.macApp.nsApp.localizedName ?? "")
+                    : macWindow.cachedTitle
             } else {
                 ""
             }

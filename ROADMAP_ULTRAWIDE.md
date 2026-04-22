@@ -141,10 +141,6 @@ Zone presets currently store `widths` and `layouts` arrays of length 3. They nee
 
 Do not flush `ZoneMemory` when the zone count changes. Memory is keyed by stable zone ID; stale IDs for zones that no longer exist in the active layout are silently ignored on lookup. This makes layout switching safe to reason about — if the user returns to an older topology, the remembered assignments are still there.
 
-**Step 7 — Update `ZoneMemory`**
-
-`ZoneMemory` stores zone IDs as strings — already stable-by-ID, so no structural change needed. However, if a zone ID is removed (e.g. a 3-zone layout becomes 2-zone), stale memory entries for the removed ID should be silently dropped on lookup rather than causing an error. Verify this is already the case; if not, add a guard in `rememberedZone`.
-
 **Step 8 — Remove hardcoded zone enums from all command args**  
 **Done in `ylppmznp`**
 
