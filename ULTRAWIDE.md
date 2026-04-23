@@ -219,6 +219,8 @@ zone-memory clear --all
 
 These commands operate on the full persisted store, not just the current workspace. `zone-memory list` returns JSON rows keyed by monitor-profile fingerprint, which makes the per-monitor-profile scope explicit instead of implicit.
 
+For live routing observability, `subscribe window-routed` emits a JSON event whenever the runtime placement pipeline routes a window into a zone. The event includes the chosen `zoneName` and the routing `source` (`appRouting`, `zoneMemory`, `focusedZoneHint`, and so on). `debug-windows` also exposes the last recorded placement source and the currently remembered zone-memory entry for the window's app when a zone profile is active.
+
 ### Menu Bar Indicator
 
 When zones are active on the focused workspace, the menu bar tray appends a zone indicator to the workspace name:

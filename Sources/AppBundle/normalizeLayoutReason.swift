@@ -68,6 +68,8 @@ func exitMacOsNativeUnconventionalState(window: Window, prevParentKind: NonLeafT
                     index: decision.bindingData.index
                 )
                 decision.bindingData.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
+                recordPlacement(decision, for: window)
+                broadcastWindowRouted(decision, for: window)
             } else {
                 try await window.relayoutWindow(on: workspace, forceTile: true)
             }

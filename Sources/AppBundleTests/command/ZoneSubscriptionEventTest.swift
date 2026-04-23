@@ -111,4 +111,29 @@ final class ZoneSubscriptionEventTest: XCTestCase {
             #"{"_event":"zone-layout-changed","layout":"h_accordion","workspace":"setUpWorkspacesForTests","zoneName":"left"}"#,
         ])
     }
+
+    func testRestoreZoneMemoryBroadcastsWindowRoutedEvent() async throws {
+        let workspace = focus.workspace
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let window = TestWindow.new(id: 1, parent: workspace.zoneContainers["right"].orDie())
+        let profile = MonitorProfile([workspace.workspaceMonitor])
+        ZoneMemory.shared.rememberZone("right", for: window, profile: profile)
+
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+
+        var captured: [String] = []
+        broadcastEventForTesting = { event in
+            captured.append(JSONEncoder.aeroSpaceDefault.encodeToString(event).orDie())
+        }
+
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        await Task.yield()
+
+        let routedEvents = captured
+            .map(normalizeJson)
+            .filter { $0.contains(#""_event":"window-routed""#) }
+        assertEquals(routedEvents, [
+            #"{"_event":"window-routed","appBundleId":"bobko.AeroSpace.test-app","source":"zoneMemory","windowId":1,"workspace":"setUpWorkspacesForTests","zoneName":"right"}"#,
+        ])
+    }
 }

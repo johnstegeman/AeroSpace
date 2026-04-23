@@ -16,6 +16,8 @@ public struct ServerEvent: Codable, Sendable {
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
     private var appName: String?
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
+    private var source: String?
+    // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
     private var mode: String?
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
     private var binding: String?
@@ -50,6 +52,10 @@ public struct ServerEvent: Codable, Sendable {
 
     public static func windowDetected(windowId: UInt32, workspace: String?, appBundleId: String?, appName: String?) -> ServerEvent {
         ServerEvent(_event: .windowDetected, windowId: windowId, workspace: workspace, appBundleId: appBundleId, appName: appName)
+    }
+
+    public static func windowRouted(windowId: UInt32, workspace: String?, appBundleId: String?, zoneName: String, source: String) -> ServerEvent {
+        ServerEvent(_event: .windowRouted, windowId: windowId, workspace: workspace, appBundleId: appBundleId, source: source, zoneName: zoneName)
     }
 
     public static func bindingTriggered(mode: String, binding: String) -> ServerEvent {

@@ -83,6 +83,9 @@ final class ClientServerTest: XCTestCase {
             (.windowDetected(windowId: 456, workspace: "1", appBundleId: "com.example", appName: "Example"),
              #"{"_event":"window-detected","appBundleId":"com.example","appName":"Example","windowId":456,"workspace":"1"}"#),
 
+            (.windowRouted(windowId: 456, workspace: "1", appBundleId: "com.example", zoneName: "right", source: "zoneMemory"),
+             #"{"_event":"window-routed","appBundleId":"com.example","source":"zoneMemory","windowId":456,"workspace":"1","zoneName":"right"}"#),
+
             (.bindingTriggered(mode: "main", binding: "alt-h"),
              #"{"_event":"binding-triggered","binding":"alt-h","mode":"main"}"#),
 
@@ -112,6 +115,7 @@ final class ClientServerTest: XCTestCase {
             (#"{"_event":"focused-workspace-changed","workspace":"2","prevWorkspace":"1"}"#, .workspaceChanged),
             (#"{"_event":"mode-changed","mode":"resize"}"#, .modeChanged),
             (#"{"_event":"window-detected","windowId":456}"#, .windowDetected),
+            (#"{"_event":"window-routed","windowId":456,"zoneName":"right","source":"zoneMemory"}"#, .windowRouted),
             (#"{"_event":"binding-triggered","mode":"main","binding":"alt-h"}"#, .bindingTriggered),
             (#"{"_event":"zone-focused","workspace":"1","zoneName":"center"}"#, .zoneFocused),
             (#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"1"}"#, .zonePresetChanged),

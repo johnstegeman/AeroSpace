@@ -22,7 +22,7 @@ final class MacWindow: Window {
     static func getOrRegister(windowId: UInt32, macApp: MacApp) async throws -> MacWindow {
         if let existing = allWindowsMap[windowId] { return existing }
         let rect = try await macApp.getAxRect(windowId)
-        let data = try await unbindAndGetBindingDataForNewWindow(
+        let resolution = try await unbindAndGetBindingDataForNewWindow(
             windowId,
             macApp,
             isStartup
@@ -31,6 +31,7 @@ final class MacWindow: Window {
             window: nil,
             startupRect: isStartup ? rect : nil,
         )
+        let data = resolution.bindingData
 
         // atomic synchronous section
         if let existing = allWindowsMap[windowId] { return existing }
@@ -38,6 +39,9 @@ final class MacWindow: Window {
         data.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
         aeroLog("window detected: \(windowId) \(macApp.rawAppBundleId ?? "?") → \(data.parent)")
         allWindowsMap[windowId] = window
+        if let decision = resolution.placementDecision {
+            recordPlacement(decision, for: window)
+        }
 
         // Apply non-callback placement defaults (floating defaults, sticky, scratchpad) before
         // generic on-window-detected callbacks so declarative defaults establish the baseline.
@@ -46,6 +50,9 @@ final class MacWindow: Window {
         try await debugWindowsIfRecording(window)
         if try await !restoreClosedWindowsCacheIfNeeded(newlyDetectedWindow: window) {
             try await tryOnWindowDetected(window)
+        }
+        if let decision = resolution.placementDecision {
+            broadcastWindowRouted(decision, for: window)
         }
         return window
     }
@@ -233,21 +240,38 @@ final class MacWindow: Window {
 extension Window {
     @MainActor
     func relayoutWindow(on workspace: Workspace, forceTile: Bool = false) async throws {
-        let data = forceTile
+        let resolution = forceTile
             ? unbindAndGetBindingDataForNewTilingWindow(workspace, window: self)
             : try await unbindAndGetBindingDataForNewWindow(self.asMacWindow().windowId, self.asMacWindow().macApp, workspace, window: self)
+        let data = resolution.bindingData
         bind(to: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
         data.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
+        if let decision = resolution.placementDecision {
+            recordPlacement(decision, for: self)
+        }
     }
+}
+
+private struct WindowBindingResolution {
+    let bindingData: BindingData
+    let placementDecision: WindowTilingPlacementDecision?
 }
 
 // The function is private because it's unsafe. It leaves the window in unbound state
 @MainActor
-private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: MacApp, _ workspace: Workspace, window: Window?, startupRect: Rect? = nil) async throws -> BindingData {
+private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: MacApp, _ workspace: Workspace, window: Window?, startupRect: Rect? = nil) async throws -> WindowBindingResolution {
     let windowLevel = getWindowLevel(for: windowId)
     switch try await macApp.getAxUiElementWindowType(windowId, windowLevel) {
-        case .popup: return BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-        case .dialog: return BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        case .popup:
+            return WindowBindingResolution(
+                bindingData: BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST),
+                placementDecision: nil
+            )
+        case .dialog:
+            return WindowBindingResolution(
+                bindingData: BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST),
+                placementDecision: nil
+            )
         case .window:
             return unbindAndGetBindingDataForNewTilingWindow(
                 workspace,
@@ -265,13 +289,14 @@ private func unbindAndGetBindingDataForNewTilingWindow(
     window: Window?,
     startupRect: Rect? = nil,
     appBundleId: String? = nil
-) -> BindingData {
+) -> WindowBindingResolution {
     window?.unbindFromParent() // It's important to unbind to get correct data from below
-    return resolveNewTilingWindowPlacement(
+    let decision = resolveNewTilingWindowPlacement(
         in: workspace,
         appBundleId: appBundleId,
         startupRect: startupRect
-    ).bindingData
+    )
+    return WindowBindingResolution(bindingData: decision.bindingData, placementDecision: decision)
 }
 
 @MainActor

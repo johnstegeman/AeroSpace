@@ -53,7 +53,7 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
                     initialEvents = snapshotZones(in: f.workspace).map {
                         .zoneWindowCountChanged(workspace: $0.workspace, zoneName: $0.zoneId, windowCount: $0.windowCount)
                     }
-                case .windowDetected, .bindingTriggered: continue
+                case .windowDetected, .windowRouted, .bindingTriggered: continue
                 case .monitorChanged:
                     initialEvents = [.monitorChanged(monitorCount: monitors.count)]
             }

@@ -410,13 +410,15 @@ extension Workspace {
         let windows = rootTilingContainer.allLeafWindowsRecursive
         for window in windows {
             guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile) else { continue }
-            let zone = zoneContainers[zoneName] ?? fallbackZone
-            if let zone {
+            if zoneContainers[zoneName] != nil || fallbackZone != nil {
                 let targetZoneName = zoneContainers[zoneName] != nil ? zoneName : defs[defs.count / 2].id
                 aeroLog("restoreZoneMemory: \(window.app.rawAppBundleId ?? "?") -> \(targetZoneName)")
-                let binding = bindingDataForNewWindow(inZone: targetZoneName, zone: zone)
+                let decision = resolveExplicitZonePlacement(zoneName: targetZoneName, source: .zoneMemory).orDie()
+                let binding = decision.bindingData
                 window.bind(to: binding.parent, adaptiveWeight: binding.adaptiveWeight, index: binding.index)
                 binding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
+                recordPlacement(decision, for: window)
+                broadcastWindowRouted(decision, for: window)
             }
         }
     }
