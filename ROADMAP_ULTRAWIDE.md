@@ -658,6 +658,7 @@ Same pattern as `[floating]`. If both ship together they form a coherent declara
 ---
 
 ### 9. Enhance zone memory
+**Status:** First slice done in `nkvyumpy`  
 **Priority:** Medium-high  
 **Impact:** Medium  
 **Effort:** Low-medium  
@@ -684,6 +685,8 @@ Extend `ZoneMemory` incrementally:
    zone-memory clear --all
    ```
 
+   The first slice now lands these commands directly against the persisted store. `zone-memory list` returns JSON rows with `profile-key`, `app-id`, and `zone-id`; `zone-memory clear` supports `--app-id` across all profiles or `--all` for a full reset.
+
 2. **Optional title-pattern key**
    ```toml
    [zones.memory]
@@ -692,6 +695,8 @@ Extend `ZoneMemory` incrementally:
    ```
 
 3. **Routing observability** — emit a `zone-memory-restored` event or log line when zone memory influences placement, so users can see why a window landed where it did.
+
+   The first slice adds lightweight `aeroLog` visibility for zone-memory-driven placement and restore. A dedicated event can still be added later if subscription-level observability becomes necessary.
 
 #### Interaction with app routing
 `[zones.app-routing]` (item 8) takes priority over zone memory. Zone memory is the fallback: "where did this window last live?" App routing is the explicit rule: "this app always goes here."

@@ -209,6 +209,16 @@ Zone assignments are persisted to `~/Library/Application Support/AeroSpace/zone-
 
 This means unplugging your ultrawide and re-attaching it later restores apps to their remembered zones automatically.
 
+Two commands make the persisted store inspectable and resettable:
+
+```text
+zone-memory list
+zone-memory clear --app-id com.googlecode.iterm2
+zone-memory clear --all
+```
+
+These commands operate on the full persisted store, not just the current workspace. `zone-memory list` returns JSON rows keyed by monitor-profile fingerprint, which makes the per-monitor-profile scope explicit instead of implicit.
+
 ### Menu Bar Indicator
 
 When zones are active on the focused workspace, the menu bar tray appends a zone indicator to the workspace name:

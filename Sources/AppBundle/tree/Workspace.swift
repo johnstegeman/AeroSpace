@@ -413,6 +413,7 @@ extension Workspace {
             let zone = zoneContainers[zoneName] ?? fallbackZone
             if let zone {
                 let targetZoneName = zoneContainers[zoneName] != nil ? zoneName : defs[defs.count / 2].id
+                aeroLog("restoreZoneMemory: \(window.app.rawAppBundleId ?? "?") -> \(targetZoneName)")
                 let binding = bindingDataForNewWindow(inZone: targetZoneName, zone: zone)
                 window.bind(to: binding.parent, adaptiveWeight: binding.adaptiveWeight, index: binding.index)
                 binding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()

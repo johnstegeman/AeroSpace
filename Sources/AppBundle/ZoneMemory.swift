@@ -39,6 +39,12 @@ struct MonitorProfile: Codable, Hashable {
 final class ZoneMemory {
     @MainActor static var shared = ZoneMemory()
 
+    struct Entry: Equatable {
+        let profileKey: String
+        let appId: String
+        let zoneName: String
+    }
+
     // [profileKey: [windowKey: zoneName]]
     private var data: [String: [String: String]] = [:]
     let storageURL: URL
@@ -61,9 +67,14 @@ final class ZoneMemory {
     /// Records that `window` belongs to `zoneName` under the given monitor profile.
     func rememberZone(_ zoneName: String, for window: Window, profile: MonitorProfile) {
         guard let key = windowKey(for: window) else { return }
+        rememberZone(zoneName, forBundleId: key, profile: profile)
+    }
+
+    /// Records that bundle ID belongs to `zoneName` under the given monitor profile.
+    func rememberZone(_ zoneName: String, forBundleId bundleId: String, profile: MonitorProfile) {
         let profileKey = profile.key
         if data[profileKey] == nil { data[profileKey] = [:] }
-        data[profileKey]![key] = zoneName
+        data[profileKey]![bundleId] = zoneName
         save()
     }
 
@@ -76,6 +87,41 @@ final class ZoneMemory {
     /// Returns the remembered zone name for the given bundle ID under the given profile, or nil.
     func rememberedZone(forBundleId bundleId: String, profile: MonitorProfile) -> String? {
         data[profile.key]?[bundleId]
+    }
+
+    /// Returns all persisted entries sorted for deterministic presentation.
+    func entries() -> [Entry] {
+        data
+            .flatMap { profileKey, appToZone in
+                appToZone.map { appId, zoneName in
+                    Entry(profileKey: profileKey, appId: appId, zoneName: zoneName)
+                }
+            }
+            .sorted { ($0.profileKey, $0.appId, $0.zoneName) < ($1.profileKey, $1.appId, $1.zoneName) }
+    }
+
+    /// Clears all persisted entries and returns the number removed.
+    @discardableResult
+    func clearAll() -> Int {
+        let removed = entries().count
+        data = [:]
+        save()
+        return removed
+    }
+
+    /// Clears all entries for the given bundle ID across monitor profiles and returns the number removed.
+    @discardableResult
+    func clear(bundleId: String) -> Int {
+        var removed = 0
+        for profileKey in data.keys.sorted() {
+            let previous = data[profileKey]?.removeValue(forKey: bundleId)
+            if previous != nil { removed += 1 }
+            if data[profileKey]?.isEmpty == true {
+                data.removeValue(forKey: profileKey)
+            }
+        }
+        if removed > 0 { save() }
+        return removed
     }
 
     private func load() {

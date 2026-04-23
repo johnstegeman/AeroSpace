@@ -26,6 +26,7 @@ func resolveNewTilingWindowPlacement(
        let zoneName = config.zones.appRouting[appBundleId],
        let decision = workspace.resolveExplicitZonePlacement(zoneName: zoneName, source: .appRouting)
     {
+        aeroLog("window placement: app-routing matched \(appBundleId) -> \(zoneName)")
         return decision
     }
     if let appBundleId,
@@ -33,6 +34,7 @@ func resolveNewTilingWindowPlacement(
        let zoneName = ZoneMemory.shared.rememberedZone(forBundleId: appBundleId, profile: profile),
        let decision = workspace.resolveZonePlacement(preferredZoneName: zoneName, source: .zoneMemory)
     {
+        aeroLog("window placement: zone-memory matched \(appBundleId) -> \(zoneName)")
         return decision
     }
     if let startupRect, !workspace.zoneContainers.isEmpty,
