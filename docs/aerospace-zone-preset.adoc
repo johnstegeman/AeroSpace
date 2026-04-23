@@ -1,0 +1,28 @@
+= aerospace-zone-preset(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-zone-preset
+// tag::purpose[]
+:manpurpose: Apply or reset a named zone preset
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace zone-preset [-h|--help] <preset-name>
+   OR: aerospace zone-preset [-h|--help] --reset
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+Applies a preset from `[[zone-presets]]` or resets the active zone layout back to the last loaded `[zones]` config.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+--reset:: Restore the default `[zones]` layout from the current config
+<preset-name>:: Apply the named preset from `[[zone-presets]]`
+// end::body[]
+
+include::util/man-footer.adoc[]

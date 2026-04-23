@@ -29,7 +29,10 @@ struct FrozenWorkspace: Sendable {
     @MainActor init(_ workspace: Workspace) {
         name = workspace.name
         monitor = FrozenMonitor(workspace.workspaceMonitor)
-        rootTilingNode = FrozenContainer(workspace.rootTilingContainer)
+        let zoneIdentityMap: [ObjectIdentifier: String] = workspace.zoneContainers.reduce(into: [:]) {
+            $0[ObjectIdentifier($1.value)] = $1.key
+        }
+        rootTilingNode = FrozenContainer(workspace.rootTilingContainer, zoneIdentityMap: zoneIdentityMap)
         floatingWindows = workspace.floatingWindows.map(FrozenWindow.init)
         macosUnconventionalWindows =
             workspace.macOsNativeHiddenAppsWindowsContainer.children.map { FrozenWindow($0 as! Window) } +
@@ -71,7 +74,13 @@ struct FrozenWorkspace: Sendable {
         let prevRoot = workspace.rootTilingContainer // Save prevRoot into a variable to avoid it being garbage collected earlier than needed
         let potentialOrphans = prevRoot.allLeafWindowsRecursive
         prevRoot.unbindFromParent()
-        restoreTreeRecursive(frozenContainer: frozenWorkspace.rootTilingNode, parent: workspace, index: INDEX_BIND_LAST)
+        workspace.zoneContainers = [:]
+        restoreTreeRecursive(
+            frozenContainer: frozenWorkspace.rootTilingNode,
+            parent: workspace,
+            index: INDEX_BIND_LAST,
+            workspace: workspace,
+        )
         for window in (potentialOrphans - workspace.rootTilingContainer.allLeafWindowsRecursive) {
             try await window.relayoutWindow(on: workspace, forceTile: true)
         }
@@ -87,7 +96,12 @@ struct FrozenWorkspace: Sendable {
 
 @discardableResult
 @MainActor
-private func restoreTreeRecursive(frozenContainer: FrozenContainer, parent: NonLeafTreeNodeObject, index: Int) -> Bool {
+private func restoreTreeRecursive(
+    frozenContainer: FrozenContainer,
+    parent: NonLeafTreeNodeObject,
+    index: Int,
+    workspace: Workspace? = nil,
+) -> Bool {
     let container = TilingContainer(
         parent: parent,
         adaptiveWeight: frozenContainer.weight,
@@ -95,6 +109,10 @@ private func restoreTreeRecursive(frozenContainer: FrozenContainer, parent: NonL
         frozenContainer.layout,
         index: index,
     )
+    if let zoneName = frozenContainer.zoneName, let workspace {
+        container.isZoneContainer = true
+        workspace.zoneContainers[zoneName] = container
+    }
 
     for (index, child) in frozenContainer.children.enumerated() {
         switch child {
@@ -104,7 +122,7 @@ private func restoreTreeRecursive(frozenContainer: FrozenContainer, parent: NonL
                 window.bind(to: container, adaptiveWeight: w.weight, index: index)
             case .container(let c):
                 // There is no reason to continue
-                if !restoreTreeRecursive(frozenContainer: c, parent: container, index: index) { return false }
+                if !restoreTreeRecursive(frozenContainer: c, parent: container, index: index, workspace: workspace) { return false }
         }
     }
     return true

@@ -30,6 +30,8 @@ extension CmdArgs {
                 command = FocusBackAndForthCommand(args: self as! FocusBackAndForthCmdArgs)
             case .focusMonitor:
                 command = FocusMonitorCommand(args: self as! FocusMonitorCmdArgs)
+            case .focusZone:
+                command = FocusZoneCommand(args: self as! FocusZoneCmdArgs)
             case .fullscreen:
                 command = FullscreenCommand(args: self as! FullscreenCmdArgs)
             case .joinWith:
@@ -44,6 +46,8 @@ extension CmdArgs {
                 command = ListModesCommand(args: self as! ListModesCmdArgs)
             case .listMonitors:
                 command = ListMonitorsCommand(args: self as! ListMonitorsCmdArgs)
+            case .listZones:
+                command = ListZonesCommand(args: self as! ListZonesCmdArgs)
             case .listWindows:
                 command = ListWindowsCommand(args: self as! ListWindowsCmdArgs)
             case .listWorkspaces:
@@ -62,6 +66,8 @@ extension CmdArgs {
                 command = MoveNodeToMonitorCommand(args: self as! MoveNodeToMonitorCmdArgs)
             case .moveNodeToWorkspace:
                 command = MoveNodeToWorkspaceCommand(args: self as! MoveNodeToWorkspaceCmdArgs)
+            case .moveNodeToZone:
+                command = MoveNodeToZoneCommand(args: self as! MoveNodeToZoneCmdArgs)
             case .moveWorkspaceToMonitor:
                 command = MoveWorkspaceToMonitorCommand(args: self as! MoveWorkspaceToMonitorCmdArgs)
             case .reloadConfig:
@@ -86,6 +92,10 @@ extension CmdArgs {
                 command = WorkspaceCommand(args: self as! WorkspaceCmdArgs)
             case .workspaceBackAndForth:
                 command = WorkspaceBackAndForthCommand(args: self as! WorkspaceBackAndForthCmdArgs)
+            case .zoneFocusMode:
+                command = ZoneFocusModeCommand(args: self as! ZoneFocusModeCmdArgs)
+            case .zonePreset:
+                command = ZonePresetCommand(args: self as! ZonePresetCmdArgs)
         }
         check(command.info == Self.info)
         return command

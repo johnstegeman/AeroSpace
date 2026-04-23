@@ -11,8 +11,29 @@ struct FrozenContainer: Sendable {
     let layout: Layout
     let orientation: Orientation
     let weight: CGFloat
+    let zoneName: String?
 
-    @MainActor init(_ container: TilingContainer) {
+    @MainActor init(_ container: TilingContainer, zoneIdentityMap: [ObjectIdentifier: String] = [:]) {
+        children = container.children.map {
+            switch $0.nodeCases {
+                case .window(let w): .window(FrozenWindow(w))
+                case .tilingContainer(let c):
+                    .container(FrozenContainer(c, zoneName: zoneIdentityMap[ObjectIdentifier(c)]))
+                case .workspace,
+                     .macosMinimizedWindowsContainer,
+                     .macosHiddenAppsWindowsContainer,
+                     .macosFullscreenWindowsContainer,
+                     .macosPopupWindowsContainer:
+                    illegalChildParentRelation(child: $0, parent: container)
+            }
+        }
+        layout = container.layout
+        orientation = container.orientation
+        weight = getWeightOrNil(container) ?? 1
+        zoneName = nil
+    }
+
+    @MainActor private init(_ container: TilingContainer, zoneName: String?) {
         children = container.children.map {
             switch $0.nodeCases {
                 case .window(let w): .window(FrozenWindow(w))
@@ -28,6 +49,7 @@ struct FrozenContainer: Sendable {
         layout = container.layout
         orientation = container.orientation
         weight = getWeightOrNil(container) ?? 1
+        self.zoneName = zoneName
     }
 }
 

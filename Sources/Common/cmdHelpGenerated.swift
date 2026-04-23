@@ -41,6 +41,10 @@ let focus_monitor_help_generated = """
        OR: focus-monitor [-h|--help] [--wrap-around] (next|prev)
        OR: focus-monitor [-h|--help] <monitor-pattern>...
     """
+let focus_zone_help_generated = """
+    USAGE: focus-zone [-h|--help] (<zone-id>)
+    OR: aerospace focus-zone [-h|--help] --scope mru
+    """
 let focus_help_generated = """
     USAGE: focus [-h|--help] [--ignore-floating] [--wrap-around]
                  [--boundaries <boundary>] [--boundaries-action <action>]
@@ -88,6 +92,9 @@ let list_workspaces_help_generated = """
        OR: list-workspaces [-h|--help] --all [--format <output-format>] [--count] [--json]
        OR: list-workspaces [-h|--help] --focused [--format <output-format>] [--count] [--json]
     """
+let list_zones_help_generated = """
+    USAGE: list-zones [-h|--help] [--count] [--json]
+    """
 let macos_native_fullscreen_help_generated = """
     USAGE: macos-native-fullscreen [-h|--help] [--window-id <window-id>]
        OR: macos-native-fullscreen [-h|--help] [--window-id <window-id>] [--fail-if-noop] on
@@ -114,6 +121,9 @@ let move_node_to_workspace_help_generated = """
                                   (next|prev)
        OR: move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-noop]
                                   [--window-id <window-id>] <workspace-name>
+    """
+let move_node_to_zone_help_generated = """
+    USAGE: move-node-to-zone [-h|--help] [--no-focus] (<zone-id>)
     """
 let move_workspace_to_monitor_help_generated = """
     USAGE: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around] (left|down|up|right)
@@ -166,4 +176,11 @@ let workspace_back_and_forth_help_generated = """
 let workspace_help_generated = """
     USAGE: workspace [-h|--help] [--auto-back-and-forth] [--fail-if-noop] <workspace-name>
        OR: workspace [-h|--help] [--wrap-around] [--stdin|--no-stdin] (next|prev)
+    """
+let zone_focus_mode_help_generated = """
+    USAGE: zone-focus-mode [-h|--help] [--zone <zone>] (on|off|toggle)
+    """
+let zone_preset_help_generated = """
+    USAGE: zone-preset [-h|--help] <preset-name>
+    OR: aerospace zone-preset [-h|--help] --reset
     """

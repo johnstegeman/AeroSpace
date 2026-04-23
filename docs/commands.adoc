@@ -69,6 +69,13 @@ include::aerospace-focus-monitor.adoc[tags=synopsis]
 include::aerospace-focus-monitor.adoc[tags=purpose]
 include::aerospace-focus-monitor.adoc[tags=body]
 
+== focus-zone
+----
+include::aerospace-focus-zone.adoc[tags=synopsis]
+----
+include::aerospace-focus-zone.adoc[tags=purpose]
+include::aerospace-focus-zone.adoc[tags=body]
+
 == fullscreen
 ----
 include::aerospace-fullscreen.adoc[tags=synopsis]
@@ -139,6 +146,27 @@ include::aerospace-move-node-to-workspace.adoc[tags=synopsis]
 ----
 include::aerospace-move-node-to-workspace.adoc[tags=purpose]
 include::aerospace-move-node-to-workspace.adoc[tags=body]
+
+== move-node-to-zone
+----
+include::aerospace-move-node-to-zone.adoc[tags=synopsis]
+----
+include::aerospace-move-node-to-zone.adoc[tags=purpose]
+include::aerospace-move-node-to-zone.adoc[tags=body]
+
+== zone-focus-mode
+----
+include::aerospace-zone-focus-mode.adoc[tags=synopsis]
+----
+include::aerospace-zone-focus-mode.adoc[tags=purpose]
+include::aerospace-zone-focus-mode.adoc[tags=body]
+
+== zone-preset
+----
+include::aerospace-zone-preset.adoc[tags=synopsis]
+----
+include::aerospace-zone-preset.adoc[tags=purpose]
+include::aerospace-zone-preset.adoc[tags=body]
 
 == move-workspace-to-monitor
 ----
@@ -266,6 +294,13 @@ include::aerospace-list-monitors.adoc[tags=synopsis]
 ----
 include::aerospace-list-monitors.adoc[tags=purpose]
 include::aerospace-list-monitors.adoc[tags=body]
+
+=== list-zones
+----
+include::aerospace-list-zones.adoc[tags=synopsis]
+----
+include::aerospace-list-zones.adoc[tags=purpose]
+include::aerospace-list-zones.adoc[tags=body]
 
 === list-windows
 ----

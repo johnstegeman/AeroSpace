@@ -1,0 +1,36 @@
+= aerospace-move-node-to-zone(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-move-node-to-zone
+// tag::purpose[]
+:manpurpose: Move the focused window to a named zone
+// end::purpose[]
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace move-node-to-zone [-h|--help] [--no-focus] (<zone-id>)
+
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+Zones are active only when the workspace is displayed on an ultrawide monitor (aspect ratio > 2.1:1). If zones are not active, the command is a no-op and prints an error to stderr.
+
+// =========================================================== Options
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+--no-focus:: Move the focused window into the target zone without focusing it afterward
+
+<zone-id>:: The ID of the zone to move the focused window into.
+
+// end::body[]
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]

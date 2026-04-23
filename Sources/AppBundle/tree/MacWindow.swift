@@ -26,6 +26,7 @@ final class MacWindow: Window {
                 ? (rect?.center.monitorApproximation ?? mainMonitor).activeWorkspace
                 : focus.workspace,
             window: nil,
+            startupRect: isStartup ? rect : nil,
         )
 
         // atomic synchronous section
@@ -210,19 +211,31 @@ extension Window {
 
 // The function is private because it's unsafe. It leaves the window in unbound state
 @MainActor
-private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: MacApp, _ workspace: Workspace, window: Window?) async throws -> BindingData {
+private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: MacApp, _ workspace: Workspace, window: Window?, startupRect: Rect? = nil) async throws -> BindingData {
     let windowLevel = getWindowLevel(for: windowId)
     return switch try await macApp.getAxUiElementWindowType(windowId, windowLevel) {
         case .popup: BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
         case .dialog: BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-        case .window: unbindAndGetBindingDataForNewTilingWindow(workspace, window: window)
+        case .window: unbindAndGetBindingDataForNewTilingWindow(workspace, window: window, startupRect: startupRect)
     }
 }
 
 // The function is private because it's unsafe. It leaves the window in unbound state
 @MainActor
-private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, window: Window?) -> BindingData {
+private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, window: Window?, startupRect: Rect? = nil) -> BindingData {
     window?.unbindFromParent() // It's important to unbind to get correct data from below
+    // At startup, place the window in the zone that contains the majority of its area
+    if let startupRect, !workspace.zoneContainers.isEmpty,
+       let zoneName = workspace.zoneForWindowRect(startupRect),
+       let zone = workspace.zoneContainers[zoneName]
+    {
+        return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+    }
+    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone)
+    if let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
+        workspace.focusedZone = nil
+        return BindingData(parent: parent, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+    }
     let mruWindow = workspace.mostRecentWindowRecursive
     if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
         return BindingData(
@@ -231,8 +244,12 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
             index: mruWindow.ownIndex.orDie() + 1,
         )
     } else {
+        let parent = workspace.activeZoneDefinitions.isEmpty
+            ? workspace.rootTilingContainer
+            : workspace.zoneContainers[workspace.activeZoneDefinitions[workspace.activeZoneDefinitions.count / 2].id]
+                ?? workspace.rootTilingContainer
         return BindingData(
-            parent: workspace.rootTilingContainer,
+            parent: parent,
             adaptiveWeight: WEIGHT_AUTO,
             index: INDEX_BIND_LAST,
         )

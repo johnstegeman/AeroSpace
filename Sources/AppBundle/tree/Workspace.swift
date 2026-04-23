@@ -35,6 +35,22 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     nonisolated private let nameLogicalSegments: StringLogicalSegments
     /// `assignedMonitorPoint` must be interpreted only when the workspace is invisible
     fileprivate var assignedMonitorPoint: CGPoint? = nil
+    /// Active zone containers keyed by name ("left", "center", "right"). Empty when zones are inactive.
+    var zoneContainers: [String: TilingContainer] = [:]
+    /// Monitor profile that was active when zones were last activated. Used to save zone memory on deactivation.
+    var activeZoneProfile: MonitorProfile? = nil
+    /// Root container orientation saved before zone activation, restored when zones are deactivated.
+    var savedRootOrientation: Orientation? = nil
+    /// One-shot hint: place the next new tiling window in this zone, then clear. Set by focus-zone on an empty zone.
+    var focusedZone: String? = nil
+    /// MRU zone history for this workspace (most-recent-first). In-memory only; resets on restart.
+    var mruZones: [String] = []
+    /// Saved zone weights captured when zone-focus-mode was activated. nil when focus mode is off.
+    var savedZoneWeights: [String: CGFloat]? = nil
+    /// Name of the currently focused zone when zone focus mode is active. nil when focus mode is off.
+    var focusModeZone: String? = nil
+    /// Ordered zone definitions that were active when zones were last activated.
+    var activeZoneDefinitions: [ZoneDefinition] = []
 
     @MainActor
     private init(_ name: String) {
@@ -191,6 +207,10 @@ private func rearrangeWorkspacesOnMonitors() {
         check(newScreen.setActiveWorkspace(stubWorkspace),
               "getStubWorkspace generated incompatible stub workspace (\(stubWorkspace)) for the monitor (\(newScreen)")
     }
+
+    for (point, workspace) in screenPointToVisibleWorkspace {
+        workspace.ensureZoneContainers(for: point.monitorApproximation)
+    }
 }
 
 @MainActor
@@ -198,5 +218,147 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
     switch workspace.forceAssignedMonitor {
         case let forceAssigned? where forceAssigned.rect.topLeftCorner != screen: false
         default: true
+    }
+}
+
+extension Workspace {
+    @MainActor
+    func ensureZoneContainers(for monitor: Monitor, force: Bool = false) {
+        if monitor.isUltrawide && zoneContainers.isEmpty {
+            activateZones(monitorWidth: monitor.visibleRect.width)
+        } else if monitor.isUltrawide && !zoneContainers.isEmpty && force {
+            deactivateZones()
+            activateZones(monitorWidth: monitor.visibleRect.width)
+        } else if !monitor.isUltrawide && !zoneContainers.isEmpty {
+            deactivateZones()
+        }
+    }
+
+    @MainActor
+    private func activateZones(monitorWidth: CGFloat) {
+        activeZoneProfile = MonitorProfile([workspaceMonitor])
+        activeZoneDefinitions = config.zones.zones
+        savedRootOrientation = rootTilingContainer.orientation
+        rootTilingContainer.changeOrientation(.h)
+        rootTilingContainer.layout = .tiles
+        for def in activeZoneDefinitions {
+            let container = TilingContainer(
+                parent: rootTilingContainer,
+                adaptiveWeight: monitorWidth * def.width,
+                .h,
+                def.layout,
+                index: INDEX_BIND_LAST,
+            )
+            container.isZoneContainer = true
+            zoneContainers[def.id] = container
+        }
+        restoreZoneMemory()
+    }
+
+    @MainActor
+    func restoreZoneMemory() {
+        let profile = MonitorProfile([workspaceMonitor])
+        let defs = activeZoneDefinitions
+        let fallbackZone = defs.isEmpty ? nil : zoneContainers[defs[defs.count / 2].id]
+        let windows = rootTilingContainer.allLeafWindowsRecursive
+        for window in windows {
+            guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile) else { continue }
+            let zone = zoneContainers[zoneName] ?? fallbackZone
+            if let zone {
+                window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            }
+        }
+    }
+
+    @MainActor
+    private func deactivateZones() {
+        if let profile = activeZoneProfile {
+            for (zoneName, zone) in zoneContainers {
+                for window in zone.allLeafWindowsRecursive {
+                    ZoneMemory.shared.rememberZone(zoneName, for: window, profile: profile)
+                }
+            }
+        }
+        activeZoneProfile = nil
+        activeZoneDefinitions = []
+        for (_, zone) in zoneContainers {
+            for child in zone.children {
+                child.bind(to: rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            }
+            zone.unbindFromParent()
+        }
+        zoneContainers = [:]
+        rootTilingContainer.layout = config.defaultRootContainerLayout
+        if let saved = savedRootOrientation {
+            rootTilingContainer.changeOrientation(saved)
+            savedRootOrientation = nil
+        }
+    }
+
+    /// Returns the zone name whose horizontal slice contains >50% of the window's area,
+    /// or nil if no zone clears that threshold. On an exact tie, returns the leftmost zone.
+    @MainActor
+    func zoneForWindowRect(_ windowRect: Rect) -> String? {
+        let containers = activeZoneDefinitions.compactMap { def in zoneContainers[def.id].map { (def.id, $0) } }
+        guard !containers.isEmpty else { return nil }
+
+        let monitorRect = workspaceMonitor.visibleRect
+        let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, container in
+            saved?[name] ?? container.getWeight(.h)
+        }
+        let totalWeight = containers.reduce(0.0) { $0 + effectiveWeight($1.0, $1.1) }
+        guard totalWeight > 0 else { return nil }
+
+        var xOffset: CGFloat = monitorRect.minX
+        var bestZone: String? = nil
+        var bestOverlapArea: CGFloat = -1
+
+        for (name, container) in containers {
+            let zoneWidth: CGFloat = monitorRect.width * (effectiveWeight(name, container) / totalWeight)
+            let overlapMinX: CGFloat = max(windowRect.minX, xOffset)
+            let overlapMaxX: CGFloat = min(windowRect.maxX, xOffset + zoneWidth)
+            if overlapMaxX > overlapMinX {
+                let overlapArea: CGFloat = (overlapMaxX - overlapMinX) * windowRect.height
+                if overlapArea > bestOverlapArea {
+                    bestOverlapArea = overlapArea
+                    bestZone = name
+                }
+                // Ties keep the leftmost (already the case since we iterate left→right)
+            }
+            xOffset += zoneWidth
+        }
+
+        let windowArea: CGFloat = windowRect.width * windowRect.height
+        guard windowArea > 0, let bestZone, bestOverlapArea / windowArea > 0.5 else { return nil }
+        return bestZone
+    }
+
+    @MainActor
+    func theoreticalZoneRect(for zoneName: String) -> Rect? {
+        let containers = activeZoneDefinitions.compactMap { def in zoneContainers[def.id].map { (def.id, $0) } }
+        guard containers.count == activeZoneDefinitions.count, !containers.isEmpty else { return nil }
+
+        let monitorRect = workspaceMonitor.visibleRect
+        let effectiveWeight: (String, TilingContainer) -> CGFloat = { [saved = savedZoneWeights] name, container in
+            saved?[name] ?? container.getWeight(.h)
+        }
+        let totalWeight = containers.reduce(0.0) { $0 + effectiveWeight($1.0, $1.1) }
+        guard totalWeight > 0 else { return nil }
+
+        var xOffset = monitorRect.minX
+        for (name, container) in containers {
+            let zoneWidth = monitorRect.width * (effectiveWeight(name, container) / totalWeight)
+            if name == zoneName {
+                return Rect(topLeftX: xOffset, topLeftY: monitorRect.topLeftY, width: zoneWidth, height: monitorRect.height)
+            }
+            xOffset += zoneWidth
+        }
+        return nil
+    }
+}
+
+extension Sequence<MonitorProfile.MonitorEntry> {
+    fileprivate var counts: [Element: Int] {
+        reduce(into: [:]) { $0[$1, default: 0] += 1 }
     }
 }

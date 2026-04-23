@@ -1,0 +1,27 @@
+= aerospace-zone-focus-mode(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-zone-focus-mode
+// tag::purpose[]
+:manpurpose: Collapse non-focused zones and expand one named zone
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace zone-focus-mode [-h|--help] [--zone <zone>] (on|off|toggle)
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+When enabled, AeroSpace preserves the current zone widths, collapses all non-focused zones to a narrow rail, and gives the remaining width to one zone.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+--zone <zone>:: Explicitly choose which zone to expand
+on|off|toggle:: Turn focus mode on, off, or toggle it
+// end::body[]
+
+include::util/man-footer.adoc[]

@@ -1,0 +1,27 @@
+= aerospace-list-zones(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-list-zones
+// tag::purpose[]
+:manpurpose: Print zones for the focused workspace
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace list-zones [-h|--help] [--count] [--json]
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+Outputs the zones currently active on the focused workspace, including zone IDs, layouts, focus state, window counts, and weights.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+--count:: Print only the number of zones
+--json:: Print JSON output
+// end::body[]
+
+include::util/man-footer.adoc[]

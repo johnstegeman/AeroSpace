@@ -31,10 +31,14 @@ struct ReloadConfigCommand: Command {
             if !args.dryRun {
                 resetHotKeys()
                 config = parsedConfig
+                defaultZonesConfig = parsedConfig.zones
                 configUrl = url
                 try await activateMode(activeMode)
                 syncStartAtLogin()
                 MessageModel.shared.message = nil
+                for workspace in Workspace.all {
+                    workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
+                }
             }
             result = true
         case .failure(let msg):

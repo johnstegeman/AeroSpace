@@ -6,7 +6,7 @@ import OrderedCollections
 func getDefaultConfigUrlFromProject() -> URL {
     var url = URL(filePath: #filePath)
     check(FileManager.default.fileExists(atPath: url.path))
-    while !FileManager.default.fileExists(atPath: url.appending(component: ".git").path) {
+    while !FileManager.default.fileExists(atPath: url.appending(component: "Package.swift").path) {
         url.deleteLastPathComponent()
     }
     let projectRoot: URL = url
@@ -31,6 +31,8 @@ var defaultConfigUrl: URL {
 }()
 @MainActor var config: Config = defaultConfig // todo move to Ctx?
 @MainActor var configUrl: URL = defaultConfigUrl
+/// Original zones config from the last config file load. Used by `zone-preset --reset`.
+@MainActor var defaultZonesConfig: ZonesConfig = ZonesConfig()
 
 struct Config: ConvenienceCopyable {
     var configVersion: Int = 1
@@ -60,6 +62,34 @@ struct Config: ConvenienceCopyable {
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: [any Command] = []
+    var zones: ZonesConfig = ZonesConfig()
+    var zonePresets: [String: ZonePreset] = [:]
+}
+
+/// A single zone in a zone layout: stable ID, proportional width, and default layout.
+struct ZoneDefinition {
+    var id: String
+    var width: Double
+    var layout: Layout
+}
+
+/// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
+struct ZonePreset: ConvenienceCopyable {
+    var zones: [ZoneDefinition]
+}
+
+struct ZonesConfig: ConvenienceCopyable {
+    /// Ordered zone definitions. Each entry has a stable ID, a proportional width, and a layout.
+    /// Widths must sum to 1.0. Defaults to three equal tiles named left/center/right.
+    var zones: [ZoneDefinition] = [
+        ZoneDefinition(id: "left",   width: 1.0 / 3, layout: .tiles),
+        ZoneDefinition(id: "center", width: 1.0 / 3, layout: .tiles),
+        ZoneDefinition(id: "right",  width: 1.0 / 3, layout: .tiles),
+    ]
+    /// Gap in pixels between zone containers. Does not affect gaps within zones.
+    var gap: Int = 0
+    /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.
+    var focusModeCollapsedWidth: Int = 80
 }
 
 enum DefaultContainerOrientation: String {
