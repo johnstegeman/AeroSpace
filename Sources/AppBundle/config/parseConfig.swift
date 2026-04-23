@@ -354,6 +354,7 @@ private let zonesConfigNonZoneParser: [String: any ParserProtocol<ZonesConfig>] 
     "gap": Parser(\.gap, parseInt),
     "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
     "behavior": Parser(\.behavior, parseZoneBehaviorOverrides),
+    "app-routing": Parser(\.appRouting, parseZoneAppRouting),
     "overrides": Parser(\.overrides, parseZoneGapOverrides),
     "zone":    Parser(\.zones, skipParsing([ZoneDefinition]())),  // handled manually below
     "widths":  Parser(\.zones, skipParsing([ZoneDefinition]())),  // legacy; handled manually below
@@ -483,6 +484,24 @@ private func parseZoneBehaviorOverrides(_ raw: Json, _ backtrace: ConfigBacktrac
     for (zoneName, rawBehavior) in rawTable {
         let bt = backtrace + .key(zoneName)
         result[zoneName] = parseTable(rawBehavior, ZoneBehavior(), zoneBehaviorParser, bt, &errors)
+    }
+    return result
+}
+
+private func parseZoneAppRouting(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: String] {
+    guard let rawTable = raw.asDictOrNil else {
+        errors.append(expectedActualTypeError(expected: .table, actual: raw.tomlType, backtrace))
+        return [:]
+    }
+    var result: [String: String] = [:]
+    for (appId, rawZoneName) in rawTable {
+        let bt = backtrace + .key(appId)
+        switch parseString(rawZoneName, bt) {
+            case .success(let zoneName):
+                result[appId] = zoneName
+            case .failure(let error):
+                errors.append(error)
+        }
     }
     return result
 }

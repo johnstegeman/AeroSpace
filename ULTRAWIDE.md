@@ -156,10 +156,26 @@ Adds per-window zone introspection to the existing `list-windows` surface instea
 
 When a new tiling window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:
 
-1. **Zone memory** — if the app was previously assigned to a zone on this monitor configuration, it goes back there.
-2. **One-shot placement hint** (`focus-zone` on an empty zone) — the pending zone set by the user.
-3. **MRU zone** — the zone containing the most-recently-focused window inherits the new window.
-4. **Middle-zone fallback** — if none of the above apply, the window goes to the middle zone by definition order (`center` in the default 3-zone layout).
+1. **Explicit app routing** — if `[zones.app-routing]` maps the app bundle ID to an active zone, that route wins.
+2. **Zone memory** — if the app was previously assigned to a zone on this monitor configuration, it goes back there.
+3. **One-shot placement hint** (`focus-zone` on an empty zone) — the pending zone set by the user.
+4. **MRU zone** — the zone containing the most-recently-focused window inherits the new window.
+5. **Middle-zone fallback** — if none of the above apply, the window goes to the middle zone by definition order (`center` in the default 3-zone layout).
+
+App routing is ignored when zones are inactive or when the configured target zone is not present in the active preset/layout.
+
+### Declarative App Routing
+
+Use `[zones.app-routing]` for simple “this app normally belongs in this zone” defaults:
+
+```toml
+[zones.app-routing]
+"com.tinyspeck.slackmacgap" = "right"
+"com.apple.mail" = "right"
+"com.googlecode.iterm2" = "left"
+```
+
+This is a runtime placement rule, not `on-window-detected` sugar. It does not steal focus and it overrides zone memory, which makes it practical to keep a stable default zone for an app even if you occasionally move individual windows elsewhere.
 
 ### Per-Zone Insertion Policy
 

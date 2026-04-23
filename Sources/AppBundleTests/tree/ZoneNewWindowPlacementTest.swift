@@ -78,6 +78,61 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
         XCTAssertTrue(window.parent === workspace, "[floating] should float matching apps without going through on-window-detected sugar")
     }
 
+    func testAppRouting_routesNewWindowToConfiguredZone() async throws {
+        let appId = TestApp.shared.rawAppBundleId.orDie()
+        config.zones.appRouting[appId] = "right"
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let decision = resolveNewTilingWindowPlacement(in: workspace, appBundleId: appId)
+
+        XCTAssertTrue(decision.bindingData.parent === workspace.zoneContainers["right"]!)
+    }
+
+    func testAppRouting_winsOverZoneMemory() async throws {
+        let appId = TestApp.shared.rawAppBundleId.orDie()
+        config.zones.appRouting[appId] = "left"
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let profile = workspace.activeZoneProfile.orDie()
+        let existing = TestWindow.new(id: 1, parent: workspace.zoneContainers["right"]!)
+        ZoneMemory.shared.rememberZone("right", for: existing, profile: profile)
+        let decision = resolveNewTilingWindowPlacement(in: workspace, appBundleId: appId)
+
+        XCTAssertTrue(decision.bindingData.parent === workspace.zoneContainers["left"]!, "Explicit app routing should win over zone memory")
+        XCTAssertEqual(decision.source, .appRouting)
+    }
+
+    func testAppRouting_missingZoneFallsBackToNormalPlacement() async throws {
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        config.zones.appRouting[TestApp.shared.rawAppBundleId.orDie()] = "right"
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let main = workspace.zoneContainers["main"]!
+        _ = TestWindow.new(id: 1, parent: main)
+
+        let newWindow = TestWindow.new(id: 2, parent: workspace.rootTilingContainer)
+        try await newWindow.relayoutWindow(on: workspace, forceTile: true)
+
+        XCTAssertTrue(newWindow.parent === main, "Routes to missing zones should fall through to normal MRU placement")
+    }
+
+    func testAppRouting_noZonesFallsBackToRootPlacement() async throws {
+        config.zones.appRouting[TestApp.shared.rawAppBundleId.orDie()] = "right"
+
+        let workspace = Workspace.get(byName: name)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+
+        try await window.relayoutWindow(on: workspace, forceTile: true)
+
+        XCTAssertTrue(window.parent === workspace.rootTilingContainer, "App routing should be a no-op when zones are inactive")
+    }
+
     func testNewWindow_appendPolicy_appendsToZoneRoot() async throws {
         config.zones.behavior["left"] = ZoneBehavior(newWindow: .append)
 

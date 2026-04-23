@@ -614,6 +614,7 @@ If this works well, the same pattern likely makes sense for:
 ---
 
 ### 8. App-to-zone routing rules
+**Status:** Done in `zmmtutsv`  
 **Priority:** Medium-high  
 **Impact:** High  
 **Effort:** Low-medium  
@@ -638,13 +639,17 @@ Add a declarative routing table alongside `[floating]`:
 This should apply only when a zone layout is active on the target monitor. If the workspace has no zones, fall through to normal tiling behavior.
 
 #### Implementation direction
-Same parse-time sugar approach as `[floating]`: lower each entry into a synthetic `on-window-detected` rule that calls `move-node-to-zone --no-focus`. The `--no-focus` flag is important — without it, opening a routed app like Slack or Mail steals focus from the current window.
+This landed as a first-class runtime placement rule instead of `on-window-detected` sugar:
 
-Note that parse-time sugar is slightly leaky here: the intended abstraction is "default routing", not "run a command on detection". If the callback pipeline is ever refactored, routing rules should be a first-class concept, not sugar. For now, sugar is the right tradeoff.
+- `[zones.app-routing]` stores bundle-ID → zone-ID defaults in config
+- the placement pipeline checks app routing before zone memory
+- the route is applied only when the named zone exists in the active layout
+- when zones are inactive, or the configured zone is missing from the active preset, placement falls through to the normal pipeline
 
 #### Precedence
 - `[floating]` takes priority (a floating window is never routed to a zone)
 - `[zones.app-routing]` applies next
+- zone memory is the fallback after explicit routing
 - explicit `[[on-window-detected]]` callbacks remain the override for conditional logic
 
 #### Future symmetry

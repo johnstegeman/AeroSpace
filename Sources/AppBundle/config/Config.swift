@@ -213,6 +213,9 @@ struct ZonesConfig: ConvenienceCopyable {
     /// Per-zone insertion behavior for newly created tiling windows.
     /// Unspecified zones use the default `.afterFocused` behavior.
     var behavior: [String: ZoneBehavior] = [:]
+    /// Declarative app-bundle-id to zone routing defaults.
+    /// These apply only when the target zone exists in the active layout.
+    var appRouting: [String: String] = [:]
     /// Per-zone outer-gap overrides keyed by zone name. A nil side inherits the global gap unchanged.
     var overrides: [String: ZoneGapOverride] = [:]
 }
