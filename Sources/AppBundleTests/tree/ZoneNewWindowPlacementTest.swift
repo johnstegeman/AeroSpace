@@ -129,4 +129,53 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
         XCTAssertTrue(newWindow.parent === left, "append-hidden should still add the window to the target stack zone")
         XCTAssertTrue(left.mostRecentWindowRecursive === existing, "append-hidden should preserve the visible stack child")
     }
+
+    func testNewWindow_staleFocusedZoneHint_isDroppedBeforeMruPlacement() async throws {
+        config.zones.zones = [
+            ZoneDefinition(id: "left", width: 0.25, layout: .tiles),
+            ZoneDefinition(id: "center", width: 0.5, layout: .tiles),
+            ZoneDefinition(id: "right", width: 0.25, layout: .tiles),
+        ]
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        workspace.focusedZone = "left"
+
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide, force: true)
+
+        let main = workspace.zoneContainers["main"]!
+        _ = TestWindow.new(id: 1, parent: main)
+
+        let newWindow = TestWindow.new(id: 2, parent: workspace.rootTilingContainer)
+        try await newWindow.relayoutWindow(on: workspace, forceTile: true)
+
+        XCTAssertNil(workspace.focusedZone, "Invalid focused-zone hints should be cleared once observed")
+        XCTAssertTrue(newWindow.parent === main, "A stale focused-zone hint should not override the normal MRU placement path")
+    }
+
+    func testRememberedZoneFallback_reportsMiddleZoneSource() {
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+
+        let profile = workspace.activeZoneProfile.orDie()
+        let window = TestWindow.new(id: 1, parent: workspace.zoneContainers["main"]!)
+        ZoneMemory.shared.rememberZone("right", for: window, profile: profile)
+
+        let decision = resolveNewTilingWindowPlacement(
+            in: workspace,
+            appBundleId: TestApp.shared.rawAppBundleId.orDie()
+        )
+
+        XCTAssertEqual(decision.source, .middleZoneFallback)
+        XCTAssertTrue(decision.bindingData.parent === workspace.zoneContainers["secondary"]!)
+    }
 }

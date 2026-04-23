@@ -34,11 +34,12 @@ func resolveNewTilingWindowPlacement(
     {
         return decision
     }
-    if let hintZone = workspace.focusedZone,
-       let decision = workspace.resolveZonePlacement(preferredZoneName: hintZone, source: .focusedZoneHint)
-    {
+    if let hintZone = workspace.focusedZone {
+        if let decision = workspace.resolveExplicitZonePlacement(zoneName: hintZone, source: .focusedZoneHint) {
+            workspace.focusedZone = nil
+            return decision
+        }
         workspace.focusedZone = nil
-        return decision
     }
     let mruWindow = workspace.mostRecentWindowRecursive
     if let mruWindow, let (zoneName, _) = workspace.zoneContaining(mruWindow),
@@ -102,12 +103,24 @@ extension Workspace {
         preferredZoneName: String?,
         source: WindowTilingPlacementSource
     ) -> WindowTilingPlacementDecision? {
-        let resolvedZoneName = preferredZoneName.flatMap { zoneContainers[$0] != nil ? $0 : nil }
-            ?? activeZoneDefinitions[safe: activeZoneDefinitions.count / 2]?.id
-        guard let resolvedZoneName, let zone = zoneContainers[resolvedZoneName] else { return nil }
+        if let preferredZoneName,
+           let decision = resolveExplicitZonePlacement(zoneName: preferredZoneName, source: source)
+        {
+            return decision
+        }
+        guard let middleZoneName = activeZoneDefinitions[safe: activeZoneDefinitions.count / 2]?.id else { return nil }
+        return resolveExplicitZonePlacement(zoneName: middleZoneName, source: .middleZoneFallback)
+    }
+
+    @MainActor
+    func resolveExplicitZonePlacement(
+        zoneName: String,
+        source: WindowTilingPlacementSource
+    ) -> WindowTilingPlacementDecision? {
+        guard let zone = zoneContainers[zoneName] else { return nil }
         return WindowTilingPlacementDecision(
             source: source,
-            bindingData: bindingDataForNewWindow(inZone: resolvedZoneName, zone: zone)
+            bindingData: bindingDataForNewWindow(inZone: zoneName, zone: zone)
         )
     }
 }
