@@ -168,6 +168,13 @@ include::aerospace-move-workspace-to-monitor.adoc[tags=synopsis]
 include::aerospace-move-workspace-to-monitor.adoc[tags=purpose]
 include::aerospace-move-workspace-to-monitor.adoc[tags=body]
 
+== presentation-mode
+----
+include::aerospace-presentation-mode.adoc[tags=synopsis]
+----
+include::aerospace-presentation-mode.adoc[tags=purpose]
+include::aerospace-presentation-mode.adoc[tags=body]
+
 == reload-config
 ----
 include::aerospace-reload-config.adoc[tags=synopsis]

@@ -704,6 +704,7 @@ Extend `ZoneMemory` incrementally:
 ---
 
 ### 10. Presentation / screen-share mode
+**Status:** Done in `qtslvnpz`  
 **Priority:** Medium-high  
 **Impact:** Medium-high  
 **Effort:** Medium  
@@ -717,7 +718,11 @@ Ultrawides are awkward for screen sharing. Users often want:
 - one-command transition in and out
 
 #### Recommendation
-Add a command or preset class like:
+Done in `qtslvnpz`: added a workspace-local `presentation-mode on|off|toggle` command that snapshots the current zone layout, replaces it with a temporary three-zone share layout, and restores the previous layout on exit.
+
+The main zone is derived from a full-height `16:9` region based on the monitor height; side zones are `stack` containers for overflow windows. Persistent zone memory is intentionally not rewritten while presentation mode is active.
+
+The resulting command surface is:
 
 ```text
 zone-preset share

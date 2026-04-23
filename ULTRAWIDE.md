@@ -200,6 +200,30 @@ Supported policies:
 
 This runs after zone selection, so the same zone-routing inputs still apply. The insertion policy only changes local placement within the chosen zone.
 
+### Presentation / Screen-Share Mode
+
+`presentation-mode on` applies a temporary workspace-local share layout on the currently focused ultrawide workspace.
+
+- The center zone is sized as a full-height `16:9` region derived from the current monitor height.
+- Side zones become `stack` layouts intended for chat, notes, controls, and overflow windows.
+- The currently focused tiling window moves to `center`; other tiling windows are redistributed to `left` or `right`.
+- The previous zone definitions, active preset name, and per-zone window ordering for that workspace are snapshotted and restored by `presentation-mode off`.
+- Forced zone rebuilds such as config reloads keep presentation mode active instead of silently dropping back to the configured preset.
+- If the ultrawide monitor goes away while presentation mode is active, the temporary presentation state is dropped automatically without rewriting persistent zone memory.
+- Persistent zone memory is intentionally left untouched, so the temporary share layout does not pollute normal routing behavior.
+
+For a `5120×1440` monitor, the resulting layout is:
+
+- `left`: `1280px`
+- `center`: `2560px`
+- `right`: `1280px`
+
+```text
+presentation-mode on
+presentation-mode off
+presentation-mode toggle
+```
+
 ### Zone Memory
 
 Zone assignments are persisted to `~/Library/Application Support/AeroSpace/zone-memory.json`. Assignments are keyed by:

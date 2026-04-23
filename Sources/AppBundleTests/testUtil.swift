@@ -27,6 +27,14 @@ func setUpWorkspacesForTests() {
 
     for workspace in Workspace.all {
         workspace.zoneContainers = [:]
+        workspace.activeZoneProfile = nil
+        workspace.savedRootOrientation = nil
+        workspace.focusedZone = nil
+        workspace.mruZones = []
+        workspace.savedZoneWeights = nil
+        workspace.focusModeZone = nil
+        workspace.presentationModeSnapshot = nil
+        workspace.activeZoneDefinitions = []
         for child in workspace.children {
             child.unbindFromParent()
         }
@@ -41,6 +49,7 @@ func setUpWorkspacesForTests() {
     TestApp.shared.windows = []
     broadcastEventForTesting = nil
     activeZonePresetName = nil
+    zonesDisabledByProfile = false
     primeZoneEventBroadcastTracking()
 }
 

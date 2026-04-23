@@ -64,6 +64,8 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     var savedZoneWeights: [String: CGFloat]? = nil
     /// Name of the currently focused zone when zone focus mode is active. nil when focus mode is off.
     var focusModeZone: String? = nil
+    /// Non-nil while presentation mode is temporarily overriding this workspace's zone topology.
+    var presentationModeSnapshot: PresentationModeSnapshot? = nil
     /// Ordered zone definitions that were active when zones were last activated. Drives deactivation
     /// and geometry helpers so they work for any N-zone layout, not just the hardcoded 3.
     var activeZoneDefinitions: [ZoneDefinition] = []
@@ -319,6 +321,55 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
 }
 
 extension Workspace {
+    struct PresentationModeSnapshot {
+        let zoneDefinitions: [ZoneDefinition]
+        let windowZoneAssignments: [UInt32: String?]
+        let zoneWindowOrder: [String: [UInt32]]
+        let focusedZone: String?
+        let savedZoneWeights: [String: CGFloat]?
+        let focusModeZone: String?
+        let previousActiveZonePresetName: String?
+    }
+
+    @MainActor
+    func currentLiveZoneDefinitions() -> [ZoneDefinition] {
+        let defs = activeZoneDefinitions
+        guard !defs.isEmpty else { return config.zones.zones }
+        let saved = savedZoneWeights
+        var raw: [(id: String, weight: CGFloat, layout: Layout)] = []
+        for def in defs {
+            let container = zoneContainers[def.id]
+            let weight = saved?[def.id] ?? container?.getWeight(.h) ?? CGFloat(def.width)
+            let layout = container?.layout ?? def.layout
+            raw.append((def.id, weight, layout))
+        }
+        let total = raw.reduce(0.0) { $0 + $1.weight }
+        guard total > 0 else { return config.zones.zones }
+        return raw.map { ZoneDefinition(id: $0.id, width: Double($0.weight / total), layout: $0.layout) }
+    }
+
+    @MainActor
+    func reapplyZoneFocusModeIfNeeded() {
+        guard let saved = savedZoneWeights, let focusModeZone else { return }
+        guard zoneContainers[focusModeZone] != nil else {
+            savedZoneWeights = nil
+            self.focusModeZone = nil
+            return
+        }
+        let nonFocusedCount = CGFloat(activeZoneDefinitions.count - 1)
+        let totalWeight = saved.values.compactMap { $0 }.reduce(0, +)
+        guard totalWeight > 0 else { return }
+        for def in activeZoneDefinitions {
+            guard let container = zoneContainers[def.id] else { continue }
+            if def.id == focusModeZone {
+                let focusedWeight = max(0, totalWeight - CGFloat(config.zones.focusModeCollapsedWidth) * max(0, nonFocusedCount))
+                container.setWeight(.h, focusedWeight)
+            } else {
+                container.setWeight(.h, CGFloat(config.zones.focusModeCollapsedWidth))
+            }
+        }
+    }
+
     @MainActor
     func zoneContaining(_ window: Window) -> (name: String, container: TilingContainer)? {
         let zoneContainer = window.parents
@@ -370,18 +421,53 @@ extension Workspace {
         } else if shouldHaveZones && !zoneContainers.isEmpty && force {
             // Config reload or preset change: tear down and rebuild so updated widths/layouts take effect.
             // deactivateZones auto-saves current assignments; activateZones restores them.
-            deactivateZones()
-            activateZones(monitorWidth: monitor.visibleRect.width)
+            if presentationModeSnapshot != nil {
+                rebuildZoneContainers(
+                    for: monitor,
+                    zoneDefinitions: activeZoneDefinitions,
+                    saveZoneAssignments: false,
+                    shouldRestoreZoneMemory: false,
+                )
+            } else {
+                rebuildZoneContainers(for: monitor, zoneDefinitions: config.zones.zones)
+            }
         } else if !shouldHaveZones && !zoneContainers.isEmpty {
-            deactivateZones()
+            if let snapshot = presentationModeSnapshot {
+                activeZonePresetName = snapshot.previousActiveZonePresetName
+                presentationModeSnapshot = nil
+                deactivateZones(saveAssignments: false)
+            } else {
+                deactivateZones()
+            }
         }
     }
 
     @MainActor
-    private func activateZones(monitorWidth: CGFloat) {
+    func rebuildZoneContainers(
+        for monitor: Monitor,
+        zoneDefinitions: [ZoneDefinition],
+        saveZoneAssignments: Bool = true,
+        shouldRestoreZoneMemory: Bool = true
+    ) {
+        if !zoneContainers.isEmpty {
+            deactivateZones(saveAssignments: saveZoneAssignments)
+        }
+        activateZones(
+            monitorWidth: monitor.visibleRect.width,
+            zoneDefinitions: zoneDefinitions,
+            shouldRestoreZoneMemory: shouldRestoreZoneMemory,
+        )
+    }
+
+    @MainActor
+    private func activateZones(
+        monitorWidth: CGFloat,
+        zoneDefinitions: [ZoneDefinition] = config.zones.zones,
+        shouldRestoreZoneMemory: Bool = true
+    ) {
         aeroLog("activateZones: ws:\(name) monitorWidth=\(monitorWidth)")
         activeZoneProfile = MonitorProfile([workspaceMonitor])
-        activeZoneDefinitions = config.zones.zones
+        activeZoneDefinitions = zoneDefinitions
         savedRootOrientation = rootTilingContainer.orientation
         rootTilingContainer.changeOrientation(.h)
         rootTilingContainer.layout = .tiles
@@ -396,7 +482,9 @@ extension Workspace {
             container.isZoneContainer = true
             zoneContainers[def.id] = container
         }
-        restoreZoneMemory()
+        if shouldRestoreZoneMemory {
+            restoreZoneMemory()
+        }
     }
 
     @MainActor
@@ -424,10 +512,10 @@ extension Workspace {
     }
 
     @MainActor
-    private func deactivateZones() {
+    private func deactivateZones(saveAssignments: Bool = true) {
         aeroLog("deactivateZones: called for ws:\(name), zoneContainers=\(zoneContainers.keys.sorted())")
         // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
-        if let profile = activeZoneProfile {
+        if saveAssignments, let profile = activeZoneProfile {
             for zoneName in activeZoneDefinitions.map(\.id) {
                 guard let zone = zoneContainers[zoneName] else { continue }
                 for window in zone.allLeafWindowsRecursive {

@@ -187,6 +187,34 @@ final class ZoneMemoryTests: XCTestCase {
         XCTAssertTrue(window.parent === restoredRight, "Zone-memory restore should rebind into the destination zone")
         XCTAssertEqual(window.ownIndex, existing.ownIndex.orDie() + 1)
     }
+
+    func testPresentationMode_disconnectDoesNotOverwriteZoneMemory() {
+        let workspace = Workspace.get(byName: name)
+        config.zones.zones = [
+            ZoneDefinition(id: "chat", width: 0.2, layout: .tiles),
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "tools", width: 0.2, layout: .tiles),
+        ]
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let toolWindow = TestWindow.new(id: 1, parent: workspace.zoneContainers["tools"]!)
+        let testProfile = MonitorProfile(monitors)
+        ZoneMemory.shared.rememberZone("tools", for: toolWindow, profile: testProfile)
+        XCTAssertTrue(toolWindow.focusWindow())
+
+        _ = enablePresentationMode(
+            on: workspace,
+            monitor: FakeMonitor(width: 5120, height: 1440),
+            CmdIo(stdin: .emptyStdin)
+        )
+
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+
+        XCTAssertNil(workspace.presentationModeSnapshot)
+        XCTAssertEqual(ZoneMemory.shared.rememberedZone(for: toolWindow, profile: testProfile), "tools")
+
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertEqual(workspace.zoneContaining(toolWindow)?.name, "tools")
+    }
 }
 
 // MARK: - AnyMonitor
