@@ -168,6 +168,13 @@ include::aerospace-move-workspace-to-monitor.adoc[tags=synopsis]
 include::aerospace-move-workspace-to-monitor.adoc[tags=purpose]
 include::aerospace-move-workspace-to-monitor.adoc[tags=body]
 
+== overview-zones
+----
+include::aerospace-overview-zones.adoc[tags=synopsis]
+----
+include::aerospace-overview-zones.adoc[tags=purpose]
+include::aerospace-overview-zones.adoc[tags=body]
+
 == presentation-mode
 ----
 include::aerospace-presentation-mode.adoc[tags=synopsis]

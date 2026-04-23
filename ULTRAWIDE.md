@@ -96,6 +96,12 @@ Shows a short-lived HUD centered on the focused ultrawide workspace. The overlay
 
 Clicking a zone card runs the equivalent of `focus-zone <zone-id>`, so the HUD doubles as a quick zone picker when you want a little more visual confirmation than a blind keybinding.
 
+#### `overview-zones`
+
+Shows a persistent overview HUD for the focused ultrawide workspace. This is the first slice of the larger overview/editor direction: it visualizes the current zones using their live widths, shows per-zone state, and exposes command-backed controls for focusing zones, cycling a zone's layout, applying presets, resetting presets, and toggling presentation mode.
+
+The overview remains intentionally lightweight. It is a visual front-end over existing commands, not a second layout engine.
+
 #### `list-zones`
 #### `zone --json`
 
@@ -229,6 +235,7 @@ presentation-mode on
 presentation-mode off
 presentation-mode toggle
 show-zone-picker
+overview-zones
 ```
 
 ### Zone Memory

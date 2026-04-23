@@ -33,6 +33,7 @@ let subcommandDescriptions = [
     ["  move-node-to-zone", "Move the focused window to a named zone (left, center, right)"],
     ["  move-workspace-to-monitor", "Move workspace to monitor targeted by relative direction, by order, or by pattern."],
     ["  move", "Move the focused window in the given direction"],
+    ["  overview-zones", "Show an interactive zone overview HUD for the focused ultrawide workspace"],
     ["  presentation-mode", "Toggle a temporary 16:9-centered presentation layout on the focused ultrawide workspace"],
     ["  reload-config", "Reload currently active config"],
     ["  resize", "Resize the focused window"],

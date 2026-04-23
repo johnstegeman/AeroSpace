@@ -820,6 +820,7 @@ The overlay dismisses itself automatically and each zone card acts as a quick `f
 ---
 
 ### 14. Optional overview / layout editor later
+**Status:** First slice done in `lqlznpnk`; full layout editor still future-facing  
 **Priority:** Low  
 **Impact:** Medium  
 **Effort:** Very high  
@@ -835,7 +836,16 @@ There is precedent in other systems for:
 But this is probably not aligned with AeroSpace’s general philosophy unless kept extremely lightweight.
 
 #### Recommendation
-Do not build this early. If anything, ship a CLI-first custom-layout format first and consider a helper UI only later.
+The first slice is now done in `lqlznpnk`: `overview-zones` adds a persistent command-backed HUD for the focused ultrawide workspace. It is intentionally narrower than a full layout editor:
+
+- proportional zone columns based on current live weights
+- per-zone state and window summaries
+- direct `focus-zone` actions
+- layout cycling for populated zones
+- preset application/reset
+- presentation-mode toggle
+
+This lands the "overview" part without committing to arbitrary tree editing or drag-and-drop layout authoring. A fuller editor remains future work if this surface proves valuable in real usage.
 
 ## Suggested implementation order
 
