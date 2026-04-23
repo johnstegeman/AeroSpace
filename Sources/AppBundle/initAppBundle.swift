@@ -53,9 +53,10 @@ import Foundation
         for workspace in Workspace.all {
             workspace.ensureZoneContainers(for: workspace.workspaceMonitor)
         }
-        for workspace in Workspace.all where !workspace.zoneContainers.isEmpty {
-            workspace.restoreZoneMemory()
-        }
+        // Note: restoreZoneMemory() is called inside activateZones() (via ensureZoneContainers above).
+        // Since runHeavyCompleteRefreshSession already ran, windows are present when activateZones fires,
+        // so an explicit restoreZoneMemory() here would be a double-call and can crash when afterFocused
+        // insertion policy computes a stale index after unbind.
         // Apply monitor-profile automation for the startup monitor configuration.
         // Runs after base zone containers and zone memory are set up so that preset
         // application and snapshot restore see a fully-initialized workspace tree.
