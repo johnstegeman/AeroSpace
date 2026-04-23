@@ -529,7 +529,7 @@ The policy is applied in the runtime new-window placement path after the destina
 ---
 
 ### 7. First-class floating defaults
-**Status:** Done in `lvuzyuss` (`feat: add [floating].app-ids config sugar`)  
+**Status:** Done in `lvuzyuss` (`feat: add [floating].app-ids config sugar`), refactored to runtime placement in `mqmnpslq`  
 **Priority:** Medium-high  
 **Impact:** High  
 **Effort:** Low-medium  
@@ -594,7 +594,7 @@ Two reasonable approaches:
    - If a detected window’s app bundle ID matches, float it directly
    - Keep `[[on-window-detected]]` for more complex workflows
 
-For this fork, I would start with **parse-time sugar** unless you explicitly want to clean up the callback pipeline now.
+Originally this landed as **parse-time sugar**. It has since been refactored to a dedicated runtime placement rule so `[floating]` no longer expands into synthetic `on-window-detected` callbacks.
 
 #### Precedence recommendation
 The clean rule set would be:

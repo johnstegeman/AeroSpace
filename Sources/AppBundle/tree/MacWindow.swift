@@ -39,27 +39,9 @@ final class MacWindow: Window {
         aeroLog("window detected: \(windowId) \(macApp.rawAppBundleId ?? "?") → \(data.parent)")
         allWindowsMap[windowId] = window
 
-        // Restore manual floating preference persisted from the previous session.
-        // Skip if the window is already floating (e.g. a dialog) or has no workspace yet.
-        if !window.isFloating,
-           FloatingMemory.shared.isRemembered(windowId: windowId),
-           let workspace = window.nodeWorkspace
-        {
-            window.bindAsFloatingWindow(to: workspace)
-        }
-
-        // Promote sticky windows to the currently focused workspace.
-        // Sticky windows are a subset of FloatingMemory, so the window is already floating above.
-        if StickyMemory.shared.isRemembered(windowId: windowId) {
-            window.bindAsFloatingWindow(to: focus.workspace)
-        }
-
-        // Restore scratchpad windows to the scratchpad workspace.
-        if ScratchpadMemory.shared.isRemembered(windowId: windowId),
-           window.nodeWorkspace != Workspace.scratchpad
-        {
-            window.bindAsFloatingWindow(to: Workspace.scratchpad)
-        }
+        // Apply non-callback placement defaults (floating defaults, sticky, scratchpad) before
+        // generic on-window-detected callbacks so declarative defaults establish the baseline.
+        applyRuntimePlacementDefaults(window)
 
         try await debugWindowsIfRecording(window)
         if try await !restoreClosedWindowsCacheIfNeeded(newlyDetectedWindow: window) {
@@ -267,57 +249,29 @@ private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: M
         case .popup: return BindingData(parent: macosPopupWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
         case .dialog: return BindingData(parent: workspace, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
         case .window:
-            // For new windows, check ZoneMemory for a saved zone assignment before falling through
-            // to startup-rect / hint / MRU placement.
-            if window == nil,
-               let bundleId = macApp.rawAppBundleId,
-               let profile = workspace.activeZoneProfile,
-               let zoneName = ZoneMemory.shared.rememberedZone(forBundleId: bundleId, profile: profile),
-               let zone = workspace.zoneContainers[zoneName]
-            {
-                return workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
-            }
-            return unbindAndGetBindingDataForNewTilingWindow(workspace, window: window, startupRect: startupRect)
+            return unbindAndGetBindingDataForNewTilingWindow(
+                workspace,
+                window: window,
+                startupRect: startupRect,
+                appBundleId: window == nil ? macApp.rawAppBundleId : nil
+            )
     }
 }
 
 // The function is private because it's unsafe. It leaves the window in unbound state
 @MainActor
-private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, window: Window?, startupRect: Rect? = nil) -> BindingData {
+private func unbindAndGetBindingDataForNewTilingWindow(
+    _ workspace: Workspace,
+    window: Window?,
+    startupRect: Rect? = nil,
+    appBundleId: String? = nil
+) -> BindingData {
     window?.unbindFromParent() // It's important to unbind to get correct data from below
-    // At startup, place the window in the zone that contains the majority of its area
-    if let startupRect, !workspace.zoneContainers.isEmpty,
-       let zoneName = workspace.zoneForWindowRect(startupRect),
-       let zone = workspace.zoneContainers[zoneName]
-    {
-        return workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
-    }
-    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone).
-    // Only for new windows (window == nil); moved windows should not steal the hint.
-    if window == nil, let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
-        workspace.focusedZone = nil
-        return workspace.bindingDataForNewWindow(inZone: hintZone, zone: parent)
-    }
-    let mruWindow = workspace.mostRecentWindowRecursive
-    if let mruWindow, let (zoneName, zone) = workspace.zoneContaining(mruWindow) {
-        return workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
-    } else if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
-        return BindingData(
-            parent: tilingParent,
-            adaptiveWeight: WEIGHT_AUTO,
-            index: mruWindow.ownIndex.orDie() + 1,
-        )
-    } else {
-        // Fall back to the middle zone by definition order (index count/2), which is "center" for
-        // the default 3-zone layout. For N-zone layouts this picks the most central zone available.
-        let defs = workspace.activeZoneDefinitions
-        if let middleZoneName = defs.isEmpty ? nil : defs[defs.count / 2].id,
-           let middleZone = workspace.zoneContainers[middleZoneName]
-        {
-            return workspace.bindingDataForNewWindow(inZone: middleZoneName, zone: middleZone)
-        }
-        return BindingData(parent: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-    }
+    return resolveNewTilingWindowPlacement(
+        in: workspace,
+        appBundleId: appBundleId,
+        startupRect: startupRect
+    ).bindingData
 }
 
 @MainActor

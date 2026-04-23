@@ -629,9 +629,9 @@ app-ids = [
 
 #### Behavior
 
-- Each listed bundle ID behaves as if AeroSpace had an `on-window-detected` rule that runs `layout floating`.
-- This is implemented as config-level sugar, so it composes cleanly with the existing callback pipeline.
-- Synthetic floating rules are inserted before explicit `[[on-window-detected]]` callbacks and set `check-further-callbacks = true`, so more specific user callbacks still run afterward.
+- Each listed bundle ID is handled by the runtime placement pipeline before generic `[[on-window-detected]]` callbacks run.
+- Matching windows are floated directly, without lowering `[floating]` into synthetic callbacks.
+- Explicit `[[on-window-detected]]` callbacks still run afterward, so conditional automation remains the escape hatch for special cases.
 
 Use `[floating]` for simple “always float this app” defaults. Use `[[on-window-detected]]` when the action depends on title matching, workspace routing, startup state, or multi-step logic.
 

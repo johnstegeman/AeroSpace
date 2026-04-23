@@ -366,28 +366,6 @@ final class ConfigTest: XCTestCase {
         assertEquals(parsed.onWindowDetected, [
             WindowDetectedCallback(
                 matcher: WindowDetectedCallbackMatcher(
-                    appId: "com.apple.finder",
-                    appNameRegexSubstring: nil,
-                    windowTitleRegexSubstring: nil
-                ),
-                checkFurtherCallbacks: true,
-                rawRun: [
-                    LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating])),
-                ],
-            ),
-            WindowDetectedCallback(
-                matcher: WindowDetectedCallbackMatcher(
-                    appId: "com.raycast.macos",
-                    appNameRegexSubstring: nil,
-                    windowTitleRegexSubstring: nil
-                ),
-                checkFurtherCallbacks: true,
-                rawRun: [
-                    LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating])),
-                ],
-            ),
-            WindowDetectedCallback(
-                matcher: WindowDetectedCallbackMatcher(
                     appId: "com.apple.systempreferences",
                     appNameRegexSubstring: nil,
                     windowTitleRegexSubstring: nil

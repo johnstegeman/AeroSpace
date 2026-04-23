@@ -60,9 +60,14 @@ func exitMacOsNativeUnconventionalState(window: Window, prevParentKind: NonLeafT
             if !workspace.zoneContainers.isEmpty,
                let profile = workspace.activeZoneProfile,
                let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
-               let zone = workspace.zoneContainers[zoneName]
+               let decision = workspace.resolveZonePlacement(preferredZoneName: zoneName, source: .zoneMemory)
             {
-                window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+                window.bind(
+                    to: decision.bindingData.parent,
+                    adaptiveWeight: decision.bindingData.adaptiveWeight,
+                    index: decision.bindingData.index
+                )
+                decision.bindingData.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
             } else {
                 try await window.relayoutWindow(on: workspace, forceTile: true)
             }

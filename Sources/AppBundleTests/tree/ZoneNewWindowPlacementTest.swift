@@ -67,6 +67,17 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
         XCTAssertNotNil(workspace.zoneContainers["center"], "Empty zone should still exist after window floated away")
     }
 
+    func testFloatingDefaults_areAppliedByRuntimePlacementPipeline() {
+        config.floating.appIds = [TestApp.shared.rawAppBundleId.orDie()]
+
+        let workspace = Workspace.get(byName: name)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+
+        applyRuntimePlacementDefaults(window)
+
+        XCTAssertTrue(window.parent === workspace, "[floating] should float matching apps without going through on-window-detected sugar")
+    }
+
     func testNewWindow_appendPolicy_appendsToZoneRoot() async throws {
         config.zones.behavior["left"] = ZoneBehavior(newWindow: .append)
 

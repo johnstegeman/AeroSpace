@@ -272,7 +272,6 @@ func tomlAnyToParsedConfigRecursive(any: Any, _ backtrace: ConfigBacktrace) -> P
             )]
         }
     }
-    config.onWindowDetected = synthesizeFloatingDefaults(config.floating) + config.onWindowDetected
     return (config, errors)
 }
 
@@ -298,20 +297,6 @@ private let floatingConfigParser: [String: any ParserProtocol<FloatingConfig>] =
 
 func parseFloatingConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> FloatingConfig {
     parseTable(raw, FloatingConfig(), floatingConfigParser, backtrace, &errors)
-}
-
-private func synthesizeFloatingDefaults(_ floating: FloatingConfig) -> [WindowDetectedCallback] {
-    floating.appIds.map { appId in
-        WindowDetectedCallback(
-            matcher: WindowDetectedCallbackMatcher(
-                appId: appId,
-                appNameRegexSubstring: nil,
-                windowTitleRegexSubstring: nil
-            ),
-            checkFurtherCallbacks: true,
-            rawRun: [LayoutCommand(args: LayoutCmdArgs(rawArgs: [], toggleBetween: [.floating]))],
-        )
-    }
 }
 
 func parseHUDConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> HUDConfig {

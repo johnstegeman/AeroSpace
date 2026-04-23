@@ -85,7 +85,7 @@ offset-y = 0          # vertical shift per window in cascade mode
     outer.right =      0
 
 # Apps that should float by default.
-# This is equivalent to writing one [[on-window-detected]] rule per app that runs 'layout floating'.
+# Matching apps are floated by the runtime placement pipeline before generic on-window-detected callbacks run.
 # Uncomment and customize as needed.
 #[floating]
 #    app-ids = ['com.apple.finder', 'com.raycast.macos']

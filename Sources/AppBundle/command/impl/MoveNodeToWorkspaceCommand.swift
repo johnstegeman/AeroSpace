@@ -39,25 +39,34 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
     }
     targetWorkspace.ensureZoneContainers(for: targetWorkspace.workspaceMonitor)
     let targetContainer: NonLeafTreeNodeObject
+    let zoneBinding: BindingData?
     if window.isFloating {
         targetContainer = targetWorkspace
+        zoneBinding = nil
     } else if !targetWorkspace.zoneContainers.isEmpty {
         let profile = MonitorProfile([targetWorkspace.workspaceMonitor])
         if let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
-           let zone = targetWorkspace.zoneContainers[zoneName]
+           let decision = targetWorkspace.resolveZonePlacement(preferredZoneName: zoneName, source: .zoneMemory)
         {
-            targetContainer = zone
+            targetContainer = decision.bindingData.parent
+            zoneBinding = decision.bindingData
         } else {
-            // Fall back to the middle zone by definition order (index count/2), which is "center"
-            // for the default 3-zone layout. For N-zone layouts this picks the most central zone.
-            let defs = targetWorkspace.activeZoneDefinitions
-            let middleZone = defs.isEmpty ? nil : targetWorkspace.zoneContainers[defs[defs.count / 2].id]
-            targetContainer = middleZone ?? targetWorkspace.rootTilingContainer
+            let fallback = targetWorkspace.resolveZonePlacement(
+                preferredZoneName: targetWorkspace.activeZoneDefinitions.isEmpty
+                    ? nil
+                    : targetWorkspace.activeZoneDefinitions[targetWorkspace.activeZoneDefinitions.count / 2].id,
+                source: .middleZoneFallback
+            )
+            targetContainer = fallback?.bindingData.parent ?? targetWorkspace.rootTilingContainer
+            zoneBinding = fallback?.bindingData
         }
     } else {
         targetContainer = targetWorkspace.rootTilingContainer
+        zoneBinding = nil
     }
-    window.bind(to: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
+    let resolvedBinding = zoneBinding ?? BindingData(parent: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
+    window.bind(to: resolvedBinding.parent, adaptiveWeight: resolvedBinding.adaptiveWeight, index: resolvedBinding.index)
+    resolvedBinding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
     if !targetWorkspace.isScratchpad {
         ScratchpadMemory.shared.forget(windowId: window.windowId)
     }
