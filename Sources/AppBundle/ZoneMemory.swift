@@ -103,7 +103,7 @@ final class ZoneMemory {
     /// Clears all persisted entries and returns the number removed.
     @discardableResult
     func clearAll() -> Int {
-        let removed = entries().count
+        let removed = data.values.reduce(0) { $0 + $1.count }
         data = [:]
         save()
         return removed
@@ -113,7 +113,7 @@ final class ZoneMemory {
     @discardableResult
     func clear(bundleId: String) -> Int {
         var removed = 0
-        for profileKey in data.keys.sorted() {
+        for profileKey in Array(data.keys) {
             let previous = data[profileKey]?.removeValue(forKey: bundleId)
             if previous != nil { removed += 1 }
             if data[profileKey]?.isEmpty == true {

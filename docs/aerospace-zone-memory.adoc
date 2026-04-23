@@ -19,7 +19,7 @@ aerospace zone-memory [-h|--help] clear (--app-id <app-bundle-id>|--all)
 // tag::body[]
 {manpurpose}
 
-Zone memory stores app-bundle-ID to zone assignments per monitor profile. It is used as a fallback placement rule after explicit `[zones.app-routing]` defaults.
+Zone memory stores app-bundle-ID to zone assignments per monitor profile. It is used as a fallback placement rule after explicit `[zones.app-routing]` defaults. Manual moves such as `move-node-to-zone` still update zone memory, but explicit app-routing rules continue to win whenever they match.
 
 `list` returns the persisted entries as JSON objects with:
 

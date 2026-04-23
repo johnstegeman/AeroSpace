@@ -80,7 +80,7 @@ check-app-id = 'com.spotify.client'
 run = 'move-node-to-zone --no-focus left'
 ```
 
-Zone memory is updated on every `move-node-to-zone` call, so subsequent openings of the app are routed automatically by zone memory without needing the callback.
+Zone memory is updated on every `move-node-to-zone` call, so subsequent openings of the app are routed automatically by zone memory without needing the callback. If `[zones.app-routing]` also defines that app, the explicit app route still wins; zone memory remains the fallback when no explicit route applies.
 
 #### `move-floating-to-zone <zone-id>`
 
@@ -175,7 +175,7 @@ Use `[zones.app-routing]` for simple â€œthis app normally belongs in this zoneâ€
 "com.googlecode.iterm2" = "left"
 ```
 
-This is a runtime placement rule, not `on-window-detected` sugar. It does not steal focus and it overrides zone memory, which makes it practical to keep a stable default zone for an app even if you occasionally move individual windows elsewhere.
+This is a runtime placement rule, not `on-window-detected` sugar. It does not steal focus and it overrides zone memory, which makes it practical to keep a stable default zone for an app even if you occasionally move individual windows elsewhere. A manual `move-node-to-zone` still updates zone memory, but that remembered value is only consulted when no explicit app route applies.
 
 ### Per-Zone Insertion Policy
 
@@ -217,7 +217,7 @@ zone-memory clear --app-id com.googlecode.iterm2
 zone-memory clear --all
 ```
 
-These commands operate on the full persisted store, not just the current workspace. `zone-memory list` returns JSON rows keyed by monitor-profile fingerprint, which makes the per-monitor-profile scope explicit instead of implicit.
+These commands operate on the full persisted store, not just the current workspace. `zone-memory list` returns JSON rows keyed by monitor-profile fingerprint, which makes the per-monitor-profile scope explicit instead of implicit. Explicit app-routing remains higher priority than these remembered entries.
 
 For live routing observability, `subscribe window-routed` emits a JSON event whenever the runtime placement pipeline routes a window into a zone. The event includes the chosen `zoneName` and the routing `source` (`appRouting`, `zoneMemory`, `focusedZoneHint`, and so on). `debug-windows` also exposes the last recorded placement source and the currently remembered zone-memory entry for the window's app when a zone profile is active.
 

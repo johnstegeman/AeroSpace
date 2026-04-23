@@ -34,10 +34,8 @@ struct ZoneMemoryCommand: Command {
                 let removed: Int
                 if args.clearAll {
                     removed = ZoneMemory.shared.clearAll()
-                } else if let appId = args.appId {
-                    removed = ZoneMemory.shared.clear(bundleId: appId)
                 } else {
-                    return .fail(io.err("zone-memory clear requires --app-id <app-bundle-id> or --all"))
+                    removed = ZoneMemory.shared.clear(bundleId: args.appId.orDie())
                 }
                 return .succ(io.out("\(removed)"))
         }
