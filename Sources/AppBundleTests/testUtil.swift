@@ -26,6 +26,7 @@ func setUpWorkspacesForTests() {
     config.persistentWorkspaces = []
 
     for workspace in Workspace.all {
+        workspace.zoneContainers = [:]
         for child in workspace.children {
             child.unbindFromParent()
         }
