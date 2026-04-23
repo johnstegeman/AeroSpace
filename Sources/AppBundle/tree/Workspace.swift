@@ -425,15 +425,18 @@ extension Workspace {
         aeroLog("deactivateZones: called for ws:\(name), zoneContainers=\(zoneContainers.keys.sorted())")
         // Auto-save zone assignments so sleep/wake and reconnect cycles can restore them.
         if let profile = activeZoneProfile {
-            for (zoneName, zone) in zoneContainers {
+            for zoneName in activeZoneDefinitions.map(\.id) {
+                guard let zone = zoneContainers[zoneName] else { continue }
                 for window in zone.allLeafWindowsRecursive {
                     ZoneMemory.shared.rememberZone(zoneName, for: window, profile: profile)
                 }
             }
         }
         activeZoneProfile = nil
+        let orderedZoneNames = activeZoneDefinitions.map(\.id)
         activeZoneDefinitions = []
-        for (_, zone) in zoneContainers {
+        for zoneName in orderedZoneNames {
+            guard let zone = zoneContainers[zoneName] else { continue }
             for child in zone.children {
                 child.bind(to: rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
             }

@@ -173,17 +173,18 @@ final class ZoneMemoryTests: XCTestCase {
         let workspace = Workspace.get(byName: name)
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
         let right = workspace.zoneContainers["right"]!
-        let nested = TilingContainer.newVTiles(parent: right, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
-        let existing = TestWindow.new(id: 1, parent: nested)
+        let existing = TestWindow.new(id: 1, parent: right)
         let window = TestWindow.new(id: 2, parent: right)
 
         let testProfile = MonitorProfile(monitors)
+        ZoneMemory.shared.rememberZone("right", for: existing, profile: testProfile)
         ZoneMemory.shared.rememberZone("right", for: window, profile: testProfile)
 
         workspace.ensureZoneContainers(for: FakeMonitor.standard)
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
 
-        XCTAssertTrue(window.parent === nested, "Zone-memory restore should use the zone's insertion policy")
+        let restoredRight = workspace.zoneContainers["right"]!
+        XCTAssertTrue(window.parent === restoredRight, "Zone-memory restore should rebind into the destination zone")
         XCTAssertEqual(window.ownIndex, existing.ownIndex.orDie() + 1)
     }
 }

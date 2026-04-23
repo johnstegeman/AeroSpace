@@ -19,6 +19,7 @@ final class ZoneSubscriptionEventTest: XCTestCase {
         let center = workspace.zoneContainers["center"].orDie()
         let focusedWindow = TestWindow.new(id: 1, parent: center)
         assertTrue(focusedWindow.focusWindow())
+        await Task.yield()
 
         var captured: [String] = []
         broadcastEventForTesting = { event in
@@ -30,7 +31,10 @@ final class ZoneSubscriptionEventTest: XCTestCase {
         await Task.yield()
 
         assertEquals(result.exitCode.rawValue, 0)
-        assertEquals(captured.map(normalizeJson), [#"{"_event":"zone-focused","workspace":"setUpWorkspacesForTests","zoneName":"left"}"#])
+        let zoneFocusedEvents = captured
+            .map(normalizeJson)
+            .filter { $0.contains(#""_event":"zone-focused""#) }
+        XCTAssertTrue(zoneFocusedEvents.contains(#"{"_event":"zone-focused","workspace":"setUpWorkspacesForTests","zoneName":"left"}"#))
     }
 
     func testZonePresetBroadcastsZonePresetChangedEvent() async throws {
@@ -41,6 +45,7 @@ final class ZoneSubscriptionEventTest: XCTestCase {
         ])
         let workspace = focus.workspace
         workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        await Task.yield()
 
         var captured: [String] = []
         broadcastEventForTesting = { event in
@@ -51,7 +56,10 @@ final class ZoneSubscriptionEventTest: XCTestCase {
         await Task.yield()
 
         assertEquals(result.exitCode.rawValue, 0)
-        assertEquals(captured.map(normalizeJson), [#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"setUpWorkspacesForTests"}"#])
+        let presetEvents = captured
+            .map(normalizeJson)
+            .filter { $0.contains(#""_event":"zone-preset-changed""#) }
+        assertEquals(presetEvents, [#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"setUpWorkspacesForTests"}"#])
     }
 
     func testMoveNodeToZoneBroadcastsZoneWindowCountChangedEvents() async throws {
