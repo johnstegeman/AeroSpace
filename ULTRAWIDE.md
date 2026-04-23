@@ -90,6 +90,12 @@ Repositions a floating window into the named zone without converting it to a til
 
 Pops up an NSMenu of all workspaces at the center of the focused window (or monitor if no window is focused). Selecting an entry switches focus to that workspace. Useful for quickly navigating workspaces without remembering keybindings.
 
+#### `show-zone-picker`
+
+Shows a short-lived HUD centered on the focused ultrawide workspace. The overlay is intentionally lightweight and command-first: it displays each zone's ID, layout, occupancy count, active/pending state, and the current preset name without introducing a persistent editor.
+
+Clicking a zone card runs the equivalent of `focus-zone <zone-id>`, so the HUD doubles as a quick zone picker when you want a little more visual confirmation than a blind keybinding.
+
 #### `list-zones`
 #### `zone --json`
 
@@ -222,6 +228,7 @@ For a `5120×1440` monitor, the resulting layout is:
 presentation-mode on
 presentation-mode off
 presentation-mode toggle
+show-zone-picker
 ```
 
 ### Zone Memory

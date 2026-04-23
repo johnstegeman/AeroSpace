@@ -791,6 +791,7 @@ Widths only, not layout type or zone count. Full layout editing is item 14.
 ---
 
 ### 13. Lightweight zone picker / transient overlay
+**Status:** Done in `nlrnyuok`  
 **Priority:** Medium  
 **Impact:** Medium  
 **Effort:** Medium  
@@ -805,15 +806,16 @@ Keyboard-first users still benefit from a temporary visual aid when:
 - targeting a stack/tab zone
 
 #### Recommendation
-Provide a transient overlay that shows:
+Done in `nlrnyuok`: added a command-first `show-zone-picker` HUD for the focused ultrawide workspace. It shows:
 
 - zone IDs
 - active zone
 - occupancy count
 - layout type
 - current preset
+- presentation-mode state when relevant
 
-This should remain command-first and optional, not a permanent GUI editor.
+The overlay dismisses itself automatically and each zone card acts as a quick `focus-zone <zone-id>` target. This keeps the feature lightweight and optional rather than turning it into a persistent editor.
 
 ---
 
@@ -846,14 +848,14 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 ### Phase 2: Workflow power
 5. Done: Add true `stack` layout for zones (`pxnulloq`)
 6. Done: Add per-zone insertion policy (`wtryqnmk`)
-7. Done: first-class floating defaults (`lvuzyuss`)
-8. Add app-to-zone routing rules
-9. Enhance zone memory
-10. Add presentation/share preset
+7. Done: first-class floating defaults (`lvuzyuss`), refactored into the runtime placement pipeline (`mqmnpslq`)
+8. Done: add app-to-zone routing rules (`zmmtutsv`)
+9. Done: enhance zone memory (`nkvyumpy` + `nvoloynu`)
+10. Done: add presentation/share preset (`qtslvnpz`)
 
 ### Phase 3: Advanced composition
 11. Add zone spanning
-12. Add lightweight transient zone picker
+12. Done: add lightweight transient zone picker (`nlrnyuok`)
 
 ## What I would build first if time is limited
 

@@ -41,6 +41,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case resize
     case scratchpad
     case sendToScratchpad = "send-to-scratchpad"
+    case showZonePicker = "show-zone-picker"
     case showWorkspaceMenu = "show-workspace-menu"
     case split
     case subscribe
@@ -146,6 +147,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseScratchpadCmdArgs)
             case .sendToScratchpad:
                 result[kind.rawValue] = SubCommandParser(parseSendToScratchpadCmdArgs)
+            case .showZonePicker:
+                result[kind.rawValue] = SubCommandParser(parseShowZonePickerCmdArgs)
             case .showWorkspaceMenu:
                 result[kind.rawValue] = SubCommandParser(parseShowWorkspaceMenuCmdArgs)
             case .split:

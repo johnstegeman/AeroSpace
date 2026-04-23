@@ -175,6 +175,13 @@ include::aerospace-presentation-mode.adoc[tags=synopsis]
 include::aerospace-presentation-mode.adoc[tags=purpose]
 include::aerospace-presentation-mode.adoc[tags=body]
 
+== show-zone-picker
+----
+include::aerospace-show-zone-picker.adoc[tags=synopsis]
+----
+include::aerospace-show-zone-picker.adoc[tags=purpose]
+include::aerospace-show-zone-picker.adoc[tags=body]
+
 == reload-config
 ----
 include::aerospace-reload-config.adoc[tags=synopsis]

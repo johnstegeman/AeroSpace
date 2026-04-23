@@ -36,6 +36,7 @@ let subcommandDescriptions = [
     ["  presentation-mode", "Toggle a temporary 16:9-centered presentation layout on the focused ultrawide workspace"],
     ["  reload-config", "Reload currently active config"],
     ["  resize", "Resize the focused window"],
+    ["  show-zone-picker", "Show a transient zone overlay for the focused ultrawide workspace"],
     ["  split", "Split focused window"],
     ["  subscribe", "Subscribe to AeroSpace events and receive notifications via socket"],
     ["  summon-workspace", "Move the requested workspace to the focused monitor."],

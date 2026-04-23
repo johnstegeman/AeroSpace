@@ -84,6 +84,8 @@ extension CmdArgs {
                 command = ScratchpadCommand(args: self as! ScratchpadCmdArgs)
             case .sendToScratchpad:
                 command = SendToScratchpadCommand(args: self as! SendToScratchpadCmdArgs)
+            case .showZonePicker:
+                command = ShowZonePickerCommand(args: self as! ShowZonePickerCmdArgs)
             case .showWorkspaceMenu:
                 command = ShowWorkspaceMenuCommand(args: self as! ShowWorkspaceMenuCmdArgs)
             case .split:
