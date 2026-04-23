@@ -485,6 +485,7 @@ Current progress:
 ---
 
 ### 6. Per-zone insertion policy
+**Status:** Done in `wtryqnmk` (`feat: add per-zone insertion policy`)  
 **Priority:** Medium-high  
 **Impact:** High  
 **Effort:** Medium  
@@ -514,6 +515,16 @@ new-window = "append-hidden"
 ```
 
 This becomes much more powerful once `stack` exists.
+
+#### What was built
+
+`[zones.behavior.<zone-id>] new-window = ...` is now a first-class config surface with three policies:
+
+- `after-focused` (default): insert after the destination zone's most-recently-focused window
+- `append`: append to the zone root
+- `append-hidden`: append to the zone root and preserve the previous active child for `stack` zones so the new window lands in the background
+
+The policy is applied in the runtime new-window placement path after the destination zone has already been selected by zone memory, one-shot hint, MRU zone, startup geometry, or middle-zone fallback. This keeps routing and insertion as separate concerns.
 
 ---
 
@@ -819,7 +830,7 @@ Do not build this early. If anything, ship a CLI-first custom-layout format firs
 
 ### Phase 2: Workflow power
 5. Done: Add true `stack` layout for zones (`pxnulloq`)
-6. Add per-zone insertion policy
+6. Done: Add per-zone insertion policy (`wtryqnmk`)
 7. Done: first-class floating defaults (`lvuzyuss`)
 8. Add app-to-zone routing rules
 9. Enhance zone memory

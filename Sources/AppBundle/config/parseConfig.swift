@@ -368,6 +368,7 @@ private func parseAccordionMode(_ raw: Json, _ backtrace: ConfigBacktrace) -> Pa
 private let zonesConfigNonZoneParser: [String: any ParserProtocol<ZonesConfig>] = [
     "gap": Parser(\.gap, parseInt),
     "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
+    "behavior": Parser(\.behavior, parseZoneBehaviorOverrides),
     "overrides": Parser(\.overrides, parseZoneGapOverrides),
     "zone":    Parser(\.zones, skipParsing([ZoneDefinition]())),  // handled manually below
     "widths":  Parser(\.zones, skipParsing([ZoneDefinition]())),  // legacy; handled manually below
@@ -488,6 +489,19 @@ private func parseZoneGapOverrides(_ raw: Json, _ backtrace: ConfigBacktrace, _ 
     return result
 }
 
+private func parseZoneBehaviorOverrides(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZoneBehavior] {
+    guard let rawTable = raw.asDictOrNil else {
+        errors.append(expectedActualTypeError(expected: .table, actual: raw.tomlType, backtrace))
+        return [:]
+    }
+    var result: [String: ZoneBehavior] = [:]
+    for (zoneName, rawBehavior) in rawTable {
+        let bt = backtrace + .key(zoneName)
+        result[zoneName] = parseTable(rawBehavior, ZoneBehavior(), zoneBehaviorParser, bt, &errors)
+    }
+    return result
+}
+
 /// Keys under [zones.overrides.<name>]: top/bottom/left/right are outer-gap pixel overrides.
 private let zoneGapOverrideParser: [String: any ParserProtocol<ZoneGapOverride>] = [
     "top": Parser(\.top, parseOptionalInt),
@@ -495,6 +509,17 @@ private let zoneGapOverrideParser: [String: any ParserProtocol<ZoneGapOverride>]
     "left": Parser(\.left, parseOptionalInt),
     "right": Parser(\.right, parseOptionalInt),
 ]
+
+private let zoneBehaviorParser: [String: any ParserProtocol<ZoneBehavior>] = [
+    "new-window": Parser(\.newWindow, parseZoneNewWindowPolicy),
+]
+
+private func parseZoneNewWindowPolicy(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<ZoneNewWindowPolicy> {
+    parseString(raw, backtrace).flatMap {
+        ZoneNewWindowPolicy(rawValue: $0)
+            .orFailure(.semantic(backtrace, "Can't parse zones.behavior.new-window '\($0)'. Expected 'append', 'after-focused', or 'append-hidden'"))
+    }
+}
 
 private func parseOptionalInt(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<Int?> {
     parseInt(raw, backtrace).map(Optional.init)

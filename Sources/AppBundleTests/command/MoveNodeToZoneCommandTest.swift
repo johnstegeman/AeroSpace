@@ -41,4 +41,40 @@ final class MoveNodeToZoneCommandTest: XCTestCase {
         XCTAssertEqual(result, .fail, "Should fail when zones not active")
         XCTAssertTrue(io.stderr.joined().contains("zones not active"), "Should report error to stderr")
     }
+
+    func testMoveToZone_respectsInsertionPolicy() async throws {
+        config.zones.behavior["left"] = ZoneBehavior(newWindow: .afterFocused)
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let left = workspace.zoneContainers["left"]!
+        let nested = TilingContainer.newVTiles(parent: left, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        let existing = TestWindow.new(id: 1, parent: nested)
+        let moved = TestWindow.new(id: 2, parent: workspace.zoneContainers["center"]!)
+        _ = existing.focusWindow()
+        _ = moved.focusWindow()
+
+        try await MoveNodeToZoneCommand(args: MoveNodeToZoneCmdArgs(rawArgs: [], "left")).run(.defaultEnv, .emptyStdin)
+
+        XCTAssertTrue(moved.parent === nested, "Manual move should use the destination zone's insertion policy")
+        XCTAssertEqual(moved.ownIndex, existing.ownIndex.orDie() + 1)
+    }
+
+    func testMoveToSameZone_afterFocused_doesNotCrashOnLastChild() async throws {
+        config.zones.behavior["left"] = ZoneBehavior(newWindow: .afterFocused)
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let left = workspace.zoneContainers["left"]!
+        let nested = TilingContainer.newVTiles(parent: left, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        let existing = TestWindow.new(id: 1, parent: nested)
+        let moved = TestWindow.new(id: 2, parent: nested)
+        _ = existing.focusWindow()
+        _ = moved.focusWindow()
+
+        try await MoveNodeToZoneCommand(args: MoveNodeToZoneCmdArgs(rawArgs: [], "left")).run(.defaultEnv, .emptyStdin)
+
+        XCTAssertTrue(moved.parent === nested, "Moving into the current zone should keep the window in the same insertion parent")
+        XCTAssertEqual(moved.ownIndex, 1, "Reapplying after-focused placement in the same parent should not shift the last child out of range")
+    }
 }

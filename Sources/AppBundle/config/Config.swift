@@ -120,10 +120,20 @@ struct MonitorChangedMatcher: ConvenienceCopyable, Equatable {
 }
 
 /// A single zone in a zone layout — stable ID, proportional width, and default layout.
-struct ZoneDefinition {
+struct ZoneDefinition: Equatable {
     var id: String
     var width: Double
     var layout: Layout
+}
+
+struct ZoneBehavior: ConvenienceCopyable, Equatable {
+    var newWindow: ZoneNewWindowPolicy = .afterFocused
+}
+
+enum ZoneNewWindowPolicy: String, Equatable {
+    case append = "append"
+    case afterFocused = "after-focused"
+    case appendHidden = "append-hidden"
 }
 
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
@@ -200,6 +210,9 @@ struct ZonesConfig: ConvenienceCopyable {
     /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.
     /// Large enough to show notification badges (≥40) without being readable (≤120). Default 80.
     var focusModeCollapsedWidth: Int = 80
+    /// Per-zone insertion behavior for newly created tiling windows.
+    /// Unspecified zones use the default `.afterFocused` behavior.
+    var behavior: [String: ZoneBehavior] = [:]
     /// Per-zone outer-gap overrides keyed by zone name. A nil side inherits the global gap unchanged.
     var overrides: [String: ZoneGapOverride] = [:]
 }

@@ -90,6 +90,17 @@ offset-y = 0          # vertical shift per window in cascade mode
 #[floating]
 #    app-ids = ['com.apple.finder', 'com.raycast.macos']
 
+# Ultrawide zone insertion behavior.
+# Unspecified zones default to 'after-focused'.
+#[zones.behavior.left]
+#    new-window = 'append'
+#
+#[zones.behavior.center]
+#    new-window = 'after-focused'
+#
+#[zones.behavior.right]
+#    new-window = 'append-hidden'
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented

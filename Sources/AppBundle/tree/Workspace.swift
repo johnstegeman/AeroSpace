@@ -320,6 +320,47 @@ private func isValidAssignment(workspace: Workspace, screen: CGPoint) -> Bool {
 
 extension Workspace {
     @MainActor
+    func zoneContaining(_ window: Window) -> (name: String, container: TilingContainer)? {
+        let zoneContainer = window.parents
+            .first(where: { ($0 as? TilingContainer)?.isZoneContainer == true }) as? TilingContainer
+        guard let zoneContainer else { return nil }
+        guard let zoneName = zoneContainers.first(where: { $0.value === zoneContainer })?.key else { return nil }
+        return (zoneName, zoneContainer)
+    }
+
+    @MainActor
+    func newWindowInsertionPolicy(for zoneName: String) -> ZoneNewWindowPolicy {
+        config.zones.behavior[zoneName]?.newWindow ?? .afterFocused
+    }
+
+    @MainActor
+    func bindingDataForNewWindow(inZone zoneName: String, zone: TilingContainer) -> BindingData {
+        switch newWindowInsertionPolicy(for: zoneName) {
+            case .append:
+                return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            case .afterFocused:
+                if let zoneWindow = zone.mostRecentWindowRecursive,
+                   let parent = zoneWindow.parent as? TilingContainer
+                {
+                    return BindingData(
+                        parent: parent,
+                        adaptiveWeight: WEIGHT_AUTO,
+                        index: zoneWindow.ownIndex.orDie() + 1,
+                    )
+                }
+                return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            case .appendHidden:
+                let preservedMru = zone.layout == .stack ? zone.mostRecentChild : nil
+                return BindingData(
+                    parent: zone,
+                    adaptiveWeight: WEIGHT_AUTO,
+                    index: INDEX_BIND_LAST,
+                    preferredMostRecentChildAfterBind: preservedMru,
+                )
+        }
+    }
+
+    @MainActor
     func ensureZoneContainers(for monitor: Monitor, force: Bool = false) {
         // zonesDisabledByProfile overrides the ultrawide trigger: a monitor-profile rule with
         // `apply-zone-layout = "disabled"` can suppress zones even on an ultrawide monitor.
@@ -371,7 +412,10 @@ extension Workspace {
             guard let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile) else { continue }
             let zone = zoneContainers[zoneName] ?? fallbackZone
             if let zone {
-                window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+                let targetZoneName = zoneContainers[zoneName] != nil ? zoneName : defs[defs.count / 2].id
+                let binding = bindingDataForNewWindow(inZone: targetZoneName, zone: zone)
+                window.bind(to: binding.parent, adaptiveWeight: binding.adaptiveWeight, index: binding.index)
+                binding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
             }
         }
     }

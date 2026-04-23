@@ -166,6 +166,26 @@ final class ZoneMemoryTests: XCTestCase {
         XCTAssertTrue(rightZone.children.contains { $0 === window },
                       "Window should be restored to right zone on reconnect")
     }
+
+    func testRestoreZoneMemory_respectsInsertionPolicy() {
+        config.zones.behavior["right"] = ZoneBehavior(newWindow: .afterFocused)
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let right = workspace.zoneContainers["right"]!
+        let nested = TilingContainer.newVTiles(parent: right, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        let existing = TestWindow.new(id: 1, parent: nested)
+        let window = TestWindow.new(id: 2, parent: right)
+
+        let testProfile = MonitorProfile(monitors)
+        ZoneMemory.shared.rememberZone("right", for: window, profile: testProfile)
+
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+
+        XCTAssertTrue(window.parent === nested, "Zone-memory restore should use the zone's insertion policy")
+        XCTAssertEqual(window.ownIndex, existing.ownIndex.orDie() + 1)
+    }
 }
 
 // MARK: - AnyMonitor

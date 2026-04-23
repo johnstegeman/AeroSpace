@@ -12,7 +12,9 @@ struct MoveNodeToZoneCommand: Command {
         guard let zone = workspace.zoneContainers[zoneName] else {
             return .fail(io.err("move-node-to-zone: zones not active on this workspace"))
         }
-        window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        let binding = workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
+        window.bind(to: binding.parent, adaptiveWeight: binding.adaptiveWeight, index: binding.index)
+        binding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
         ZoneMemory.shared.rememberZone(zoneName, for: window, profile: MonitorProfile([workspace.workspaceMonitor]))
         StickyMemory.shared.forget(windowId: window.windowId)
         if args.noFocus { return .succ }

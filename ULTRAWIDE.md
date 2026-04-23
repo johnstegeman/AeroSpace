@@ -50,7 +50,7 @@ The old `widths = [...]` and `layouts = [...]` flat arrays are still accepted fo
 
 ### New Commands
 
-#### `focus-zone <left|center|right>`
+#### `focus-zone <zone-id>`
 #### `focus-zone --scope mru`
 
 Focuses the most-recently-used window in the named zone. If the zone is empty, sets a one-shot **placement hint**: the next new tiling window opened will be routed into that zone. The menu bar indicator updates immediately to reflect the pending zone.
@@ -64,7 +64,7 @@ alt-tab = 'focus-zone --scope mru'
 
 MRU zone state is in-memory only and resets on AeroSpace restart.
 
-#### `move-node-to-zone [--no-focus] <left|center|right>`
+#### `move-node-to-zone [--no-focus] <zone-id>`
 
 Moves the focused window into the named zone container and saves that assignment to persistent zone memory (see below). The window is focused after the move.
 
@@ -82,7 +82,7 @@ run = 'move-node-to-zone --no-focus left'
 
 Zone memory is updated on every `move-node-to-zone` call, so subsequent openings of the app are routed automatically by zone memory without needing the callback.
 
-#### `move-floating-to-zone <left|center|right>`
+#### `move-floating-to-zone <zone-id>`
 
 Repositions a floating window into the named zone without converting it to a tiling window. The window is not resized; its UL-corner offset relative to its current zone is preserved in the target zone. Zone memory is updated so a subsequent `move-node-to-zone` lands the window in the correct zone.
 
@@ -154,12 +154,35 @@ Adds per-window zone introspection to the existing `list-windows` surface instea
 
 ### Automatic Window Routing
 
-When a new window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:
+When a new tiling window appears on a zoned workspace, AeroSpace decides which zone to place it in using this priority order:
 
 1. **Zone memory** — if the app was previously assigned to a zone on this monitor configuration, it goes back there.
 2. **One-shot placement hint** (`focus-zone` on an empty zone) — the pending zone set by the user.
 3. **MRU zone** — the zone containing the most-recently-focused window inherits the new window.
-4. **Center fallback** — if none of the above apply, the window goes to `center`.
+4. **Middle-zone fallback** — if none of the above apply, the window goes to the middle zone by definition order (`center` in the default 3-zone layout).
+
+### Per-Zone Insertion Policy
+
+Once the destination zone is chosen, that zone decides where inside itself the new window lands:
+
+```toml
+[zones.behavior.left]
+new-window = "append"
+
+[zones.behavior.center]
+new-window = "after-focused"
+
+[zones.behavior.right]
+new-window = "append-hidden"
+```
+
+Supported policies:
+
+- `after-focused` (default): insert after the most-recently-focused window already in that zone. If the zone is empty, append to the zone root.
+- `append`: always append to the zone root. Useful for stack-like utility columns where you do not want new windows inserted into nested editor splits.
+- `append-hidden`: append to the zone root, but if the zone layout is `stack`, preserve the previously active child so the new window is added in the background instead of immediately replacing the visible stack tab.
+
+This runs after zone selection, so the same zone-routing inputs still apply. The insertion policy only changes local placement within the chosen zone.
 
 ### Zone Memory
 
