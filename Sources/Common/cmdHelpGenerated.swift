@@ -193,6 +193,8 @@ let zone_memory_help_generated = """
 let zone_preset_help_generated = """
     USAGE: zone-preset [-h|--help] <preset-name>
     OR: aerospace zone-preset [-h|--help] --reset
+    OR: aerospace zone-preset [-h|--help] --save <name>
+    OR: aerospace zone-preset [-h|--help] --export
     """
 let zone_help_generated = """
     USAGE: zone [-h|--help] --json

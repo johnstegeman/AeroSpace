@@ -10,18 +10,22 @@ include::util/man-attributes.adoc[]
 // tag::synopsis[]
 aerospace zone-preset [-h|--help] <preset-name>
    OR: aerospace zone-preset [-h|--help] --reset
+   OR: aerospace zone-preset [-h|--help] --save <name>
+   OR: aerospace zone-preset [-h|--help] --export
 // end::synopsis[]
 
 == Description
 // tag::body[]
 {manpurpose}
 
-Applies a preset from `[[zone-presets]]` or resets the active zone layout back to the last loaded `[zones]` config.
+Applies a preset from `[[zone-presets]]`, saves the current live zone proportions as a runtime preset, exports the current live zone layout as TOML, or resets the active zone layout back to the last loaded `[zones]` config.
 
 include::./util/conditional-options-header.adoc[]
 
 -h, --help:: Print help
 --reset:: Restore the default `[zones]` layout from the current config
+--save <name>:: Save the current live zone widths and layouts as a runtime preset
+--export:: Print the current live zone widths and layouts as a `[[zone-presets]]` TOML block
 <preset-name>:: Apply the named preset from `[[zone-presets]]`
 // end::body[]
 
