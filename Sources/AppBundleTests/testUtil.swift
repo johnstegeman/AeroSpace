@@ -46,6 +46,7 @@ func setUpWorkspacesForTests() {
 
     TestApp.shared.focusedWindow = nil
     TestApp.shared.windows = []
+    broadcastEventForTesting = nil
 }
 
 struct FakeMonitor: Monitor {

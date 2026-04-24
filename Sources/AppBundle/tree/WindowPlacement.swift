@@ -13,6 +13,7 @@ enum WindowTilingPlacementSource: String {
 
 struct WindowTilingPlacementDecision {
     let source: WindowTilingPlacementSource
+    let zoneName: String?
     let bindingData: BindingData
 }
 
@@ -56,6 +57,7 @@ func resolveNewTilingWindowPlacement(
     if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
         return WindowTilingPlacementDecision(
             source: .mruContainer,
+            zoneName: nil,
             bindingData: BindingData(
                 parent: tilingParent,
                 adaptiveWeight: WEIGHT_AUTO,
@@ -71,6 +73,7 @@ func resolveNewTilingWindowPlacement(
     }
     return WindowTilingPlacementDecision(
         source: .rootFallback,
+        zoneName: nil,
         bindingData: BindingData(parent: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST),
     )
 }
@@ -110,9 +113,27 @@ extension Workspace {
         guard let zone = zoneContainers[zoneName] else { return nil }
         return WindowTilingPlacementDecision(
             source: source,
+            zoneName: zoneName,
             bindingData: bindingDataForNewWindow(inZone: zoneName, zone: zone),
         )
     }
+}
+
+@MainActor
+func recordPlacement(_ decision: WindowTilingPlacementDecision, for window: Window) {
+    window.lastPlacementRecord = WindowPlacementRecord(source: decision.source, zoneName: decision.zoneName)
+}
+
+@MainActor
+func broadcastWindowRouted(_ decision: WindowTilingPlacementDecision, for window: Window) {
+    guard let zoneName = decision.zoneName else { return }
+    broadcastEvent(.windowRouted(
+        windowId: window.windowId,
+        workspace: decision.bindingData.parent.nodeWorkspace?.name,
+        appBundleId: window.app.rawAppBundleId,
+        zoneName: zoneName,
+        source: decision.source.rawValue,
+    ))
 }
 
 extension Array {

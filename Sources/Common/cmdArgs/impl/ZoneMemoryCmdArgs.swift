@@ -4,10 +4,7 @@ public struct ZoneMemoryCmdArgs: CmdArgs {
     public static let parser: CmdParser<Self> = .init(
         kind: .zoneMemory,
         allowInConfig: false,
-        help: """
-            USAGE: zone-memory list [--count] [--json]
-                   zone-memory clear (--app-id <app-bundle-id>|--all)
-            """,
+        help: zone_memory_help_generated,
         flags: [
             "--count": trueBoolFlag(\.outputOnlyCount),
             "--json": trueBoolFlag(\.json),

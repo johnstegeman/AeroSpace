@@ -8,6 +8,7 @@ open class Window: TreeNode, Hashable {
     var isFullscreen: Bool = false
     var noOuterGapsInFullscreen: Bool = false
     var layoutReason: LayoutReason = .standard
+    var lastPlacementRecord: WindowPlacementRecord? = nil
 
     @MainActor
     init(id: UInt32, _ app: any AbstractApp, lastFloatingSize: CGSize?, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat, index: Int) {
@@ -41,6 +42,11 @@ open class Window: TreeNode, Hashable {
     func getCenter() async throws -> CGPoint? { try await getAxRect()?.center }
 
     func setAxFrame(_ topLeft: CGPoint?, _ size: CGSize?) { die("Not implemented") }
+}
+
+struct WindowPlacementRecord: Equatable {
+    let source: WindowTilingPlacementSource
+    let zoneName: String?
 }
 
 enum LayoutReason: Equatable {
