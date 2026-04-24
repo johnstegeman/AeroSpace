@@ -21,6 +21,8 @@ aerospace move-node-to-zone [-h|--help] [--no-focus] (<zone-id>)
 
 Zones are active only when the workspace is displayed on an ultrawide monitor (aspect ratio > 2.1:1). If zones are not active, the command is a no-op and prints an error to stderr.
 
+The command updates persistent zone memory for the window's app bundle ID. That remembered assignment is still treated as a fallback: if `[zones.app-routing]` also defines the app, the explicit app route takes precedence on future placements.
+
 // =========================================================== Options
 include::./util/conditional-options-header.adoc[]
 

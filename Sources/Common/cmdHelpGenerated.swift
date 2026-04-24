@@ -180,6 +180,10 @@ let workspace_help_generated = """
 let zone_focus_mode_help_generated = """
     USAGE: zone-focus-mode [-h|--help] [--zone <zone>] (on|off|toggle)
     """
+let zone_memory_help_generated = """
+    USAGE: zone-memory [-h|--help] list [--count] [--json]
+       OR: zone-memory [-h|--help] clear (--app-id <app-bundle-id>|--all)
+    """
 let zone_preset_help_generated = """
     USAGE: zone-preset [-h|--help] <preset-name>
     OR: aerospace zone-preset [-h|--help] --reset

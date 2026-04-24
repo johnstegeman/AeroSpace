@@ -316,6 +316,13 @@ include::aerospace-list-workspaces.adoc[tags=synopsis]
 include::aerospace-list-workspaces.adoc[tags=purpose]
 include::aerospace-list-workspaces.adoc[tags=body]
 
+=== zone-memory
+----
+include::aerospace-zone-memory.adoc[tags=synopsis]
+----
+include::aerospace-zone-memory.adoc[tags=purpose]
+include::aerospace-zone-memory.adoc[tags=body]
+
 === subscribe
 ----
 include::aerospace-subscribe.adoc[tags=synopsis]

@@ -28,16 +28,26 @@ struct MonitorProfile: Codable, Hashable {
 final class ZoneMemory {
     @MainActor static var shared = ZoneMemory()
 
+    struct Entry: Equatable {
+        let profileKey: String
+        let appId: String
+        let zoneName: String
+    }
+
     private var data: [String: [String: String]] = [:]
     let storageURL: URL
+    private let onSave: (() -> Void)?
+    private var batchDepth = 0
+    private var pendingSave = false
 
     private static var defaultURL: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport.appendingPathComponent("AeroSpace/zone-memory.json")
     }
 
-    init(storageURL: URL? = nil) {
+    init(storageURL: URL? = nil, onSave: (() -> Void)? = nil) {
         self.storageURL = storageURL ?? Self.defaultURL
+        self.onSave = onSave
         load()
     }
 
@@ -47,10 +57,14 @@ final class ZoneMemory {
 
     func rememberZone(_ zoneName: String, for window: Window, profile: MonitorProfile) {
         guard let key = windowKey(for: window) else { return }
+        rememberZone(zoneName, forBundleId: key, profile: profile)
+    }
+
+    func rememberZone(_ zoneName: String, forBundleId bundleId: String, profile: MonitorProfile) {
         let profileKey = profile.key
         if data[profileKey] == nil { data[profileKey] = [:] }
-        data[profileKey]![key] = zoneName
-        save()
+        data[profileKey]![bundleId] = zoneName
+        saveOrDefer()
     }
 
     func rememberedZone(for window: Window, profile: MonitorProfile) -> String? {
@@ -60,6 +74,50 @@ final class ZoneMemory {
 
     func rememberedZone(forBundleId bundleId: String, profile: MonitorProfile) -> String? {
         data[profile.key]?[bundleId]
+    }
+
+    func entries() -> [Entry] {
+        data
+            .flatMap { profileKey, appToZone in
+                appToZone.map { appId, zoneName in
+                    Entry(profileKey: profileKey, appId: appId, zoneName: zoneName)
+                }
+            }
+            .sorted { ($0.profileKey, $0.appId, $0.zoneName) < ($1.profileKey, $1.appId, $1.zoneName) }
+    }
+
+    @discardableResult
+    func clearAll() -> Int {
+        let removed = data.values.reduce(0) { $0 + $1.count }
+        data = [:]
+        saveOrDefer()
+        return removed
+    }
+
+    @discardableResult
+    func clear(bundleId: String) -> Int {
+        var removed = 0
+        for profileKey in Array(data.keys) {
+            let previous = data[profileKey]?.removeValue(forKey: bundleId)
+            if previous != nil { removed += 1 }
+            if data[profileKey]?.isEmpty == true {
+                data.removeValue(forKey: profileKey)
+            }
+        }
+        if removed > 0 { saveOrDefer() }
+        return removed
+    }
+
+    func withBatchUpdate<T>(_ body: () throws -> T) rethrows -> T {
+        batchDepth += 1
+        defer {
+            batchDepth -= 1
+            if batchDepth == 0, pendingSave {
+                pendingSave = false
+                save()
+            }
+        }
+        return try body()
     }
 
     private func load() {
@@ -79,5 +137,14 @@ final class ZoneMemory {
             withIntermediateDirectories: true,
         )
         try? raw.write(to: storageURL)
+        onSave?()
+    }
+
+    private func saveOrDefer() {
+        if batchDepth > 0 {
+            pendingSave = true
+        } else {
+            save()
+        }
     }
 }
