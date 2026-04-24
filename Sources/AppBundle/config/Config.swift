@@ -73,6 +73,16 @@ struct ZoneDefinition {
     var layout: Layout
 }
 
+struct ZoneBehavior: ConvenienceCopyable, Equatable {
+    var newWindow: ZoneNewWindowPolicy = .afterFocused
+}
+
+enum ZoneNewWindowPolicy: String, Equatable {
+    case append = "append"
+    case afterFocused = "after-focused"
+    case appendHidden = "append-hidden"
+}
+
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
 struct ZonePreset: ConvenienceCopyable {
     var zones: [ZoneDefinition]
@@ -90,6 +100,9 @@ struct ZonesConfig: ConvenienceCopyable {
     var gap: Int = 0
     /// Width in pixels that non-focused zones are collapsed to when zone-focus-mode is active.
     var focusModeCollapsedWidth: Int = 80
+    /// Per-zone insertion behavior for newly created tiling windows.
+    /// Unspecified zones default to `.afterFocused`.
+    var behavior: [String: ZoneBehavior] = [:]
 }
 
 enum DefaultContainerOrientation: String {

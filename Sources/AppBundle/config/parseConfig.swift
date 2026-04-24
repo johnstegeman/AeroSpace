@@ -283,6 +283,7 @@ func parseConfigVersion(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConf
 private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
     "gap": Parser(\.gap, parseInt),
     "focus-mode-collapsed-width": Parser(\.focusModeCollapsedWidth, parseInt),
+    "behavior": Parser(\.behavior, parseZoneBehaviorOverrides),
     "zone": Parser(\.zones, skipParsing([ZoneDefinition]())),
     "widths": Parser(\.zones, skipParsing([ZoneDefinition]())),
     "layouts": Parser(\.zones, skipParsing([ZoneDefinition]())),
@@ -379,6 +380,30 @@ private func parseLegacyZoneArrays(_ dict: [String: Json], _ backtrace: ConfigBa
 
     let defaultIds = widths.count == 3 ? ["left", "center", "right"] : (1 ... widths.count).map { "zone\($0)" }
     return zip(zip(defaultIds, widths), layouts).map { ZoneDefinition(id: $0.0, width: $0.1, layout: $1) }
+}
+
+private func parseZoneBehaviorOverrides(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [String: ZoneBehavior] {
+    guard let rawTable = raw.asDictOrNil else {
+        errors.append(expectedActualTypeError(expected: .table, actual: raw.tomlType, backtrace))
+        return [:]
+    }
+    var result: [String: ZoneBehavior] = [:]
+    for (zoneName, rawBehavior) in rawTable {
+        let bt = backtrace + .key(zoneName)
+        result[zoneName] = parseTable(rawBehavior, ZoneBehavior(), zoneBehaviorParser, bt, &errors)
+    }
+    return result
+}
+
+private let zoneBehaviorParser: [String: any ParserProtocol<ZoneBehavior>] = [
+    "new-window": Parser(\.newWindow, parseZoneNewWindowPolicy),
+]
+
+private func parseZoneNewWindowPolicy(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<ZoneNewWindowPolicy> {
+    parseString(raw, backtrace).flatMap {
+        ZoneNewWindowPolicy(rawValue: $0)
+            .orFailure(.semantic(backtrace, "Can't parse zones.behavior.new-window '\($0)'. Expected 'append', 'after-focused', or 'append-hidden'"))
+    }
 }
 
 private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Double]> {

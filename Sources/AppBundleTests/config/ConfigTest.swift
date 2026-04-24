@@ -396,6 +396,36 @@ final class ConfigTest: XCTestCase {
         assertEquals(errors, [])
     }
 
+    func testParseZoneInsertionBehavior() {
+        let (parsed, errors) = parseConfig(
+            """
+            [zones.behavior.left]
+                new-window = 'append'
+
+            [zones.behavior.right]
+                new-window = 'append-hidden'
+            """,
+        )
+        assertEquals(errors, [])
+        assertEquals(parsed.zones.behavior, [
+            "left": ZoneBehavior(newWindow: .append),
+            "right": ZoneBehavior(newWindow: .appendHidden),
+        ])
+        assertEquals(parsed.zones.behavior["center"], nil)
+    }
+
+    func testParseZoneInsertionBehaviorRejectsUnknownPolicy() {
+        let (_, errors) = parseConfig(
+            """
+            [zones.behavior.center]
+                new-window = 'replace-active'
+            """,
+        )
+        assertEquals(errors, [
+            "zones.behavior.center.new-window: Can't parse zones.behavior.new-window 'replace-active'. Expected 'append', 'after-focused', or 'append-hidden'",
+        ])
+    }
+
     func testRegex() {
         var devNull: [String] = []
         XCTAssertTrue("System Settings".contains(caseInsensitiveRegex: CaseInsensitiveRegex.new("settings").getOrNil(appendErrorTo: &devNull)!))

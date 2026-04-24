@@ -26,6 +26,14 @@ func setUpWorkspacesForTests() {
     config.persistentWorkspaces = []
 
     for workspace in Workspace.all {
+        workspace.zoneContainers = [:]
+        workspace.activeZoneProfile = nil
+        workspace.savedRootOrientation = nil
+        workspace.focusedZone = nil
+        workspace.mruZones = []
+        workspace.savedZoneWeights = nil
+        workspace.focusModeZone = nil
+        workspace.activeZoneDefinitions = []
         for child in workspace.children {
             child.unbindFromParent()
         }
@@ -38,6 +46,27 @@ func setUpWorkspacesForTests() {
 
     TestApp.shared.focusedWindow = nil
     TestApp.shared.windows = []
+}
+
+struct FakeMonitor: Monitor {
+    let monitorAppKitNsScreenScreensId: Int = 1
+    let name: String = "Fake"
+    let rect: Rect
+    let visibleRect: Rect
+    let width: CGFloat
+    let height: CGFloat
+    let isMain: Bool = false
+
+    init(width: CGFloat, height: CGFloat) {
+        let rect = Rect(topLeftX: 0, topLeftY: 0, width: width, height: height)
+        self.rect = rect
+        visibleRect = rect
+        self.width = width
+        self.height = height
+    }
+
+    static var ultrawide: FakeMonitor { FakeMonitor(width: 3440, height: 1440) }
+    static var standard: FakeMonitor { FakeMonitor(width: 1920, height: 1080) }
 }
 
 extension ParsedCmd {

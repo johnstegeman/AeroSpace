@@ -206,6 +206,7 @@ extension Window {
             ? unbindAndGetBindingDataForNewTilingWindow(workspace, window: self)
             : try await unbindAndGetBindingDataForNewWindow(self.asMacWindow().windowId, self.asMacWindow().macApp, workspace, window: self)
         bind(to: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
+        data.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
     }
 }
 
@@ -229,30 +230,30 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
        let zoneName = workspace.zoneForWindowRect(startupRect),
        let zone = workspace.zoneContainers[zoneName]
     {
-        return BindingData(parent: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        return workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
     }
-    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone)
-    if let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
+    // Consume one-shot focusedZone hint (set by focus-zone on an empty zone) only for new windows.
+    if window == nil, let hintZone = workspace.focusedZone, let parent = workspace.zoneContainers[hintZone] {
         workspace.focusedZone = nil
-        return BindingData(parent: parent, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+        return workspace.bindingDataForNewWindow(inZone: hintZone, zone: parent)
     }
     let mruWindow = workspace.mostRecentWindowRecursive
-    if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
+    if let mruWindow, let (zoneName, zone) = workspace.zoneContaining(mruWindow) {
+        return workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
+    } else if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
         return BindingData(
             parent: tilingParent,
             adaptiveWeight: WEIGHT_AUTO,
             index: mruWindow.ownIndex.orDie() + 1,
         )
     } else {
-        let parent = workspace.activeZoneDefinitions.isEmpty
-            ? workspace.rootTilingContainer
-            : workspace.zoneContainers[workspace.activeZoneDefinitions[workspace.activeZoneDefinitions.count / 2].id]
-                ?? workspace.rootTilingContainer
-        return BindingData(
-            parent: parent,
-            adaptiveWeight: WEIGHT_AUTO,
-            index: INDEX_BIND_LAST,
-        )
+        let defs = workspace.activeZoneDefinitions
+        if let middleZoneName = defs.isEmpty ? nil : defs[defs.count / 2].id,
+           let middleZone = workspace.zoneContainers[middleZoneName]
+        {
+            return workspace.bindingDataForNewWindow(inZone: middleZoneName, zone: middleZone)
+        }
+        return BindingData(parent: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
     }
 }
 

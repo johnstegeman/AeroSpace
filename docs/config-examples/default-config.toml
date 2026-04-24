@@ -79,6 +79,14 @@ on-mode-changed = []
     outer.top =        0
     outer.right =      0
 
+# Example zone insertion policies.
+# Unspecified zones default to 'after-focused'.
+# [zones.behavior.left]
+#     new-window = 'append'
+#
+# [zones.behavior.right]
+#     new-window = 'append-hidden'
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
