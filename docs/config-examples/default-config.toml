@@ -99,6 +99,13 @@ on-mode-changed = []
 # [zones.behavior.right]
 #     new-window = 'append-hidden'
 
+# Automatically switch zone layouts or restore snapshots for known monitor setups.
+# [[monitor-profiles]]
+#     name = 'single-monitor'
+#     match.monitor-count = 1
+#     apply-zone-layout = 'disabled'
+#     restore-workspace-snapshot = 'laptop'
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented

@@ -39,6 +39,7 @@ struct ReloadConfigCommand: Command {
                 for workspace in Workspace.all {
                     workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
                 }
+                await applyMatchingMonitorProfile()
             }
             result = true
         case .failure(let msg):

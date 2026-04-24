@@ -1,0 +1,33 @@
+= aerospace-workspace-snapshot(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-workspace-snapshot
+// tag::purpose[]
+:manpurpose: Save or restore workspace zone assignments
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace workspace-snapshot [-h|--help] (save|restore) <snapshot-name>
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+`save` records the current zone, tiling, and floating-window assignments across workspaces. `restore` rebinds running windows back to the recorded workspaces and zones using best-effort matching by app bundle ID, then window title when available.
+
+When multiple windows from the same app are present, restore is still best-effort rather than a strict identity mapping. Window titles can change between save and restore, so AeroSpace uses title matches when they are useful and otherwise falls back to deterministic per-app ordering.
+
+Snapshot names must match `[a-zA-Z0-9_-]+`. Snapshots are stored at `~/Library/Application Support/AeroSpace/snapshots/<snapshot-name>.json`.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+save:: Persist the current workspace snapshot
+restore:: Restore a previously saved workspace snapshot
+<snapshot-name>:: The snapshot name to save or restore
+// end::body[]
+
+include::util/man-footer.adoc[]

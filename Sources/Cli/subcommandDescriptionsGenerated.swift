@@ -45,6 +45,7 @@ let subcommandDescriptions = [
     ["  true", "Return true value"],
     ["  volume", "Manipulate volume"],
     ["  workspace-back-and-forth", "Switch between the focused workspace and previously focused workspace back and forth"],
+    ["  workspace-snapshot", "Save or restore workspace zone assignments"],
     ["  workspace", "Focus the specified workspace"],
     ["  zone-focus-mode", "Collapse non-focused zones and expand one named zone"],
     ["  zone-memory", "Inspect or clear persisted zone-memory entries"],

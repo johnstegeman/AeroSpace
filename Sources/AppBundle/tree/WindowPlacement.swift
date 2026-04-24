@@ -3,6 +3,7 @@ import Common
 enum WindowTilingPlacementSource: String {
     case appRouting
     case zoneMemory
+    case lastKnownZone
     case startupRect
     case focusedZoneHint
     case mruZone

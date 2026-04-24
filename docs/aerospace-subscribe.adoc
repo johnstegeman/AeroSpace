@@ -40,6 +40,8 @@ The following events can be subscribed to:
 
 focus-changed:: Fired when window focus changes. Includes `windowId`, `workspace`, and `zoneName` when zones are active.
 
+monitor-changed:: Fired when monitor topology changes due to connect, disconnect, sleep/wake reconfiguration, or display rearrangement. Includes `monitorCount`.
+
 focused-monitor-changed:: Fired when the focused monitor changes. Includes `workspace`, `monitorId`.
 
 focused-workspace-changed:: Fired when the focused workspace changes. Includes `workspace`, `prevWorkspace`.
@@ -66,6 +68,7 @@ include::util/conditional-output-format-header.adoc[]
 Events are output as JSON lines (one JSON object per line):
 
 ----
+{"_event":"monitor-changed","monitorCount":2}
 {"_event":"focused-monitor-changed","monitorId":1,"workspace":"M"}
 {"_event":"focused-workspace-changed","prevWorkspace":"M","workspace":"M"}
 {"_event":"mode-changed","mode":"main"}

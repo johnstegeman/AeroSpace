@@ -71,6 +71,9 @@ final class ClientServerTest: XCTestCase {
             (.focusChanged(windowId: 123, workspace: "1"),
              #"{"_event":"focus-changed","windowId":123,"workspace":"1"}"#),
 
+            (.monitorChanged(monitorCount: 2),
+             #"{"_event":"monitor-changed","monitorCount":2}"#),
+
             (.focusedMonitorChanged(workspace: "2", monitorId_oneBased: 1),
              #"{"_event":"focused-monitor-changed","monitorId":1,"workspace":"2"}"#),
 
@@ -111,6 +114,7 @@ final class ClientServerTest: XCTestCase {
     func testServerEventDecoding() {
         let testData: [(String, ServerEventType)] = [
             (#"{"_event":"focus-changed","windowId":123,"workspace":"1","monitorId":1}"#, .focusChanged),
+            (#"{"_event":"monitor-changed","monitorCount":2}"#, .monitorChanged),
             (#"{"_event":"focused-monitor-changed","workspace":"2","monitorId":1}"#, .focusedMonitorChanged),
             (#"{"_event":"focused-workspace-changed","workspace":"2","prevWorkspace":"1"}"#, .workspaceChanged),
             (#"{"_event":"mode-changed","mode":"resize"}"#, .modeChanged),

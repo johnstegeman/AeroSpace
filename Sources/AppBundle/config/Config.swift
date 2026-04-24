@@ -65,6 +65,8 @@ struct Config: ConvenienceCopyable {
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
+    var monitorProfiles: [MonitorProfileRule] = []
+    var onMonitorChanged: [MonitorChangedCallback] = []
 }
 
 /// A single zone in a zone layout: stable ID, proportional width, and default layout.
@@ -92,6 +94,36 @@ enum ZoneNewWindowPolicy: String, Equatable {
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
 struct ZonePreset: ConvenienceCopyable {
     var zones: [ZoneDefinition]
+}
+
+struct MonitorProfileRule: ConvenienceCopyable, Equatable {
+    var name: String = ""
+    var matcher: MonitorProfileRuleMatcher = MonitorProfileRuleMatcher()
+    var applyZoneLayout: String? = nil
+    var restoreWorkspaceSnapshot: String? = nil
+}
+
+struct MonitorProfileRuleMatcher: ConvenienceCopyable, Equatable {
+    var minAspectRatio: Double? = nil
+    var monitorCount: Int? = nil
+}
+
+/// Rule that fires when the monitor configuration changes (connect/disconnect/rearrange).
+struct MonitorChangedCallback: ConvenienceCopyable, Equatable {
+    var matcher: MonitorChangedMatcher = MonitorChangedMatcher()
+    var rawRun: [any Command]? = nil
+
+    var run: [any Command] { rawRun ?? dieT("ID-9A3F1C72 should have discarded nil") }
+
+    static func == (lhs: MonitorChangedCallback, rhs: MonitorChangedCallback) -> Bool {
+        lhs.matcher == rhs.matcher && zip(lhs.run, rhs.run).allSatisfy { $0.equals($1) }
+    }
+}
+
+/// Matcher for [[on-monitor-changed]] rules. All fields are optional.
+struct MonitorChangedMatcher: ConvenienceCopyable, Equatable {
+    /// Fire only if at least one changed monitor has width/height aspect ratio >= this value.
+    var anyMonitorMinAspectRatio: Double? = nil
 }
 
 struct ZonesConfig: ConvenienceCopyable {

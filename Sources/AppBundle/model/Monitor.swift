@@ -93,9 +93,10 @@ private let testMonitor = MonitorImpl(
     visibleRect: testMonitorRect,
     isMain: true,
 )
+nonisolated(unsafe) var testMonitorsOverride: [Monitor]? = nil
 
 var mainMonitor: Monitor {
-    if isUnitTest { return testMonitor }
+    if isUnitTest { return unsafe testMonitorsOverride?.first ?? testMonitor }
     let screens = NSScreen.screens
     // Fallback: If main screen can't be found (e.g., during display reconfiguration),
     // return screens.first or testMonitor to avoid crash
@@ -106,7 +107,7 @@ var mainMonitor: Monitor {
 
 var monitors: [Monitor] {
     isUnitTest
-        ? [testMonitor]
+        ? unsafe (testMonitorsOverride ?? [testMonitor])
         : NSScreen.screens.enumerated().map { $0.element.toMonitor(monitorAppKitNsScreenScreensId: $0.offset + 1) }
 }
 

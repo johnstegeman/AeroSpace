@@ -62,14 +62,7 @@ func exitMacOsNativeUnconventionalState(window: Window, prevParentKind: NonLeafT
                let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
                let zone = workspace.zoneContainers[zoneName]
             {
-                window.bind(
-                    to: decision.bindingData.parent,
-                    adaptiveWeight: decision.bindingData.adaptiveWeight,
-                    index: decision.bindingData.index,
-                )
-                decision.bindingData.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
-                recordPlacement(decision, for: window)
-                broadcastWindowRouted(decision, for: window)
+                window.bind(to: zone, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
             } else {
                 try await window.relayoutWindow(on: workspace, forceTile: true)
             }

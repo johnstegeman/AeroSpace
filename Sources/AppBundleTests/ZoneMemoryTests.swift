@@ -56,4 +56,14 @@ final class ZoneMemoryTests: XCTestCase {
         XCTAssertEqual(saveCount, 1)
         XCTAssertEqual(ZoneMemory.shared.entries().count, 2)
     }
+
+    func testZoneActivation_rehomesExistingRootWindowsIntoCenterZoneWithoutZoneMemory() {
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.standard)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+
+        XCTAssertTrue(window.parent === workspace.zoneContainers["center"]!, "Existing tiling windows should be routed into zones when zones reactivate")
+    }
 }

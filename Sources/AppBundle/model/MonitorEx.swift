@@ -1,6 +1,14 @@
 extension Monitor {
     var isUltrawide: Bool { visibleRect.width / visibleRect.height > 2.1 }
 
+    var isStableTopologyMonitor: Bool {
+        !name.isEmpty &&
+            rect.width > 0 &&
+            rect.height > 0 &&
+            visibleRect.width > 0 &&
+            visibleRect.height > 0
+    }
+
     @MainActor
     var visibleRectPaddedByOuterGaps: Rect {
         let topLeft = visibleRect.topLeftCorner

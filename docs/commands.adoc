@@ -245,6 +245,13 @@ include::aerospace-workspace-back-and-forth.adoc[tags=synopsis]
 include::aerospace-workspace-back-and-forth.adoc[tags=purpose]
 include::aerospace-workspace-back-and-forth.adoc[tags=body]
 
+== workspace-snapshot
+----
+include::aerospace-workspace-snapshot.adoc[tags=synopsis]
+----
+include::aerospace-workspace-snapshot.adoc[tags=purpose]
+include::aerospace-workspace-snapshot.adoc[tags=body]
+
 == Query commands
 
 Query commands are commands that do not change the state but rather allow the examination of the current state.

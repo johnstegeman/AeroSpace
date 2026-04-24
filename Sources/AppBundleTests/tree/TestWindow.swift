@@ -3,17 +3,19 @@ import AppKit
 
 final class TestWindow: Window, CustomStringConvertible {
     private var _rect: Rect?
+    private let customTitle: String?
 
     @MainActor
-    private init(_ id: UInt32, _ parent: NonLeafTreeNodeObject, _ adaptiveWeight: CGFloat, _ rect: Rect?) {
+    private init(_ id: UInt32, _ parent: NonLeafTreeNodeObject, _ adaptiveWeight: CGFloat, _ rect: Rect?, title: String?) {
         _rect = rect
+        customTitle = title
         super.init(id: id, TestApp.shared, lastFloatingSize: nil, parent: parent, adaptiveWeight: adaptiveWeight, index: INDEX_BIND_LAST)
     }
 
     @discardableResult
     @MainActor
-    static func new(id: UInt32, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat = 1, rect: Rect? = nil) -> TestWindow {
-        let wi = TestWindow(id, parent, adaptiveWeight, rect)
+    static func new(id: UInt32, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat = 1, rect: Rect? = nil, title: String? = nil) -> TestWindow {
+        let wi = TestWindow(id, parent, adaptiveWeight, rect, title: title)
         TestApp.shared._windows.append(wi)
         return wi
     }
@@ -32,7 +34,7 @@ final class TestWindow: Window, CustomStringConvertible {
 
     override var title: String {
         get async { // redundant async. todo create bug report to Swift
-            description
+            customTitle ?? description
         }
     }
 

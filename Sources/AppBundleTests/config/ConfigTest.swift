@@ -468,6 +468,37 @@ final class ConfigTest: XCTestCase {
         ])
     }
 
+    func testParseMonitorProfiles() {
+        let parsed = parseConfig(
+            """
+            [[monitor-profiles]]
+            name = "single"
+            match.monitor-count = 1
+            apply-zone-layout = "disabled"
+            restore-workspace-snapshot = "home"
+            """,
+        )
+
+        assertEquals(parsed.errors, [])
+        assertEquals(parsed.config.monitorProfiles.count, 1)
+        assertEquals(parsed.config.monitorProfiles.first?.name, "single")
+        assertEquals(parsed.config.monitorProfiles.first?.matcher.monitorCount, 1)
+        assertEquals(parsed.config.monitorProfiles.first?.applyZoneLayout, "disabled")
+        assertEquals(parsed.config.monitorProfiles.first?.restoreWorkspaceSnapshot, "home")
+    }
+
+    func testParseMonitorProfilesRejectsNonTableMatch() {
+        let parsed = parseConfig(
+            """
+            [[monitor-profiles]]
+            name = "broken"
+            match = "always"
+            """,
+        )
+
+        assertEquals(parsed.errors, ["monitor-profiles[0].match: Expected type is 'table'. But actual type is 'string'"])
+    }
+
     func testRegex() {
         var devNull: [String] = []
         XCTAssertTrue("System Settings".contains(caseInsensitiveRegex: CaseInsensitiveRegex.new("settings").getOrNil(appendErrorTo: &devNull)!))
@@ -524,6 +555,28 @@ final class ConfigTest: XCTestCase {
             "gaps.inner.vertical[0]: The table is expected to have a single key \'monitor\'",
             "gaps.inner.vertical[1].monitor: The table is expected to have a single key",
         ])
+    }
+
+    func testParseOnMonitorChanged() {
+        let (config, errors) = parseConfig(
+            """
+            [[on-monitor-changed]]
+            if.any-monitor-min-aspect-ratio = 2.0
+            run = ['exec-and-forget /opt/homebrew/bin/sketchybar --reload']
+            """,
+        )
+        assertEquals(errors, [])
+        XCTAssertEqual(config.onMonitorChanged.count, 1)
+        XCTAssertEqual(config.onMonitorChanged.first?.matcher.anyMonitorMinAspectRatio, 2.0)
+        XCTAssertTrue(config.onMonitorChanged.first?.run.prettyDescription.contains("/opt/homebrew/bin/sketchybar --reload") == true)
+
+        let (_, missingRunErrors) = parseConfig(
+            """
+            [[on-monitor-changed]]
+            if.any-monitor-min-aspect-ratio = 2.0
+            """,
+        )
+        assertEquals(missingRunErrors, ["on-monitor-changed[0]: 'run' is mandatory in [[on-monitor-changed]]"])
     }
 
     func testParseKeyMapping() {

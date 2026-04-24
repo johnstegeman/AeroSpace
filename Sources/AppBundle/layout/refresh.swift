@@ -41,7 +41,7 @@ func runHeavyCompleteRefreshSession(
 
                 refreshModel()
                 try await refresh()
-                gcMonitors()
+                await gcMonitors()
 
                 updateTrayText()
                 SecureInputPanel.shared.refresh()

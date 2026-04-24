@@ -4,9 +4,7 @@ public struct MoveFloatingToZoneCmdArgs: CmdArgs {
     public static let parser: CmdParser<Self> = .init(
         kind: .moveFloatingToZone,
         allowInConfig: true,
-        help: """
-            USAGE: move-floating-to-zone [-h|--help] (left|center|right)
-            """,
+        help: move_floating_to_zone_help_generated,
         flags: [:],
         posArgs: [newMandatoryPosArgParser(\.zone, parseMoveFloatingToZoneArg, placeholder: MoveFloatingToZoneCmdArgs.Zone.unionLiteral)],
     )

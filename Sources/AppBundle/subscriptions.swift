@@ -36,6 +36,8 @@ func handleSubscribeAndWaitTillError(_ connection: NWConnection, _ args: Subscri
                         appName: f.windowOrNil?.app.name,
                         zoneName: focusedZoneName,
                     )]
+                case .monitorChanged:
+                    initialEvents = [.monitorChanged(monitorCount: monitors.count)]
                 case .workspaceChanged:
                     initialEvents = [.workspaceChanged(workspace: f.workspace.name, prevWorkspace: f.workspace.name)]
                 case .modeChanged:

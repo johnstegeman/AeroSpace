@@ -56,6 +56,7 @@ private func parseEventTypes(_ input: ArgParserInput) -> ParsedCliArgs<Set<Serve
 
 public enum ServerEventType: String, Codable, CaseIterable, Sendable {
     case focusChanged = "focus-changed"
+    case monitorChanged = "monitor-changed"
     case focusedMonitorChanged = "focused-monitor-changed"
     case workspaceChanged = "focused-workspace-changed"
     case modeChanged = "mode-changed"

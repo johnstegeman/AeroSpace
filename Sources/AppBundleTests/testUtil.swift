@@ -14,7 +14,16 @@ let projectRoot: URL = {
 }()
 
 @MainActor
+func setTestMonitorsOverride(_ monitors: [Monitor]?) {
+    unsafe testMonitorsOverride = monitors
+}
+
+@MainActor
 func setUpWorkspacesForTests() {
+    ZoneMemory.shared = ZoneMemory(
+        storageURL: FileManager.default.temporaryDirectory
+            .appendingPathComponent("aerospace-zone-memory-tests-\(UUID().uuidString).json")
+    )
     config = defaultConfig
     configUrl = defaultConfigUrl
     config.enableNormalizationFlattenContainers = false // Make layout tests more predictable
@@ -24,8 +33,15 @@ func setUpWorkspacesForTests() {
     // Don't create any bindings and workspaces for tests
     config.modes = [mainModeId: Mode(bindings: [:])]
     config.persistentWorkspaces = []
+    activeZonePresetName = nil
+    activeMonitorProfileName = nil
+    zonesDisabledByProfile = false
+    monitorProfileManagedZoneLayout = false
+    setTestMonitorsOverride(nil)
+    resetMonitorAssignmentStateForTests()
 
     for workspace in Workspace.all {
+        workspace.resetMonitorAssignmentForTests()
         workspace.zoneContainers = [:]
         workspace.activeZoneProfile = nil
         workspace.savedRootOrientation = nil
@@ -50,24 +66,31 @@ func setUpWorkspacesForTests() {
 }
 
 struct FakeMonitor: Monitor {
-    let monitorAppKitNsScreenScreensId: Int = 1
-    let name: String = "Fake"
+    let monitorAppKitNsScreenScreensId: Int
+    let name: String
     let rect: Rect
     let visibleRect: Rect
     let width: CGFloat
     let height: CGFloat
-    let isMain: Bool = false
+    let isMain: Bool
 
-    init(width: CGFloat, height: CGFloat) {
-        let rect = Rect(topLeftX: 0, topLeftY: 0, width: width, height: height)
+    init(width: CGFloat, height: CGFloat, topLeftX: CGFloat = 0, topLeftY: CGFloat = 0, name: String = "Fake", monitorAppKitNsScreenScreensId: Int = 1, isMain: Bool = false) {
+        let rect = Rect(topLeftX: topLeftX, topLeftY: topLeftY, width: width, height: height)
+        self.monitorAppKitNsScreenScreensId = monitorAppKitNsScreenScreensId
+        self.name = name
         self.rect = rect
         visibleRect = rect
         self.width = width
         self.height = height
+        self.isMain = isMain
     }
 
-    static var ultrawide: FakeMonitor { FakeMonitor(width: 3440, height: 1440) }
-    static var standard: FakeMonitor { FakeMonitor(width: 1920, height: 1080) }
+    static var ultrawide: FakeMonitor {
+        FakeMonitor(width: 3440, height: 1440, name: "AG493UG7R4", monitorAppKitNsScreenScreensId: 1, isMain: true)
+    }
+    static var standard: FakeMonitor {
+        FakeMonitor(width: 1920, height: 1080, name: "Laptop", monitorAppKitNsScreenScreensId: 1, isMain: true)
+    }
 }
 
 extension ParsedCmd {

@@ -37,6 +37,7 @@ import Foundation
             cancellable: false,
             layoutWorkspaces: false,
         )
+        await applyMatchingMonitorProfile()
         try await runLightSession(.startup, .forceRun) {
             smartLayoutAtStartup()
             _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv, .emptyStdin)
