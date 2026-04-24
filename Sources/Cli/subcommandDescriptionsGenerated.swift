@@ -48,4 +48,5 @@ let subcommandDescriptions = [
     ["  zone-focus-mode", "Collapse non-focused zones and expand one named zone"],
     ["  zone-memory", "Inspect or clear persisted zone-memory entries"],
     ["  zone-preset", "Apply or reset a named zone preset"],
+    ["  zone", "Inspect the active zone on the focused workspace"],
 ]

@@ -22,7 +22,7 @@ aerospace subscribe [-h|--help] [--all] [--no-send-initial] [<event>...]
 This command connects to the AeroSpace server and receives real-time event notifications as JSON lines.
 The connection remains open until terminated (e.g., via Ctrl+C).
 
-On connect, the current state is sent immediately (focus-changed with current window/workspace, mode-changed with current mode, etc.).
+On connect, the current state is sent immediately (focus-changed with current window/workspace/zone, mode-changed with current mode, etc.).
 
 // =========================================================== Options
 include::util/conditional-options-header.adoc[]
@@ -38,7 +38,7 @@ include::./util/conditional-arguments-header.adoc[]
 
 The following events can be subscribed to:
 
-focus-changed:: Fired when window focus changes. Includes `windowId`, `workspace`.
+focus-changed:: Fired when window focus changes. Includes `windowId`, `workspace`, and `zoneName` when zones are active.
 
 focused-monitor-changed:: Fired when the focused monitor changes. Includes `workspace`, `monitorId`.
 
@@ -52,6 +52,14 @@ window-routed:: Fired when the runtime placement pipeline routes a window into a
 
 binding-triggered:: Fired when a keyboard binding is triggered. Includes `binding`, `mode`.
 
+zone-focused:: Fired when the active zone changes. Includes `workspace`, `zoneName`.
+
+zone-preset-changed:: Fired when the active workspace's zone preset changes. Includes `workspace`, `presetName`.
+
+zone-layout-changed:: Fired when a zone's runtime layout changes. Includes `workspace`, `zoneName`, `layout`.
+
+zone-window-count-changed:: Fired when a zone's window count changes. Includes `workspace`, `zoneName`, `windowCount`.
+
 // =========================================================== Output Format
 include::util/conditional-output-format-header.adoc[]
 
@@ -61,7 +69,9 @@ Events are output as JSON lines (one JSON object per line):
 {"_event":"focused-monitor-changed","monitorId":1,"workspace":"M"}
 {"_event":"focused-workspace-changed","prevWorkspace":"M","workspace":"M"}
 {"_event":"mode-changed","mode":"main"}
-{"_event":"focus-changed","windowId":28218,"workspace":"M"}
+{"_event":"focus-changed","windowId":28218,"workspace":"M","zoneName":"center"}
+{"_event":"zone-focused","workspace":"M","zoneName":"center"}
+{"_event":"zone-layout-changed","layout":"h_tiles","workspace":"M","zoneName":"center"}
 ----
 
 // end::body[]

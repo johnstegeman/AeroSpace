@@ -115,6 +115,7 @@ extension Workspace {
 // Used by focus-back-and-forth
 @MainActor private var _prevFocus: FrozenFocus? = nil
 @MainActor var prevFocus: LiveFocus? { _prevFocus?.live.takeIf { $0 != focus } }
+@MainActor private var _lastBroadcastZoneFocus: (workspaceName: String, zoneName: String?)? = nil
 
 @MainActor private var onFocusChangedRecursionGuard = false
 // Should be called in refreshSession
@@ -169,10 +170,16 @@ extension Workspace {
     }
 }
 @MainActor private func onFocusChanged(_ focus: LiveFocus) {
+    let focusedZoneName: String? = focus.windowOrNil.flatMap { window in
+        zoneName(for: window, in: focus.workspace)
+    }
     broadcastEvent(.focusChanged(
         windowId: focus.windowOrNil?.windowId,
         workspace: focus.workspace.name,
+        appName: focus.windowOrNil?.app.name,
+        zoneName: focusedZoneName,
     ))
+    broadcastZoneFocusedIfNeeded(workspace: focus.workspace, zoneName: focusedZoneName)
     if config.onFocusChanged.isEmpty { return }
     guard let token: RunSessionGuard = .isServerEnabled else { return }
     // todo potential optimization: don't run runSession if we are already in runSession
@@ -181,6 +188,15 @@ extension Workspace {
             _ = try await config.onFocusChanged.runCmdSeq(.defaultEnv.withFocus(focus), .emptyStdin)
         }
     }
+}
+
+@MainActor
+func broadcastZoneFocusedIfNeeded(workspace: Workspace, zoneName: String?) {
+    let next = (workspace.name, zoneName)
+    guard _lastBroadcastZoneFocus?.workspaceName != next.0 || _lastBroadcastZoneFocus?.zoneName != next.1 else { return }
+    _lastBroadcastZoneFocus = next
+    guard let zoneName else { return }
+    broadcastEvent(.zoneFocused(workspace: workspace.name, zoneName: zoneName))
 }
 
 @MainActor private func onWorkspaceChanged(_ oldWorkspace: String, _ newWorkspace: String) {

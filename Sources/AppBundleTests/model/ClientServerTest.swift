@@ -88,6 +88,18 @@ final class ClientServerTest: XCTestCase {
 
             (.bindingTriggered(mode: "main", binding: "alt-h"),
              #"{"_event":"binding-triggered","binding":"alt-h","mode":"main"}"#),
+
+            (.zoneFocused(workspace: "1", zoneName: "center"),
+             #"{"_event":"zone-focused","workspace":"1","zoneName":"center"}"#),
+
+            (.zonePresetChanged(workspace: "1", presetName: "balanced"),
+             #"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"1"}"#),
+
+            (.zoneLayoutChanged(workspace: "1", zoneName: "left", layout: "h_accordion"),
+             #"{"_event":"zone-layout-changed","layout":"h_accordion","workspace":"1","zoneName":"left"}"#),
+
+            (.zoneWindowCountChanged(workspace: "1", zoneName: "center", windowCount: 2),
+             #"{"_event":"zone-window-count-changed","windowCount":2,"workspace":"1","zoneName":"center"}"#),
         ]
         for (event, expectedJson) in testData {
             let data = try! encoder.encode(event)
@@ -105,6 +117,10 @@ final class ClientServerTest: XCTestCase {
             (#"{"_event":"window-detected","windowId":456}"#, .windowDetected),
             (#"{"_event":"window-routed","windowId":456,"zoneName":"right","source":"zoneMemory"}"#, .windowRouted),
             (#"{"_event":"binding-triggered","mode":"main","binding":"alt-h"}"#, .bindingTriggered),
+            (#"{"_event":"zone-focused","workspace":"1","zoneName":"center"}"#, .zoneFocused),
+            (#"{"_event":"zone-preset-changed","presetName":"balanced","workspace":"1"}"#, .zonePresetChanged),
+            (#"{"_event":"zone-layout-changed","layout":"h_accordion","workspace":"1","zoneName":"left"}"#, .zoneLayoutChanged),
+            (#"{"_event":"zone-window-count-changed","windowCount":2,"workspace":"1","zoneName":"center"}"#, .zoneWindowCountChanged),
         ]
         for (json, expectedEventType) in testData {
             let data = json.data(using: .utf8)!

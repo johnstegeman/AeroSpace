@@ -26,6 +26,7 @@ struct ZonePresetCommand: Command {
             workspace.ensureZoneContainers(for: workspace.workspaceMonitor, force: true)
         }
         updateTrayText()
+        broadcastEvent(.zonePresetChanged(workspace: focus.workspace.name, presetName: activeZonePresetName))
         return .succ
     }
 }

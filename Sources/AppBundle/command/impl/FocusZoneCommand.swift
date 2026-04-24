@@ -43,6 +43,7 @@ struct FocusZoneCommand: Command {
             return .from(bool: mruWindow.focusWindow())
         } else {
             workspace.focusedZone = zoneName
+            broadcastZoneFocusedIfNeeded(workspace: workspace, zoneName: zoneName)
             updateTrayText()
             return .succ
         }

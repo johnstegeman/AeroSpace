@@ -1,0 +1,33 @@
+= aerospace-zone(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-zone
+// tag::purpose[]
+:manpurpose: Inspect the active zone on the focused workspace
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace zone [-h|--help] --json
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+This command returns the currently focused workspace's active zone as a JSON object with:
+
+- `zoneId`
+- `layout`
+- `windowCount`
+- `isFocused`
+
+The command fails when zones are not active on the focused workspace or when the workspace has no active zone.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+--json:: Print JSON output
+// end::body[]
+
+include::util/man-footer.adoc[]

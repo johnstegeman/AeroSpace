@@ -3,41 +3,21 @@ import Foundation
 
 struct ZoneSnapshot: Encodable {
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var workspace: String
+    var workspace: String
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var monitorId: Int?
+    var monitorId: Int?
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var monitorName: String
+    var monitorName: String
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var zoneId: String
+    var zoneId: String
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var layout: String
+    var layout: String
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var isFocused: Bool
+    var isFocused: Bool
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var windowCount: Int
+    var windowCount: Int
     // periphery:ignore - false positive unused warning. The var properties are serialized to JSON
-    private var weight: Double
-
-    init(
-        workspace: String,
-        monitorId: Int?,
-        monitorName: String,
-        zoneId: String,
-        layout: String,
-        isFocused: Bool,
-        windowCount: Int,
-        weight: Double,
-    ) {
-        self.workspace = workspace
-        self.monitorId = monitorId
-        self.monitorName = monitorName
-        self.zoneId = zoneId
-        self.layout = layout
-        self.isFocused = isFocused
-        self.windowCount = windowCount
-        self.weight = weight
-    }
+    var weight: Double
 
     enum CodingKeys: String, CodingKey {
         case workspace

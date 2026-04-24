@@ -188,3 +188,6 @@ let zone_preset_help_generated = """
     USAGE: zone-preset [-h|--help] <preset-name>
     OR: aerospace zone-preset [-h|--help] --reset
     """
+let zone_help_generated = """
+    USAGE: zone [-h|--help] --json
+    """

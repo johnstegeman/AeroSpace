@@ -86,6 +86,8 @@ extension CmdArgs {
                 command = TestCommand(args: self as! TestCmdArgs)
             case .triggerBinding:
                 command = TriggerBindingCommand(args: self as! TriggerBindingCmdArgs)
+            case .zone:
+                command = ZoneCommand(args: self as! ZoneCmdArgs)
             case .volume:
                 command = VolumeCommand(args: self as! VolumeCmdArgs)
             case .workspace:
