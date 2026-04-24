@@ -6,6 +6,69 @@ import XCTest
 final class ZoneNewWindowPlacementTest: XCTestCase {
     override func setUp() async throws { setUpWorkspacesForTests() }
 
+    func testNewWindow_fallbackToCenter() async throws {
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+        try await window.relayoutWindow(on: workspace, forceTile: true)
+        XCTAssertTrue(window.parent === workspace.zoneContainers["center"], "No MRU window -> should land in center zone")
+    }
+
+    func testNewWindow_followsMruZone() async throws {
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let left = workspace.zoneContainers["left"]!
+        let windowA = TestWindow.new(id: 1, parent: left)
+        let windowB = TestWindow.new(id: 2, parent: workspace.rootTilingContainer)
+        try await windowB.relayoutWindow(on: workspace, forceTile: true)
+        XCTAssertTrue(windowA.parent === left, "Existing window should stay in left zone")
+        XCTAssertTrue(windowB.parent === left, "New window should follow MRU zone")
+    }
+
+    func testNewWindow_fallbackToRoot_whenNoZones() async throws {
+        let workspace = Workspace.get(byName: name)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+        try await window.relayoutWindow(on: workspace, forceTile: true)
+        XCTAssertTrue(window.parent === workspace.rootTilingContainer, "No zones -> should fall back to rootTilingContainer")
+    }
+
+    func testNewWindow_fallbackToMiddleZone_twoZoneLayout() async throws {
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        XCTAssertNil(workspace.zoneContainers["center"])
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+        try await window.relayoutWindow(on: workspace, forceTile: true)
+        XCTAssertTrue(window.parent === workspace.zoneContainers["secondary"]!)
+    }
+
+    func testFloatingWindow_doesNotOccupyZone() {
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        let center = workspace.zoneContainers["center"]!
+        let window = TestWindow.new(id: 1, parent: center)
+
+        window.bindAsFloatingWindow(to: workspace)
+
+        XCTAssertTrue(window.parent === workspace)
+        XCTAssertFalse(center.children.contains { $0 === window })
+        XCTAssertNotNil(workspace.zoneContainers["center"])
+    }
+
+    func testFloatingDefaults_areAppliedByRuntimePlacementPipeline() {
+        config.floating.appIds = [TestApp.shared.rawAppBundleId.orDie()]
+
+        let workspace = Workspace.get(byName: name)
+        let window = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+
+        applyRuntimePlacementDefaults(window)
+
+        XCTAssertTrue(window.parent === workspace, "[floating] should float matching apps without callback sugar")
+    }
+
     func testNewWindow_appendPolicy_appendsToZoneRoot() async throws {
         config.zones.behavior["left"] = ZoneBehavior(newWindow: .append)
 
@@ -56,5 +119,54 @@ final class ZoneNewWindowPlacementTest: XCTestCase {
 
         XCTAssertTrue(newWindow.parent === left, "append-hidden should still add the window to the target stack zone")
         XCTAssertTrue(left.mostRecentWindowRecursive === existing, "append-hidden should preserve the visible stack child")
+    }
+
+    func testNewWindow_staleFocusedZoneHint_isDroppedBeforeMruPlacement() async throws {
+        config.zones.zones = [
+            ZoneDefinition(id: "left", width: 0.25, layout: .tiles),
+            ZoneDefinition(id: "center", width: 0.5, layout: .tiles),
+            ZoneDefinition(id: "right", width: 0.25, layout: .tiles),
+        ]
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+        workspace.focusedZone = "left"
+
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide, force: true)
+
+        let main = workspace.zoneContainers["main"]!
+        _ = TestWindow.new(id: 1, parent: main)
+
+        let newWindow = TestWindow.new(id: 2, parent: workspace.rootTilingContainer)
+        try await newWindow.relayoutWindow(on: workspace, forceTile: true)
+
+        XCTAssertEqual(workspace.focusedZone, "left")
+        XCTAssertTrue(newWindow.parent === main, "Stale hints should not override MRU placement")
+    }
+
+    func testRememberedZoneFallback_reportsMiddleZoneSource() {
+        config.zones.zones = [
+            ZoneDefinition(id: "main", width: 0.6, layout: .tiles),
+            ZoneDefinition(id: "secondary", width: 0.4, layout: .tiles),
+        ]
+
+        let workspace = Workspace.get(byName: name)
+        workspace.ensureZoneContainers(for: FakeMonitor.ultrawide)
+
+        let profile = workspace.activeZoneProfile.orDie()
+        let window = TestWindow.new(id: 1, parent: workspace.zoneContainers["main"]!)
+        ZoneMemory.shared.rememberZone("right", for: window, profile: profile)
+
+        let decision = resolveNewTilingWindowPlacement(
+            in: workspace,
+            appBundleId: TestApp.shared.rawAppBundleId.orDie(),
+        )
+
+        XCTAssertEqual(decision.source, .middleZoneFallback)
+        XCTAssertTrue(decision.bindingData.parent === workspace.zoneContainers["secondary"]!)
     }
 }

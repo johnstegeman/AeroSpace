@@ -396,6 +396,33 @@ final class ConfigTest: XCTestCase {
         assertEquals(errors, [])
     }
 
+    func testParseFloatingDefaults() {
+        let (parsed, errors) = parseConfig(
+            """
+            [floating]
+                app-ids = ['com.apple.finder', 'com.raycast.macos']
+
+            [[on-window-detected]]
+                if.app-id = 'com.apple.systempreferences'
+                run = ['move-node-to-workspace W']
+            """,
+        )
+        assertEquals(errors, [])
+        assertEquals(parsed.floating, FloatingConfig(appIds: ["com.apple.finder", "com.raycast.macos"]))
+        assertEquals(parsed.onWindowDetected, [
+            WindowDetectedCallback(
+                matcher: WindowDetectedCallbackMatcher(
+                    appId: "com.apple.systempreferences",
+                    appNameRegexSubstring: nil,
+                    windowTitleRegexSubstring: nil,
+                ),
+                rawRun: [
+                    MoveNodeToWorkspaceCommand(args: MoveNodeToWorkspaceCmdArgs(workspace: "W")),
+                ],
+            ),
+        ])
+    }
+
     func testParseZoneInsertionBehavior() {
         let (parsed, errors) = parseConfig(
             """

@@ -61,6 +61,7 @@ struct Config: ConvenienceCopyable {
     var workspaceToMonitorForceAssignment: [String: [MonitorDescription]] = [:]
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
+    var floating: FloatingConfig = FloatingConfig()
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
@@ -71,6 +72,11 @@ struct ZoneDefinition {
     var id: String
     var width: Double
     var layout: Layout
+}
+
+struct FloatingConfig: ConvenienceCopyable, Equatable {
+    /// App bundle IDs whose windows should float by default.
+    var appIds: [String] = []
 }
 
 struct ZoneBehavior: ConvenienceCopyable, Equatable {

@@ -124,6 +124,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
     "zone-presets": Parser(\.zonePresets, parseZonePresetsArray),
+    "floating": Parser(\.floating, parseFloatingConfig),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
@@ -288,6 +289,14 @@ private let zonesConfigParser: [String: any ParserProtocol<ZonesConfig>] = [
     "widths": Parser(\.zones, skipParsing([ZoneDefinition]())),
     "layouts": Parser(\.zones, skipParsing([ZoneDefinition]())),
 ]
+
+private let floatingConfigParser: [String: any ParserProtocol<FloatingConfig>] = [
+    "app-ids": Parser(\.appIds, parseArrayOfStrings),
+]
+
+func parseFloatingConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> FloatingConfig {
+    parseTable(raw, FloatingConfig(), floatingConfigParser, backtrace, &errors)
+}
 
 func parseZonesConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> ZonesConfig {
     var result = parseTable(raw, ZonesConfig(), zonesConfigParser, backtrace, &errors)

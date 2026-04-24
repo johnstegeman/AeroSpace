@@ -79,6 +79,12 @@ on-mode-changed = []
     outer.top =        0
     outer.right =      0
 
+# Apps that should float by default.
+# Matching apps are floated by the runtime placement pipeline before generic on-window-detected callbacks run.
+# Uncomment and customize as needed.
+#[floating]
+#    app-ids = ['com.apple.finder', 'com.raycast.macos']
+
 # Example zone insertion policies.
 # Unspecified zones default to 'after-focused'.
 # [zones.behavior.left]

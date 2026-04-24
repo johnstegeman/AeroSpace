@@ -37,7 +37,35 @@ func moveWindowToWorkspace(_ window: Window, _ targetWorkspace: Workspace, _ io:
                 .succ(io.err("Window '\(window.windowId)' already belongs to workspace '\(targetWorkspace.name)'. Tip: use --fail-if-noop to exit with non-zero code"))
         }
     }
-    let targetContainer: NonLeafTreeNodeObject = window.isFloating ? targetWorkspace : targetWorkspace.rootTilingContainer
-    window.bind(to: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
+    targetWorkspace.ensureZoneContainers(for: targetWorkspace.workspaceMonitor)
+    let targetContainer: NonLeafTreeNodeObject
+    let zoneBinding: BindingData?
+    if window.isFloating {
+        targetContainer = targetWorkspace
+        zoneBinding = nil
+    } else if !targetWorkspace.zoneContainers.isEmpty {
+        let profile = MonitorProfile([targetWorkspace.workspaceMonitor])
+        if let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
+           let decision = targetWorkspace.resolveZonePlacement(preferredZoneName: zoneName, source: .zoneMemory)
+        {
+            targetContainer = decision.bindingData.parent
+            zoneBinding = decision.bindingData
+        } else {
+            let fallback = targetWorkspace.resolveZonePlacement(
+                preferredZoneName: targetWorkspace.activeZoneDefinitions.isEmpty
+                    ? nil
+                    : targetWorkspace.activeZoneDefinitions[targetWorkspace.activeZoneDefinitions.count / 2].id,
+                source: .middleZoneFallback,
+            )
+            targetContainer = fallback?.bindingData.parent ?? targetWorkspace.rootTilingContainer
+            zoneBinding = fallback?.bindingData
+        }
+    } else {
+        targetContainer = targetWorkspace.rootTilingContainer
+        zoneBinding = nil
+    }
+    let resolvedBinding = zoneBinding ?? BindingData(parent: targetContainer, adaptiveWeight: WEIGHT_AUTO, index: index)
+    window.bind(to: resolvedBinding.parent, adaptiveWeight: resolvedBinding.adaptiveWeight, index: resolvedBinding.index)
+    resolvedBinding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
     return .from(bool: focusFollowsWindow ? window.focusWindow() : true)
 }

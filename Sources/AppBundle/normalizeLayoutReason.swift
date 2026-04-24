@@ -57,7 +57,20 @@ func exitMacOsNativeUnconventionalState(window: Window, prevParentKind: NonLeafT
         case .workspace:
             window.bindAsFloatingWindow(to: workspace)
         case .tilingContainer:
-            try await window.relayoutWindow(on: workspace, forceTile: true)
+            if !workspace.zoneContainers.isEmpty,
+               let profile = workspace.activeZoneProfile,
+               let zoneName = ZoneMemory.shared.rememberedZone(for: window, profile: profile),
+               let zone = workspace.zoneContainers[zoneName]
+            {
+                window.bind(
+                    to: decision.bindingData.parent,
+                    adaptiveWeight: decision.bindingData.adaptiveWeight,
+                    index: decision.bindingData.index,
+                )
+                decision.bindingData.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
+            } else {
+                try await window.relayoutWindow(on: workspace, forceTile: true)
+            }
         case .macosPopupWindowsContainer: // Since the window was minimized/fullscreened it was mistakenly detected as popup. Relayout the window
             try await window.relayoutWindow(on: workspace)
         case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer, .macosHiddenAppsWindowsContainer: // wtf case, should never be possible. But If encounter it, let's just re-layout window
