@@ -1,6 +1,7 @@
 import Common
 
 enum WindowTilingPlacementSource: String {
+    case appRouting
     case zoneMemory
     case startupRect
     case focusedZoneHint
@@ -21,6 +22,12 @@ func resolveNewTilingWindowPlacement(
     appBundleId: String?,
     startupRect: Rect? = nil,
 ) -> WindowTilingPlacementDecision {
+    if let appBundleId,
+       let zoneName = config.zones.appRouting[appBundleId],
+       let decision = workspace.resolveExplicitZonePlacement(zoneName: zoneName, source: .appRouting)
+    {
+        return decision
+    }
     if let appBundleId,
        let profile = workspace.activeZoneProfile,
        let zoneName = ZoneMemory.shared.rememberedZone(forBundleId: appBundleId, profile: profile),

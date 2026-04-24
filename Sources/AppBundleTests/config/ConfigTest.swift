@@ -423,6 +423,21 @@ final class ConfigTest: XCTestCase {
         ])
     }
 
+    func testParseZoneAppRouting() {
+        let (parsed, errors) = parseConfig(
+            """
+            [zones.app-routing]
+                "com.tinyspeck.slackmacgap" = 'right'
+                "com.googlecode.iterm2" = 'left'
+            """,
+        )
+        assertEquals(errors, [])
+        assertEquals(parsed.zones.appRouting, [
+            "com.tinyspeck.slackmacgap": "right",
+            "com.googlecode.iterm2": "left",
+        ])
+    }
+
     func testParseZoneInsertionBehavior() {
         let (parsed, errors) = parseConfig(
             """

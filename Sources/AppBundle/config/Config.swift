@@ -109,6 +109,9 @@ struct ZonesConfig: ConvenienceCopyable {
     /// Per-zone insertion behavior for newly created tiling windows.
     /// Unspecified zones default to `.afterFocused`.
     var behavior: [String: ZoneBehavior] = [:]
+    /// Declarative app-bundle-id to zone routing defaults.
+    /// These apply only when the target zone exists in the active layout.
+    var appRouting: [String: String] = [:]
 }
 
 enum DefaultContainerOrientation: String {

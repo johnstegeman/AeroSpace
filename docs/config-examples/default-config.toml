@@ -85,6 +85,12 @@ on-mode-changed = []
 #[floating]
 #    app-ids = ['com.apple.finder', 'com.raycast.macos']
 
+# Declarative app-to-zone defaults. These win over remembered zone history, but only when the
+# target zone exists in the active layout.
+#[zones.app-routing]
+#    'com.tinyspeck.slackmacgap' = 'right'
+#    'com.googlecode.iterm2' = 'left'
+
 # Example zone insertion policies.
 # Unspecified zones default to 'after-focused'.
 # [zones.behavior.left]
