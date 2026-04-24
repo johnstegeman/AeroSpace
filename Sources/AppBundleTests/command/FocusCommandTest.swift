@@ -248,6 +248,25 @@ final class FocusCommandTest: XCTestCase {
         assertEquals(try await FocusCommand(args: args).run(.defaultEnv, .emptyStdin).exitCode.rawValue, 0)
         assertEquals(focus.windowOrNil?.windowId, 1)
     }
+
+    func testFocusIntoAndWithinStackUsesMostRecentChild() async throws {
+        let workspace = Workspace.get(byName: name)
+        var stackedBottom: Window!
+        workspace.rootTilingContainer.apply {
+            assertEquals(TestWindow.new(id: 1, parent: $0).focusWindow(), true)
+            let stack = TilingContainer(parent: $0, adaptiveWeight: 1, .v, .stack, index: INDEX_BIND_LAST)
+            _ = TestWindow.new(id: 2, parent: stack)
+            stackedBottom = TestWindow.new(id: 3, parent: stack)
+        }
+
+        stackedBottom.markAsMostRecentChild()
+
+        try await FocusCommand.new(direction: .right).run(.defaultEnv, .emptyStdin)
+        assertEquals(focus.windowOrNil?.windowId, 3)
+
+        try await FocusCommand.new(direction: .up).run(.defaultEnv, .emptyStdin)
+        assertEquals(focus.windowOrNil?.windowId, 2)
+    }
 }
 
 extension FocusCommand {

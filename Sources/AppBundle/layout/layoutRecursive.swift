@@ -46,6 +46,8 @@ extension TreeNode {
                         try await container.layoutTiles(point, width: width, height: height, virtual: virtual, context)
                     case .accordion:
                         try await container.layoutAccordion(point, width: width, height: height, virtual: virtual, context)
+                    case .stack:
+                        try await container.layoutStack(point, width: width, height: height, virtual: virtual, context)
                 }
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer,
                  .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:
@@ -171,6 +173,17 @@ extension TilingContainer {
                         context,
                     )
             }
+        }
+    }
+
+    @MainActor
+    fileprivate func layoutStack(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
+        let activeChild = mostRecentChild
+        for child in children where child !== activeChild {
+            try await child.layoutRecursive(point, width: width, height: height, virtual: virtual, context)
+        }
+        if let activeChild {
+            try await activeChild.layoutRecursive(point, width: width, height: height, virtual: virtual, context)
         }
     }
 }

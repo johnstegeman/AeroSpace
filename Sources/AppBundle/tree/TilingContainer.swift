@@ -59,6 +59,27 @@ extension TilingContainer {
 enum Layout: String {
     case tiles
     case accordion
+    case stack
+}
+
+extension TilingContainer {
+    @MainActor
+    func matchesDirection(_ direction: CardinalDirection) -> Bool {
+        if layout == .stack {
+            return direction.orientation == .v
+        }
+        return orientation == direction.orientation
+    }
+}
+
+extension CardinalDirection {
+    @MainActor
+    func containerFocusOffset(_ container: TilingContainer) -> Int {
+        if container.layout == .stack && orientation == .v {
+            return self == .up ? -1 : 1
+        }
+        return focusOffset
+    }
 }
 
 extension String {

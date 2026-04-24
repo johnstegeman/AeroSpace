@@ -19,7 +19,7 @@ struct SwapCommand: Command {
             case .direction(let direction):
                 switch currentWindow.closestParent(hasChildrenInDirection: direction, withLayout: nil) {
                     case let (parent, ownIndex)?:
-                        targetWindow = parent.children[ownIndex + direction.focusOffset].findLeafWindowRecursive(snappedTo: direction.opposite)
+                        targetWindow = parent.children[ownIndex + direction.containerFocusOffset(parent)].findLeafWindowRecursive(snappedTo: direction.opposite)
                     case nil where args.wrapAround:
                         targetWindow = target.workspace.findLeafWindowRecursive(snappedTo: direction.opposite)
                     case nil:
@@ -52,6 +52,7 @@ struct SwapCommand: Command {
         if args.swapFocus {
             return .from(bool: targetWindow.focusWindow())
         }
+        currentWindow.markAsMostRecentChild()
         return .succ
     }
 }

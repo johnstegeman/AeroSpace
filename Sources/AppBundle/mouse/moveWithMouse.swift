@@ -104,6 +104,8 @@ extension CGPoint {
                 })
             case .accordion:
                 tree.mostRecentChild
+            case .stack:
+                tree.mostRecentChild
         }
         guard let target else { return nil }
         return switch target.tilingTreeNodeCasesOrDie() {

@@ -299,6 +299,8 @@ extension TreeNode {
                         container.orientation == .h
                             ? .h_accordion(container.children.map(\.layoutDescription))
                             : .v_accordion(container.children.map(\.layoutDescription))
+                    case .stack:
+                        .stack(container.children.map(\.layoutDescription))
                 }
         }
     }
@@ -310,6 +312,7 @@ enum LayoutDescription: Equatable {
     case v_tiles([LayoutDescription])
     case h_accordion([LayoutDescription])
     case v_accordion([LayoutDescription])
+    case stack([LayoutDescription])
     case window(UInt32)
     case macosPopupWindowsContainer
     case macosMinimized

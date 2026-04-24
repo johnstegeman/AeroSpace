@@ -125,4 +125,16 @@ final class SwapCommandTest: XCTestCase {
         assertEquals(root.layoutDescription, .h_tiles([.window(1), .window(3), .window(2)]))
         assertEquals(focus.windowOrNil?.windowId, 3)
     }
+
+    func testSwapInsideStack() async throws {
+        let workspace = Workspace.get(byName: name)
+        let stack = TilingContainer(parent: workspace.rootTilingContainer, adaptiveWeight: 1, .v, .stack, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 1, parent: stack)
+        assertEquals(TestWindow.new(id: 2, parent: stack).focusWindow(), true)
+        TestWindow.new(id: 3, parent: stack)
+
+        try await SwapCommand(args: SwapCmdArgs(rawArgs: [], target: .direction(.down))).run(.defaultEnv, .emptyStdin)
+        assertEquals(workspace.rootTilingContainer.layoutDescription, .h_tiles([.stack([.window(1), .window(3), .window(2)])]))
+        assertEquals(focus.windowOrNil?.windowId, 2)
+    }
 }
