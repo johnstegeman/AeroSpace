@@ -123,6 +123,23 @@ extension Workspace {
 @MainActor
 func recordPlacement(_ decision: WindowTilingPlacementDecision, for window: Window) {
     window.lastPlacementRecord = WindowPlacementRecord(source: decision.source, zoneName: decision.zoneName)
+    var payload: [String: TelemetryValue] = [
+        "source": .string(decision.source.rawValue),
+        "windowId": .int(Int(window.windowId)),
+    ]
+    if let zoneName = decision.zoneName {
+        payload["zoneName"] = .string(zoneName)
+    }
+    if let appBundleId = window.app.rawAppBundleId {
+        payload["appBundleId"] = .string(appBundleId)
+    }
+    if let workspaceName = window.nodeWorkspace?.name ?? decision.bindingData.parent.nodeWorkspace?.name {
+        payload["workspace"] = .string(workspaceName)
+    }
+    payload["parentType"] = .string(String(describing: type(of: decision.bindingData.parent)))
+    payload["index"] = .int(decision.bindingData.index)
+    payload["adaptiveWeight"] = .double(decision.bindingData.adaptiveWeight)
+    telemetryLog("window.placementRecorded", payload: payload)
 }
 
 @MainActor

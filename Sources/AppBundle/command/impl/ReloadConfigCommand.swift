@@ -1,6 +1,12 @@
 import AppKit
 import Common
 
+struct ConfigLoadFailure: Error {
+    let message: String
+    let configUrl: URL?
+    let errorCount: Int
+}
+
 struct ReloadConfigCommand: Command {
     let args: ReloadConfigCmdArgs
     /*conforms*/ let shouldResetClosedWindowsCache = false
@@ -28,6 +34,14 @@ struct ReloadConfigCommand: Command {
     let result: Bool
     switch readConfig(forceConfigUrl: forceConfigUrl) {
         case .success(let (parsedConfig, url)):
+            telemetryLog("config.reloadFinished", payload: compactTelemetry(
+                ("configPath", .string(url.path)),
+                ("dryRun", .bool(args.dryRun)),
+                ("monitorProfileCount", .int(parsedConfig.monitorProfiles.count)),
+                ("ok", .bool(true)),
+                ("zoneDefinitionCount", .int(parsedConfig.zones.zones.count)),
+                ("zonePresetCount", .int(parsedConfig.zonePresets.count))
+            ))
             if !args.dryRun {
                 resetHotKeys()
                 config = parsedConfig
@@ -42,11 +56,17 @@ struct ReloadConfigCommand: Command {
                 await applyMatchingMonitorProfile()
             }
             result = true
-        case .failure(let msg):
-            stdout.append(msg)
+        case .failure(let failure):
+            stdout.append(failure.message)
+            telemetryLog("config.reloadFailed", payload: compactTelemetry(
+                ("configPath", failure.configUrl.map { .string($0.path) }),
+                ("dryRun", .bool(args.dryRun)),
+                ("errorCount", .int(failure.errorCount)),
+                ("message", .string(failure.message))
+            ))
             if !args.noGui {
                 Task { @MainActor in
-                    MessageModel.shared.message = Message(description: "AeroSpace Config Error", body: msg)
+                    MessageModel.shared.message = Message(description: "AeroSpace Config Error", body: failure.message)
                 }
             }
             result = false

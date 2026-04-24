@@ -97,6 +97,7 @@ private func newConnection(_ connection: NWConnection) async { // todo add exit 
                         let env = CmdEnv.init(
                             windowId: request.windowId.flattenOptional(),
                             workspaceName: request.workspace.flattenOptional(),
+                            commandSource: .cli,
                         )
                         let cmdResult = try await command.run(env, CmdStdin(request.stdin))
                         return ServerAnswer(

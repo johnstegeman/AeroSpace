@@ -50,6 +50,11 @@ func applyMatchingMonitorProfile() async {
 
     let previousProfileName = activeMonitorProfileName
     activeMonitorProfileName = matched?.name
+    telemetryLog("monitorProfile.evaluated", payload: compactTelemetry(
+        ("matchedProfile", telemetryString(matched?.name)),
+        ("monitorCount", .int(monitors.count)),
+        ("previousProfile", telemetryString(previousProfileName))
+    ))
 
     if let directive = matched?.applyZoneLayout {
         if directive == "disabled" {
@@ -58,6 +63,11 @@ func applyMatchingMonitorProfile() async {
                 zonesDisabledByProfile = true
                 refreshWorkspacesAfterZoneLayoutChange()
             }
+            telemetryLog("monitorProfile.zoneLayoutApplied", payload: compactTelemetry(
+                ("directive", .string(directive)),
+                ("matchedProfile", telemetryString(matched?.name)),
+                ("zonesDisabled", .bool(true))
+            ))
         } else if let preset = config.zonePresets[directive] {
             let previousPresetName = activeZonePresetName
             monitorProfileManagedZoneLayout = true
@@ -68,8 +78,18 @@ func applyMatchingMonitorProfile() async {
             if activeZonePresetName != previousPresetName {
                 broadcastEvent(.zonePresetChanged(workspace: focus.workspace.name, presetName: directive))
             }
+            telemetryLog("monitorProfile.zoneLayoutApplied", payload: compactTelemetry(
+                ("directive", .string(directive)),
+                ("matchedProfile", telemetryString(matched?.name)),
+                ("presetZoneCount", .int(preset.zones.count)),
+                ("zonesDisabled", .bool(false))
+            ))
         } else {
             eprint("monitor-profile '\(matched?.name ?? "unknown")': unknown apply-zone-layout preset '\(directive)'")
+            telemetryLog("monitorProfile.unknownZoneLayoutPreset", payload: compactTelemetry(
+                ("directive", .string(directive)),
+                ("matchedProfile", telemetryString(matched?.name))
+            ))
             clearMonitorProfileZoneLayoutIfNeeded()
         }
     } else {
@@ -77,6 +97,19 @@ func applyMatchingMonitorProfile() async {
     }
 
     if matched?.name != previousProfileName, let snapshotName = matched?.restoreWorkspaceSnapshot {
-        _ = await WorkspaceSnapshot.restoreReturningExitCode(name: snapshotName, io: CmdIo(stdin: .emptyStdin))
+        telemetryLog("monitorProfile.snapshotRestoreStarted", payload: compactTelemetry(
+            ("matchedProfile", telemetryString(matched?.name)),
+            ("snapshot", .string(snapshotName))
+        ))
+        let (exitCode, summary) = await WorkspaceSnapshot.restoreReturningResult(name: snapshotName, io: CmdIo(stdin: .emptyStdin))
+        telemetryLog("monitorProfile.snapshotRestoreFinished", payload: compactTelemetry(
+            ("exitCode", .int(Int(exitCode.rawValue))),
+            ("matchedProfile", telemetryString(matched?.name)),
+            ("restoredFloatingCount", summary.map { .int($0.restoredFloatingCount) }),
+            ("restoredTilingCount", summary.map { .int($0.restoredTilingCount) }),
+            ("skippedZoneAssignments", summary.map { .int($0.skippedZoneAssignments) }),
+            ("snapshot", .string(snapshotName)),
+            ("workspaceCount", summary.map { .int($0.workspaceCount) })
+        ))
     }
 }

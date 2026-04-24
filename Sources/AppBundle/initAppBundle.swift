@@ -7,6 +7,15 @@ import Foundation
         initTerminationHandler()
         unsafe _isCli = false
         initServerArgs()
+        let telemetryMetadata = await Telemetry.shared.sessionMetadata()
+        telemetryLog("session.started", payload: telemetryMetadata
+            .merging(telemetrySessionPayload()) { _, new in new }
+            .merging([
+            "appVersion": .string(aeroSpaceAppVersion),
+            "gitHash": .string(gitHash),
+            "isDebug": .bool(isDebug),
+            "readOnly": .bool(serverArgs.isReadOnly),
+        ]) { _, new in new })
         if isDebug {
             await toggleReleaseServerIfDebug(.off)
             interceptTermination(SIGINT)
@@ -40,7 +49,7 @@ import Foundation
         await applyMatchingMonitorProfile()
         try await runLightSession(.startup, .forceRun) {
             smartLayoutAtStartup()
-            _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv, .emptyStdin)
+            _ = try await config.afterStartupCommand.runCmdSeq(.defaultEnv.copy(\.commandSource, .afterStartupCommand), .emptyStdin)
         }
     }
 }

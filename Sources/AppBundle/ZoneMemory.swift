@@ -86,6 +86,15 @@ final class ZoneMemory {
             .sorted { ($0.profileKey, $0.appId, $0.zoneName) < ($1.profileKey, $1.appId, $1.zoneName) }
     }
 
+    func stats() -> (entryCount: Int, profileCount: Int, appCount: Int) {
+        let entries = entries()
+        return (
+            entryCount: entries.count,
+            profileCount: Set(entries.map(\.profileKey)).count,
+            appCount: Set(entries.map(\.appId)).count,
+        )
+    }
+
     @discardableResult
     func clearAll() -> Int {
         let removed = data.values.reduce(0) { $0 + $1.count }

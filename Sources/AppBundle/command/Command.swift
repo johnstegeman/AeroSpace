@@ -46,7 +46,29 @@ extension [Command] {
     func runCmdSeq(_ env: CmdEnv, _ io: sending CmdIo) async throws -> Int32ExitCode {
         var exitCode = Int32ExitCode(rawValue: EXIT_CODE_ZERO)
         for command in self {
-            exitCode = Int32ExitCode(rawValue: (try await command.run(env, io)).rawValue)
+            let stdoutStart = io.stdout.count
+            let stderrStart = io.stderr.count
+            let payload = commandTelemetryPayload(command, env)
+            telemetryLog("command.started", payload: payload)
+            do {
+                exitCode = Int32ExitCode(rawValue: (try await command.run(env, io)).rawValue)
+                let stderrLines: [String] = Swift.Array(io.stderr.dropFirst(stderrStart))
+                let stdoutLines: [String] = Swift.Array(io.stdout.dropFirst(stdoutStart))
+                var finishedPayload = payload
+                finishedPayload["exitCode"] = .int(Int(exitCode.rawValue))
+                finishedPayload["stderr"] = .array(stderrLines.map { .string($0) })
+                finishedPayload["stdout"] = .array(stdoutLines.map { .string($0) })
+                telemetryLog("command.finished", payload: finishedPayload)
+            } catch {
+                let stderrLines: [String] = Swift.Array(io.stderr.dropFirst(stderrStart))
+                let stdoutLines: [String] = Swift.Array(io.stdout.dropFirst(stdoutStart))
+                var failedPayload = payload
+                failedPayload["error"] = .string(String(describing: error))
+                failedPayload["stderr"] = .array(stderrLines.map { .string($0) })
+                failedPayload["stdout"] = .array(stdoutLines.map { .string($0) })
+                telemetryLog("command.failed", payload: failedPayload)
+                throw error
+            }
             if command.shouldResetClosedWindowsCache { resetClosedWindowsCache() }
             refreshModel()
         }
@@ -59,4 +81,22 @@ extension [Command] {
         let exitCode = try await runCmdSeq(env, io)
         return CmdResult(stdout: io.stdout, stderr: io.stderr, exitCode: exitCode)
     }
+}
+
+private func commandTelemetryPayload(_ command: any Command, _ env: CmdEnv) -> [String: TelemetryValue] {
+    var payload: [String: TelemetryValue] = [
+        "command": .string(command.info.kind.rawValue),
+        "description": .string(String(describing: command)),
+    ]
+    if let commandSource = env.commandSource {
+        payload["commandSource"] = .string(commandSource.rawValue)
+        payload["commandIsAutomation"] = .bool(commandSource != .hotkey && commandSource != .trayMenu && commandSource != .cli)
+    }
+    if let windowId = env.windowId {
+        payload["windowId"] = .int(Int(windowId))
+    }
+    if let workspaceName = env.workspaceName {
+        payload["workspace"] = .string(workspaceName)
+    }
+    return payload
 }

@@ -5,7 +5,7 @@ import TOMLDecoder
 import OrderedCollections
 
 @MainActor
-func readConfig(forceConfigUrl: URL? = nil) -> Result<(Config, URL), String> {
+func readConfig(forceConfigUrl: URL? = nil) -> Result<(Config, URL), ConfigLoadFailure> {
     let configUrl: URL
     if let forceConfigUrl {
         configUrl = forceConfigUrl
@@ -18,7 +18,7 @@ func readConfig(forceConfigUrl: URL? = nil) -> Result<(Config, URL), String> {
                     Ambiguous config error. Several configs found:
                     \(candidates.map(\.path).joined(separator: "\n"))
                     """
-                return .failure(msg)
+                return .failure(ConfigLoadFailure(message: msg, configUrl: nil, errorCount: candidates.count))
         }
     }
     let (parsedConfig, errors) = (try? String(contentsOf: configUrl, encoding: .utf8)).map { parseConfig($0) } ?? (defaultConfig, [])
@@ -31,7 +31,7 @@ func readConfig(forceConfigUrl: URL? = nil) -> Result<(Config, URL), String> {
 
             \(errors.map(\.description).joined(separator: "\n\n"))
             """
-        return .failure(msg)
+        return .failure(ConfigLoadFailure(message: msg, configUrl: configUrl, errorCount: errors.count))
     }
 }
 

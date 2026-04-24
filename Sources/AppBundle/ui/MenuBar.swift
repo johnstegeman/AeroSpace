@@ -38,7 +38,7 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
             Task {
                 try await runLightSession(.menuBarButton, .forceRun) { () throws in
                     _ = try await EnableCommand(args: EnableCmdArgs(rawArgs: [], targetState: .toggle))
-                        .run(.defaultEnv, .emptyStdin)
+                        .run(.defaultEnv.copy(\.commandSource, .trayMenu), .emptyStdin)
                 }
             }
         }.keyboardShortcut("E", modifiers: .command)

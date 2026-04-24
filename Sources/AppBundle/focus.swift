@@ -165,7 +165,12 @@ extension Workspace {
     // todo potential optimization: don't run runSession if we are already in runSession
     Task {
         try await runLightSession(.onFocusedMonitorChanged, token) {
-            _ = try await config.onFocusedMonitorChanged.runCmdSeq(.defaultEnv.withFocus(focus), .emptyStdin)
+            _ = try await config.onFocusedMonitorChanged.runCmdSeq(
+                .defaultEnv
+                    .copy(\.commandSource, .onFocusedMonitorChanged)
+                    .withFocus(focus),
+                .emptyStdin
+            )
         }
     }
 }
@@ -185,7 +190,12 @@ extension Workspace {
     // todo potential optimization: don't run runSession if we are already in runSession
     Task {
         try await runLightSession(.onFocusChanged, token) {
-            _ = try await config.onFocusChanged.runCmdSeq(.defaultEnv.withFocus(focus), .emptyStdin)
+            _ = try await config.onFocusChanged.runCmdSeq(
+                .defaultEnv
+                    .copy(\.commandSource, .onFocusChanged)
+                    .withFocus(focus),
+                .emptyStdin
+            )
         }
     }
 }

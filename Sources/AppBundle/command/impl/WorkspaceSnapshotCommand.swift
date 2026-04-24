@@ -21,6 +21,13 @@ enum WorkspaceSnapshot {
         let title: String?
     }
 
+    struct RestoreSummary {
+        let restoredFloatingCount: Int
+        let restoredTilingCount: Int
+        let skippedZoneAssignments: Int
+        let workspaceCount: Int
+    }
+
     enum SnapshotError: Error {
         case notFound
         case invalidFormat
@@ -42,6 +49,10 @@ enum WorkspaceSnapshot {
     @MainActor
     static func save(name: String, io: CmdIo) async -> BinaryExitCode {
         let snapshot = await snapshotJson()
+        telemetryLog("workspaceSnapshot.saveStarted", payload: [
+            "name": .string(name),
+            "workspaceCount": .int((snapshot["workspaces"] as? [[String: Any]])?.count ?? 0),
+        ])
         guard let data = try? JSONSerialization.data(withJSONObject: snapshot, options: [.prettyPrinted, .sortedKeys]) else {
             return .fail(io.err("workspace-snapshot: failed to serialize snapshot"))
         }
@@ -49,29 +60,49 @@ enum WorkspaceSnapshot {
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: url)
+            telemetryLog("workspaceSnapshot.saveFinished", payload: [
+                "name": .string(name),
+                "path": .string(url.path),
+                "sizeBytes": .int(data.count),
+            ])
             return .succ(io.out("Snapshot '\(name)' saved."))
         } catch {
+            telemetryLog("workspaceSnapshot.saveFailed", payload: [
+                "error": .string(String(describing: error)),
+                "name": .string(name),
+                "path": .string(url.path),
+            ])
             return .fail(io.err("workspace-snapshot: failed to write \(url.path): \(error)"))
         }
     }
 
     @MainActor
     static func restoreReturningExitCode(name: String, io: CmdIo) async -> BinaryExitCode {
+        let (exitCode, _) = await restoreReturningResult(name: name, io: io)
+        return exitCode
+    }
+
+    @MainActor
+    static func restoreReturningResult(name: String, io: CmdIo) async -> (BinaryExitCode, RestoreSummary?) {
         do {
-            try await restore(name: name, io: io)
-            return .succ(io.out("Snapshot '\(name)' restored."))
+            let summary = try await restore(name: name, io: io)
+            return (.succ(io.out("Snapshot '\(name)' restored.")), summary)
         } catch SnapshotError.notFound {
-            return .fail(io.err("workspace-snapshot: no snapshot named '\(name)' found at \(snapshotURL(name: name).path)"))
+            return (.fail(io.err("workspace-snapshot: no snapshot named '\(name)' found at \(snapshotURL(name: name).path)")), nil)
         } catch SnapshotError.invalidFormat {
-            return .fail(io.err("workspace-snapshot: snapshot '\(name)' has an invalid format"))
+            return (.fail(io.err("workspace-snapshot: snapshot '\(name)' has an invalid format")), nil)
         } catch {
-            return .fail(io.err("workspace-snapshot: restore failed: \(error)"))
+            return (.fail(io.err("workspace-snapshot: restore failed: \(error)")), nil)
         }
     }
 
     @MainActor
-    static func restore(name: String, io: CmdIo = CmdIo(stdin: .emptyStdin)) async throws {
+    static func restore(name: String, io: CmdIo = CmdIo(stdin: .emptyStdin)) async throws -> RestoreSummary {
         let url = snapshotURL(name: name)
+        telemetryLog("workspaceSnapshot.restoreStarted", payload: [
+            "name": .string(name),
+            "path": .string(url.path),
+        ])
         guard let data = try? Data(contentsOf: url) else { throw SnapshotError.notFound }
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let workspaces = root["workspaces"] as? [[String: Any]]
@@ -79,6 +110,8 @@ enum WorkspaceSnapshot {
 
         var placed: Set<ObjectIdentifier> = []
         var skippedZoneAssignments = 0
+        var restoredTilingCount = 0
+        var restoredFloatingCount = 0
         for workspaceJson in workspaces {
             guard let workspaceName = workspaceJson["name"] as? String else { continue }
             let workspace = Workspace.get(byName: workspaceName)
@@ -97,6 +130,7 @@ enum WorkspaceSnapshot {
                         let binding = workspace.bindingDataForNewWindow(inZone: zoneName, zone: zone)
                         window.bind(to: binding.parent, adaptiveWeight: binding.adaptiveWeight, index: binding.index)
                         binding.preferredMostRecentChildAfterBind?.markAsMostRecentChild()
+                        restoredTilingCount += 1
                     }
                 }
             }
@@ -119,6 +153,7 @@ enum WorkspaceSnapshot {
                     } else {
                         window.bind(to: workspace.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
                     }
+                    restoredTilingCount += 1
                 }
             }
 
@@ -128,12 +163,26 @@ enum WorkspaceSnapshot {
                           let window = await findWindow(entry: parsed, placed: &placed)
                     else { continue }
                     window.bindAsFloatingWindow(to: workspace)
+                    restoredFloatingCount += 1
                 }
             }
         }
         if skippedZoneAssignments > 0 {
             io.err("workspace-snapshot: skipped \(skippedZoneAssignments) zone assignment(s) because the destination zones were not active")
         }
+        telemetryLog("workspaceSnapshot.restoreFinished", payload: [
+            "name": .string(name),
+            "restoredFloatingCount": .int(restoredFloatingCount),
+            "restoredTilingCount": .int(restoredTilingCount),
+            "skippedZoneAssignments": .int(skippedZoneAssignments),
+            "workspaceCount": .int(workspaces.count),
+        ])
+        return RestoreSummary(
+            restoredFloatingCount: restoredFloatingCount,
+            restoredTilingCount: restoredTilingCount,
+            skippedZoneAssignments: skippedZoneAssignments,
+            workspaceCount: workspaces.count,
+        )
     }
 
     @MainActor
@@ -201,8 +250,20 @@ enum WorkspaceSnapshot {
         }
         if let best {
             _ = placed.insert(ObjectIdentifier(best.window))
+            let matchedTitle = try? await best.window.title
+            telemetryLog("workspaceSnapshot.windowMatched", payload: compactTelemetry(
+                ("bundleId", .string(entry.bundleId)),
+                ("matchedTitle", telemetryString(matchedTitle)),
+                ("savedTitle", telemetryString(entry.title)),
+                ("score", .int(best.score)),
+                ("windowId", .int(Int(best.window.windowId)))
+            ))
             return best.window
         }
+        telemetryLog("workspaceSnapshot.windowMatchMissed", payload: compactTelemetry(
+            ("bundleId", .string(entry.bundleId)),
+            ("savedTitle", telemetryString(entry.title))
+        ))
         return nil
     }
 

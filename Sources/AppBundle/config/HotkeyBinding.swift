@@ -38,7 +38,7 @@ extension HotKey {
                     ))
                     try await runLightSession(.hotkeyBinding, .checkServerIsEnabledOrDie()) { () throws in
                         _ = try await config.modes[activeMode]?.bindings[binding.descriptionWithKeyCode]?.commands
-                            .runCmdSeq(.defaultEnv, .emptyStdin)
+                            .runCmdSeq(.defaultEnv.copy(\.commandSource, .hotkey), .emptyStdin)
                     }
                 }
             }
@@ -54,7 +54,7 @@ extension HotKey {
         if !config.onModeChanged.isEmpty {
             guard let token: RunSessionGuard = .isServerEnabled else { return }
             try await runLightSession(.onModeChanged, token) {
-                _ = try await config.onModeChanged.runCmdSeq(.defaultEnv, .emptyStdin)
+                _ = try await config.onModeChanged.runCmdSeq(.defaultEnv.copy(\.commandSource, .onModeChanged), .emptyStdin)
             }
         }
     }

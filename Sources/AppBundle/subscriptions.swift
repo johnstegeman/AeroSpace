@@ -83,12 +83,40 @@ private let jsonEncoder: JSONEncoder = {
 func broadcastEvent(_ event: ServerEvent) {
     Task { @MainActor in
         broadcastEventForTesting?(event)
+        if let data = try? jsonEncoder.encode(event),
+           let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        {
+            telemetryLog("serverEvent.broadcast", payload: payload.mapValues(telemetryValue(from:)))
+        } else {
+            telemetryLog("serverEvent.broadcast", payload: ["eventType": .string(event.eventType.rawValue)])
+        }
         for (id, subscriber) in subscribers {
             guard subscriber.events.contains(event.eventType) else { continue }
             if await subscriber.connection.writeAtomic(event, jsonEncoder).error != nil {
                 _ = subscribers.removeValue(forKey: id)
             }
         }
+    }
+}
+
+private func telemetryValue(from value: Any) -> TelemetryValue {
+    switch value {
+        case let string as String:
+            .string(string)
+        case let int as Int:
+            .int(int)
+        case let bool as Bool:
+            .bool(bool)
+        case let double as Double:
+            .double(double)
+        case let number as NSNumber:
+            CFGetTypeID(number) == CFBooleanGetTypeID() ? .bool(number.boolValue) : .double(number.doubleValue)
+        case let array as [Any]:
+            .array(array.map(telemetryValue(from:)))
+        case let dict as [String: Any]:
+            .object(dict.mapValues(telemetryValue(from:)))
+        default:
+            .string(String(describing: value))
     }
 }
 
