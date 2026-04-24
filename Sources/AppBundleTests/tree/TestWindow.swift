@@ -39,4 +39,13 @@ final class TestWindow: Window, CustomStringConvertible {
     @MainActor override func getAxRect() async throws -> Rect? { // todo change to not Optional
         _rect
     }
+
+    override func setAxFrame(_ topLeft: CGPoint?, _ size: CGSize?) {
+        guard let rect = _rect else { return }
+        _rect = rect
+            .copy(\.topLeftX, topLeft?.x ?? rect.topLeftX)
+            .copy(\.topLeftY, topLeft?.y ?? rect.topLeftY)
+            .copy(\.width, size?.width ?? rect.width)
+            .copy(\.height, size?.height ?? rect.height)
+    }
 }

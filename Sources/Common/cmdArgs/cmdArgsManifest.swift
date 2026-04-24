@@ -32,6 +32,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case moveMouse = "move-mouse"
     case moveNodeToMonitor = "move-node-to-monitor"
     case moveNodeToWorkspace = "move-node-to-workspace"
+    case moveFloatingToZone = "move-floating-to-zone"
     case moveNodeToZone = "move-node-to-zone"
     case moveWorkspaceToMonitor = "move-workspace-to-monitor"
     case reloadConfig = "reload-config"
@@ -119,6 +120,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseMoveNodeToMonitorCmdArgs)
             case .moveNodeToWorkspace:
                 result[kind.rawValue] = SubCommandParser(parseMoveNodeToWorkspaceCmdArgs)
+            case .moveFloatingToZone:
+                result[kind.rawValue] = SubCommandParser(parseMoveFloatingToZoneCmdArgs)
             case .moveNodeToZone:
                 result[kind.rawValue] = SubCommandParser(parseMoveNodeToZoneCmdArgs)
             case .moveWorkspaceToMonitor:

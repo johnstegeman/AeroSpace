@@ -4,9 +4,7 @@ public struct ZoneCmdArgs: CmdArgs {
     public static let parser: CmdParser<Self> = .init(
         kind: .zone,
         allowInConfig: false,
-        help: """
-            USAGE: zone [-h|--help] --json
-            """,
+        help: zone_help_generated,
         flags: [
             "--json": trueBoolFlag(\.json),
         ],

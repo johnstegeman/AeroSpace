@@ -106,6 +106,9 @@ let macos_native_minimize_help_generated = """
 let mode_help_generated = """
     USAGE: mode [-h|--help] <binding-mode>
     """
+let move_floating_to_zone_help_generated = """
+    USAGE: move-floating-to-zone [-h|--help] (left|center|right)
+    """
 let move_mouse_help_generated = """
     USAGE: move-mouse [-h|--help] [--fail-if-noop] <mouse-position>
     """

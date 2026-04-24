@@ -1,0 +1,33 @@
+= aerospace-move-floating-to-zone(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-move-floating-to-zone
+// tag::purpose[]
+:manpurpose: Reposition the focused window into a named zone while preserving its floating size
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace move-floating-to-zone [-h|--help] (left|center|right)
+// end::synopsis[]
+
+== Description
+// tag::body[]
+{manpurpose}
+
+The window is not resized. Its position within the target zone mirrors where it was positioned within its current zone, or within the monitor rect if it was outside all zones.
+
+If the focused window is tiling, AeroSpace first converts it to a floating window on the current workspace and then repositions it into the target zone.
+
+The command updates persistent zone memory for the window's app bundle ID. That remembered assignment is still treated as a fallback: if `[zones.app-routing]` also defines the app, the explicit app route takes precedence on future placements.
+
+Zones are active only when the workspace is displayed on an ultrawide monitor (aspect ratio > 2.1:1). If zones are not active, the command is a no-op and prints an error to stderr.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+left|center|right:: The name of the zone to move the focused floating window into.
+// end::body[]
+
+include::util/man-footer.adoc[]
