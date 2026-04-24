@@ -91,6 +91,26 @@ final class ConfigTest: XCTestCase {
         )
     }
 
+    func testParseModeWithMehAndHyperModifierAliases() {
+        let (config, errors) = parseConfig(
+            """
+            [mode.main.binding]
+                meh-h = 'focus left'
+                hyper-m = 'mode service'
+            """,
+        )
+        assertEquals(errors, [])
+        let mehBinding = HotkeyBinding([.option, .control, .shift], .h, [FocusCommand.new(direction: .left)])
+        let hyperBinding = HotkeyBinding([.option, .control, .command, .shift], .m, [parseCommand("mode service").cmdOrDie])
+        assertEquals(
+            config.modes[mainModeId],
+            Mode(bindings: [
+                mehBinding.descriptionWithKeyCode: mehBinding,
+                hyperBinding.descriptionWithKeyCode: hyperBinding,
+            ]),
+        )
+    }
+
     func testModesMustContainDefaultModeError() {
         let (config, errors) = parseConfig(
             """
