@@ -1,0 +1,41 @@
+= aerospace-meeting-mode(1)
+include::util/man-attributes.adoc[]
+:manname: aerospace-meeting-mode
+// tag::purpose[]
+:manpurpose: Toggle a temporary meeting layout overlay and restore the prior workspace afterward
+// end::purpose[]
+
+== Synopsis
+[verse]
+// tag::synopsis[]
+aerospace meeting-mode [-h|--help] on
+aerospace meeting-mode [-h|--help] off
+aerospace meeting-mode [-h|--help] toggle
+// end::synopsis[]
+
+== Description
+
+// tag::body[]
+{manpurpose}
+
+`meeting-mode on` snapshots the current meeting workspace's zone layout, focused window, and per-zone window ordering, optionally activates the configured `[meeting].workspace`, optionally applies the configured `[meeting].preset`, and then routes configured meeting apps and support apps into their preferred zones.
+
+Floating windows are left alone. Tiling windows whose apps are not mentioned in `[meeting]` stay in their previous zones when possible, otherwise they fall back to the normal placement pipeline.
+
+Running support apps are unhidden and their minimized windows are restored when meeting mode turns on. Missing apps are not launched.
+
+`meeting-mode off` restores the previously active zone definitions, active preset name, and per-zone window ordering for that workspace.
+
+Forced zone rebuilds such as config reloads keep meeting mode active instead of silently reverting to the configured preset.
+
+If the ultrawide monitor is disconnected while meeting mode is active, the temporary meeting state is dropped automatically instead of being carried onto a non-zoned workspace, and persistent zone memory is left unchanged.
+
+The command only makes sense on workspaces where zones are currently active.
+
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+// end::body[]
+
+include::util/man-footer.adoc[]

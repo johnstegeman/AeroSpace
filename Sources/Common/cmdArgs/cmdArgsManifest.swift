@@ -35,6 +35,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case moveFloatingToZone = "move-floating-to-zone"
     case moveNodeToZone = "move-node-to-zone"
     case moveWorkspaceToMonitor = "move-workspace-to-monitor"
+    case meetingMode = "meeting-mode"
     case reloadConfig = "reload-config"
     case resize
     case split
@@ -129,6 +130,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseWorkspaceToMonitorCmdArgs)
                 // deprecated
                 result["move-workspace-to-display"] = SubCommandParser(MoveWorkspaceToMonitorCmdArgs.init)
+            case .meetingMode:
+                result[kind.rawValue] = SubCommandParser(parseMeetingModeCmdArgs)
             case .reloadConfig:
                 result[kind.rawValue] = SubCommandParser(ReloadConfigCmdArgs.init)
             case .resize:

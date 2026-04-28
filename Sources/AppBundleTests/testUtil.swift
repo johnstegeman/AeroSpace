@@ -49,6 +49,7 @@ func setUpWorkspacesForTests() {
         workspace.mruZones = []
         workspace.savedZoneWeights = nil
         workspace.focusModeZone = nil
+        workspace.meetingModeSnapshot = nil
         workspace.activeZoneDefinitions = []
         for child in workspace.children {
             child.unbindFromParent()

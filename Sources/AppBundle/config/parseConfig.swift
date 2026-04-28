@@ -124,6 +124,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "zones": Parser(\.zones, parseZonesConfig),
     "zone-presets": Parser(\.zonePresets, parseZonePresetsArray),
+    "meeting": Parser(\.meeting, parseMeetingConfig),
     "monitor-profiles": Parser(\.monitorProfiles, parseMonitorProfilesArray),
     "on-monitor-changed": Parser(\.onMonitorChanged, parseOnMonitorChangedArray),
     "floating": Parser(\.floating, parseFloatingConfig),
@@ -297,8 +298,21 @@ private let floatingConfigParser: [String: any ParserProtocol<FloatingConfig>] =
     "app-ids": Parser(\.appIds, parseArrayOfStrings),
 ]
 
+private let meetingConfigParser: [String: any ParserProtocol<MeetingConfig>] = [
+    "preset": Parser(\.preset, parseOptionalNonEmptyString),
+    "workspace": Parser(\.workspace, parseOptionalNonEmptyString),
+    "app-ids": Parser(\.appIds, parseArrayOfStrings),
+    "support-app-ids": Parser(\.supportAppIds, parseArrayOfStrings),
+    "meeting-zone": Parser(\.meetingZone, parseNonEmptyString),
+    "support-zone": Parser(\.supportZone, parseNonEmptyString),
+]
+
 func parseFloatingConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> FloatingConfig {
     parseTable(raw, FloatingConfig(), floatingConfigParser, backtrace, &errors)
+}
+
+func parseMeetingConfig(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> MeetingConfig {
+    parseTable(raw, MeetingConfig(), meetingConfigParser, backtrace, &errors)
 }
 
 private func parseOnMonitorChangedArray(_ raw: Json, _ backtrace: ConfigBacktrace, _ errors: inout [ConfigParseError]) -> [MonitorChangedCallback] {
@@ -483,6 +497,15 @@ private func parseZoneNewWindowPolicy(_ raw: Json, _ backtrace: ConfigBacktrace)
         ZoneNewWindowPolicy(rawValue: $0)
             .orFailure(.semantic(backtrace, "Can't parse zones.behavior.new-window '\($0)'. Expected 'append', 'after-focused', or 'append-hidden'"))
     }
+}
+
+private func parseNonEmptyString(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<String> {
+    parseString(raw, backtrace)
+        .filter(.semantic(backtrace, "Must not be empty")) { !$0.isEmpty }
+}
+
+private func parseOptionalNonEmptyString(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<String?> {
+    parseNonEmptyString(raw, backtrace).map(Optional.some)
 }
 
 private func parseZoneWidths(_ raw: Json, _ backtrace: ConfigBacktrace) -> ParsedConfig<[Double]> {

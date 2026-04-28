@@ -182,6 +182,13 @@ include::aerospace-move-workspace-to-monitor.adoc[tags=synopsis]
 include::aerospace-move-workspace-to-monitor.adoc[tags=purpose]
 include::aerospace-move-workspace-to-monitor.adoc[tags=body]
 
+== meeting-mode
+----
+include::aerospace-meeting-mode.adoc[tags=synopsis]
+----
+include::aerospace-meeting-mode.adoc[tags=purpose]
+include::aerospace-meeting-mode.adoc[tags=body]
+
 == reload-config
 ----
 include::aerospace-reload-config.adoc[tags=synopsis]

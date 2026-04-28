@@ -72,6 +72,8 @@ extension CmdArgs {
                 command = MoveNodeToZoneCommand(args: self as! MoveNodeToZoneCmdArgs)
             case .moveWorkspaceToMonitor:
                 command = MoveWorkspaceToMonitorCommand(args: self as! MoveWorkspaceToMonitorCmdArgs)
+            case .meetingMode:
+                command = MeetingModeCommand(args: self as! MeetingModeCmdArgs)
             case .reloadConfig:
                 command = ReloadConfigCommand(args: self as! ReloadConfigCmdArgs)
             case .resize:

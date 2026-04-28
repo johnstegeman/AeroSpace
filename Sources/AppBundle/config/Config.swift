@@ -65,6 +65,7 @@ struct Config: ConvenienceCopyable {
     var onModeChanged: [any Command] = []
     var zones: ZonesConfig = ZonesConfig()
     var zonePresets: [String: ZonePreset] = [:]
+    var meeting: MeetingConfig = MeetingConfig()
     var monitorProfiles: [MonitorProfileRule] = []
     var onMonitorChanged: [MonitorChangedCallback] = []
 }
@@ -94,6 +95,19 @@ enum ZoneNewWindowPolicy: String, Equatable {
 /// A named zone layout preset that can be switched to at runtime via `zone-preset <name>`.
 struct ZonePreset: ConvenienceCopyable {
     var zones: [ZoneDefinition]
+}
+
+struct MeetingConfig: ConvenienceCopyable, Equatable {
+    var preset: String? = nil
+    var workspace: String? = nil
+    var appIds: [String] = []
+    var supportAppIds: [String] = []
+    var meetingZone: String = "center"
+    var supportZone: String = "right"
+
+    var isConfigured: Bool {
+        preset != nil || workspace != nil || !appIds.isEmpty || !supportAppIds.isEmpty
+    }
 }
 
 struct MonitorProfileRule: ConvenienceCopyable, Equatable {

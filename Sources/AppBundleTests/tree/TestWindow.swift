@@ -6,17 +6,31 @@ final class TestWindow: Window, CustomStringConvertible {
     private let customTitle: String?
 
     @MainActor
-    private init(_ id: UInt32, _ parent: NonLeafTreeNodeObject, _ adaptiveWeight: CGFloat, _ rect: Rect?, title: String?) {
+    private init(
+        _ id: UInt32,
+        _ app: any AbstractApp,
+        _ parent: NonLeafTreeNodeObject,
+        _ adaptiveWeight: CGFloat,
+        _ rect: Rect?,
+        title: String?
+    ) {
         _rect = rect
         customTitle = title
-        super.init(id: id, TestApp.shared, lastFloatingSize: nil, parent: parent, adaptiveWeight: adaptiveWeight, index: INDEX_BIND_LAST)
+        super.init(id: id, app, lastFloatingSize: nil, parent: parent, adaptiveWeight: adaptiveWeight, index: INDEX_BIND_LAST)
     }
 
     @discardableResult
     @MainActor
-    static func new(id: UInt32, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat = 1, rect: Rect? = nil, title: String? = nil) -> TestWindow {
-        let wi = TestWindow(id, parent, adaptiveWeight, rect, title: title)
-        TestApp.shared._windows.append(wi)
+    static func new(
+        id: UInt32,
+        parent: NonLeafTreeNodeObject,
+        app: any AbstractApp = TestApp.shared,
+        adaptiveWeight: CGFloat = 1,
+        rect: Rect? = nil,
+        title: String? = nil
+    ) -> TestWindow {
+        let wi = TestWindow(id, app, parent, adaptiveWeight, rect, title: title)
+        (app as? TestApp)?._windows.append(wi)
         return wi
     }
 
@@ -24,8 +38,8 @@ final class TestWindow: Window, CustomStringConvertible {
 
     @MainActor
     override func nativeFocus() {
-        appForTests = TestApp.shared
-        TestApp.shared.focusedWindow = self
+        appForTests = app
+        (app as? TestApp)?.focusedWindow = self
     }
 
     override func closeAxWindow() {

@@ -26,6 +26,7 @@ let subcommandDescriptions = [
     ["  list-zones", "Print zones for the focused workspace"],
     ["  macos-native-fullscreen", "Toggle macOS fullscreen for the focused window"],
     ["  macos-native-minimize", "Minimize focused window"],
+    ["  meeting-mode", "Toggle a temporary meeting layout overlay and restore the prior workspace afterward"],
     ["  mode", "Activate the specified binding mode"],
     ["  move-floating-to-zone", "Reposition the focused window into a named zone while preserving its floating size"],
     ["  move-mouse", "Move mouse to the requested position"],

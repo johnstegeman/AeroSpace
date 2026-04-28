@@ -10,9 +10,9 @@ final class TestApp: AbstractApp {
     @MainActor
     static let shared = TestApp()
 
-    private init() {
+    init(bundleId: String = "bobko.AeroSpace.test-app") {
         self.pid = 0
-        self.rawAppBundleId = "bobko.AeroSpace.test-app"
+        self.rawAppBundleId = bundleId
         self.name = rawAppBundleId
     }
 

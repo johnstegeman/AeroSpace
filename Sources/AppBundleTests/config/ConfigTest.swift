@@ -599,6 +599,48 @@ final class ConfigTest: XCTestCase {
         assertEquals(missingRunErrors, ["on-monitor-changed[0]: 'run' is mandatory in [[on-monitor-changed]]"])
     }
 
+    func testParseMeetingConfig() {
+        let (config, errors) = parseConfig(
+            """
+            [meeting]
+            preset = 'meeting'
+            workspace = '1'
+            app-ids = ['app.dia', 'us.zoom.xos']
+            support-app-ids = ['com.granolaapp.granola']
+            meeting-zone = 'center'
+            support-zone = 'right'
+            """,
+        )
+        assertEquals(errors, [])
+        assertEquals(
+            config.meeting,
+            MeetingConfig(
+                preset: "meeting",
+                workspace: "1",
+                appIds: ["app.dia", "us.zoom.xos"],
+                supportAppIds: ["com.granolaapp.granola"],
+                meetingZone: "center",
+                supportZone: "right"
+            )
+        )
+    }
+
+    func testParseMeetingConfigRejectsEmptyStrings() {
+        let (_, errors) = parseConfig(
+            """
+            [meeting]
+            preset = ''
+            workspace = ''
+            meeting-zone = ''
+            """,
+        )
+        assertEquals(errors, [
+            "meeting.meeting-zone: Must not be empty",
+            "meeting.preset: Must not be empty",
+            "meeting.workspace: Must not be empty",
+        ])
+    }
+
     func testParseKeyMapping() {
         let (config, errors) = parseConfig(
             """
